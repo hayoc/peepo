@@ -12,5 +12,5 @@ setup(
     description='Personhood through Predictive Processing.',
     long_description=open('README.rst').read(),
     install_requires=[
-    ],
+        'scipy', 'numpy',],
 )
