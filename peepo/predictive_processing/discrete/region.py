@@ -96,3 +96,9 @@ class Region:
             self.hyp[idx] = (hyp * self.lm.item((e, idx))) / mrglik
 
         logging.debug('PP [%s] Posterior: %s', self.name, str(self.hyp.tolist()))
+
+    def setHyp(self, hyp):
+        self.hyp = np.copy(hyp)
+
+    def getHyp(self):
+        return np.copy(self.hyp)

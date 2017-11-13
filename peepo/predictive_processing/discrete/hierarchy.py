@@ -6,19 +6,64 @@ from peepo.predictive_processing.discrete.region import Region
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
 
-th = 0.5
-lm = np.matrix([[0.8, 0.1],
-                [0.2, 0.9]])
 
-hyp = np.array([0.0, 1.0])
 
 act = np.array([0.9, 0.1])
+actls = np.array([0.3, 0.7])
 
-region = Region(lm, hyp=hyp, th=0.1, name='dangsaf')
+dangsafe = Region(np.matrix([[0.3, 0.8],
+                             [0.7, 0.2]]), name='dangsafe')
+redgreen = Region(np.matrix([[0.8, 0.1],
+                             [0.2, 0.9]]), name='redgreen')
+loudsoft = Region(np.matrix([[0.7, 0.4],
+                             [0.3, 0.6]]), name='loudsoft')
 
-if region.error(region.predict(), act):
-    region.update(act)
+savforesthyp = np.array([0.8, 0.2])
+dangsafe.setHyp(savforesthyp)
+dangsafehyp = dangsafe.predict()
+redgreen.setHyp(dangsafehyp)
+redgreenhyp = redgreen.predict()
+loudsoft.setHyp(dangsafehyp)
+loudsofthyp = loudsoft.predict()
 
+if loudsoft.error(loudsofthyp, actls):
+    loudsoft.update(actls)
+if redgreen.error(redgreenhyp, act):
+    redgreen.update(act)
+if dangsafe.error(dangsafehyp, redgreen.getHyp()):
+    dangsafe.update(redgreen.getHyp())
+
+logging.info("------------------------------")
+savforesthyp = dangsafe.getHyp()
+dangsafe.setHyp(savforesthyp)
+dangsafehyp = dangsafe.predict()
+redgreen.setHyp(dangsafehyp)
+redgreenhyp = redgreen.predict()
+loudsoft.setHyp(dangsafehyp)
+loudsofthyp = loudsoft.predict()
+
+if loudsoft.error(loudsofthyp, actls):
+    loudsoft.update(actls)
+if redgreen.error(redgreenhyp, act):
+    redgreen.update(act)
+if dangsafe.error(dangsafehyp, redgreen.getHyp()):
+    dangsafe.update(redgreen.getHyp())
+
+logging.info("------------------------------")
+savforesthyp = dangsafe.getHyp()
+dangsafe.setHyp(savforesthyp)
+dangsafehyp = dangsafe.predict()
+redgreen.setHyp(dangsafehyp)
+redgreenhyp = redgreen.predict()
+loudsoft.setHyp(dangsafehyp)
+loudsofthyp = loudsoft.predict()
+
+if loudsoft.error(loudsofthyp, actls):
+    loudsoft.update(actls)
+if redgreen.error(redgreenhyp, act):
+    redgreen.update(act)
+if dangsafe.error(dangsafehyp, redgreen.getHyp()):
+    dangsafe.update(redgreen.getHyp())
 
 class Hierarchy:
 
