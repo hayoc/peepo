@@ -7,7 +7,6 @@ logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
 
 
-
 act = np.array([0.9, 0.1])
 actls = np.array([0.3, 0.7])
 
@@ -65,10 +64,32 @@ if redgreen.error(redgreenhyp, act):
 if dangsafe.error(dangsafehyp, redgreen.getHyp()):
     dangsafe.update(redgreen.getHyp())
 
+
+graph = {
+    'A': ['B', 'C'],
+    'B': [],
+    'C': []
+}
+
+regions = {'A': Region(np.matrix([[0.3, 0.8], [0.7, 0.2]]), name='A'),
+           'B': Region(np.matrix([[0.8, 0.1], [0.2, 0.9]]), name='B'),
+           'C': Region(np.matrix([[0.7, 0.4], [0.3, 0.6]]), name='C')}
+
 class Hierarchy:
 
-    def __init__(self):
-        pass
+    def __init__(self, graph, regions, par, parhyp):
+        self.graph = graph
+        self.regions = regions
+        self.parent = par
+        self.regions.get(par).setHyp(parhyp)
 
     def start(self):
-        pass
+        topregion = regions.get(self.parent)
+        tophyp = topregion.predict()
+
+        children = self.graph.get(self.parent)
+        for child in children:
+            child.setHyp(tophyp)
+
+
+
