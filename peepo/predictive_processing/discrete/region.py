@@ -102,3 +102,10 @@ class Region:
 
     def getHyp(self):
         return np.copy(self.hyp)
+
+    def __str__(self):
+        return 'Region ' + self.name
+
+    def __repr__(self):
+        s = 'discrete.region({}, {}, {}, {})'.format(str(self.lm.tolist()), str(self.hyp), self.th, self.name)
+        return s

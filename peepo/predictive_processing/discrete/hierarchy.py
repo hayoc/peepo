@@ -29,11 +29,13 @@ class Hierarchy:
         if not children:
             input = self.inputs.get(name)
             if node.error(hyp, input):
-                self.error_flow(node, input, ancestors)
+                logging.info('Theres an error in ' + name)
+                logging.info('With tree: ' + ", ".join([str(anc) for anc in ancestors]))
+                #self.error_flow(node, input, ancestors)
         else:
             for child in children:
                 childnode = regions.get(child)
-                self.predict_flow(childnode, pred, ancestors)
+                self.predict_flow(childnode, pred, list(ancestors))
 
     def error_flow(self, node, input, ancestors):
         logging.info("Error flow: " + node.__getattribute__('name'))
@@ -53,7 +55,7 @@ graph = {
 
 act = {
     'B': np.array([0.9, 0.1]),
-    'C': np.array([0.2, 0.8])
+    'C': np.array([0.8, 0.2])
 }
 
 regions = {'A': Region(np.matrix([[0.3, 0.8], [0.7, 0.2]]), hyp=np.array([0.9, 0.1]), name='A'),
