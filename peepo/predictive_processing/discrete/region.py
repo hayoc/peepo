@@ -65,7 +65,6 @@ class Region:
         :type prd: numpy.array
         :type act: numpy.array
         :rtype Boolean
-
         """
 
         dkl = entropy(prd, act)
@@ -78,7 +77,7 @@ class Region:
         """
         Given the actual values (E), the hypotheses (H) of the region (posterior)
          are updated using Bayesian Updating.
-         P(H|E) = (P(E|H) * P(H))/P(E)
+         P(H|E) = (P(H) * P(E|H))/P(E)
 
         :param act: Array of Actual Values (E)
 

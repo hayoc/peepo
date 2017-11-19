@@ -1,66 +1,99 @@
-import numpy as np
-import logging
-
-from peepo.predictive_processing.discrete.region import Region
-
-logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
-
 class Hierarchy:
-
     def __init__(self, graph, regions, inputs):
+        """
+        Predictive Processing Hierarchy:
+
+        :param graph: Graph structure of the Hiearchy. Should contain
+         one reserved name 'root' to indicate the root nodes. E.g.:
+         graph = {
+            'root': ['A'],
+            'A': ['B', 'C'],
+            'B': [],
+            'C': []
+         }
+
+        :param regions: Dict of Region objects, identified by name.
+
+        :param inputs: Values of the actual inputs.
+         The PP Hierarchy will try to resolve any mismatch that
+         exists between its predictions and the actual inputs.
+         Can be likened to input from the lowest regions in our body,
+         e.g. retina input.
+
+        :type graph: dict
+        :type regions: dict
+        :type inputs: dict
+        """
         self.graph = graph
         self.regions = regions
         self.inputs = inputs
         self.rootnames = graph.get('root')
+        self.maxiter = 10
 
     def start(self):
+        """
+        Initiates the flow through the PP Hierarchy
+        """
         for rootname in self.rootnames:
             root = self.regions.get(rootname)
-            self.predict_flow(root, root.getHyp(), [])
+            self.flow(root, root.getHyp(), [])
 
-    def predict_flow(self, node, hyp, ancestors):
-        ancestors.append(node)
+    def flow(self, node, hyp, anc):
+        """
+        Flows through the whole PP Hierarchy. Passing the predictions
+        of the current node to its child node as its hypotheses.
+        If a node has no children left, then the resolve flow is initiated,
+        in case there are any prediction errors to resolve.
+
+        :param node: Region node for which to calculate predictions.
+
+        :param hyp: Hypotheses for current Region node. Given by either
+         the parent node predictions or as manual input (for the root nodes).
+
+        :param anc: List of ancestor nodes that should be tracked in order to
+         resolve the errors in a bottom node.
+
+        :type node: Region
+        :type hyp: numpy.array
+        :type anc: list
+        """
         node.setHyp(hyp)
         name = node.__getattribute__('name')
         pred = node.predict()
         children = self.graph.get(name)
 
-        if not children:
-            input = self.inputs.get(name)
-            if node.error(hyp, input):
-                logging.info('Theres an error in ' + name)
-                logging.info('With tree: ' + ", ".join([str(anc) for anc in ancestors]))
-                #self.error_flow(node, input, ancestors)
-        else:
+        if children:
+            anc.append(node)
             for child in children:
-                childnode = regions.get(child)
-                self.predict_flow(childnode, pred, list(ancestors))
+                self.flow(self.regions.get(child), pred, list(anc))
+        else:
+            self.resolve(node, pred, self.inputs.get(name), anc)
 
-    def error_flow(self, node, input, ancestors):
-        logging.info("Error flow: " + node.__getattribute__('name'))
+    def resolve(self, node, pred, input, anc):
+        """
+        Works through the list of passed ancestors in case a bottom node
+        has a prediction error, resolving the errors one by one, moving
+        upwards through the ancestor list.
 
-        node.update(input)
-        if ancestors:
-            self.error_flow(ancestors.pop(), node.getHyp(), ancestors)
+        :param node: Region node for which to correct errors if any.
 
+        :param pred: Array of predicted values.
 
+        :param input: Array of actual values.
 
-graph = {
-    'root': ['A'],
-    'A': ['B', 'C'],
-    'B': [],
-    'C': []
-}
+        :param anc: List of ancestor nodes to work upward through in case
+         of a bottom node error.
 
-act = {
-    'B': np.array([0.9, 0.1]),
-    'C': np.array([0.8, 0.2])
-}
-
-regions = {'A': Region(np.matrix([[0.3, 0.8], [0.7, 0.2]]), hyp=np.array([0.9, 0.1]), name='A'),
-           'B': Region(np.matrix([[0.8, 0.1], [0.2, 0.9]]), name='B'),
-           'C': Region(np.matrix([[0.7, 0.4], [0.3, 0.6]]), name='C')}
-
-h = Hierarchy(graph, regions, act)
-h.start()
+        :type node: Region
+        :type pred: numpy.array
+        :type input: numpy.array
+        :type anc: list
+        """
+        if node.error(pred, input):
+            for x in range(0, self.maxiter):
+                node.update(input)
+                if not node.error(node.predict(), input):
+                    break
+            if anc:
+                parent = anc.pop()
+                self.resolve(parent, parent.predict(), node.getHyp(), anc)
