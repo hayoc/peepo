@@ -32,6 +32,8 @@ class Region:
         self.hyp = np.full(self.numhyp, 0.5) if hyp is None else hyp
         self.th = th
         self.name = name
+        self.nonzero = 0.00001
+        self.validate()
 
     def predict(self):
         """
@@ -87,14 +89,50 @@ class Region:
 
         mrglik = 0
         for idx, hyp in enumerate(self.hyp):
-            mrglik += hyp * self.lm.item((e, idx))
+            hyp = self.nonzero if hyp == 0 else hyp
+            lik = self.nonzero if self.lm.item((e, idx)) == 0 else self.lm.item((e, idx))
+            mrglik += hyp * lik
 
         logging.debug('PP [%s] Prior: %s', self.name, str(self.hyp.tolist()))
 
         for idx, hyp in enumerate(self.hyp):
-            self.hyp[idx] = (hyp * self.lm.item((e, idx))) / mrglik
+            hyp = self.nonzero if hyp == 0 else hyp
+            lik = self.nonzero if self.lm.item((e, idx)) == 0 else self.lm.item((e, idx))
+            self.hyp[idx] = (hyp * lik) / mrglik
 
         logging.debug('PP [%s] Posterior: %s', self.name, str(self.hyp.tolist()))
+
+    def validate(self):
+        zeros = []
+        ones = []
+
+        for idx, hyp in enumerate(self.hyp):
+            if hyp == 0:
+                zeros.append(idx)
+            elif hyp == 1:
+                ones.append(idx)
+
+        if len(zeros) == len(ones):
+            for idx in zeros:
+                self.hyp[idx] = self.hyp[idx] + self.nonzero
+            for idx in ones:
+                self.hyp[idx] = self.hyp[idx] - self.nonzero
+        elif zeros:
+            for idx in zeros:
+                self.hyp[idx] = self.hyp[idx] + self.nonzero
+                if idx > 0 and idx - 1 not in zeros:
+                    self.hyp[idx - 1] = self.hyp[idx - 1] - self.nonzero
+                else:
+                    for x in range(0, len(self.hyp)):
+                        if idx + x not in zeros:
+                            self.hyp[idx + x] = self.hyp[idx + x] - self.nonzero
+                            break
+
+        sum = 0
+        for hyp in self.hyp:
+            sum += hyp
+        if not sum == 1.0:
+            logging.error('Hypothesis Distribution must add up to 1.0! Found: ' + str(sum))
 
     def setHyp(self, hyp):
         self.hyp = np.copy(hyp)
