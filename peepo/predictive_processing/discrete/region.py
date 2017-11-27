@@ -114,18 +114,18 @@ class Region:
 
         if len(zeros) == len(ones):
             for idx in zeros:
-                self.hyp[idx] = self.hyp[idx] + self.nonzero
+                self.hyp[idx] += self.nonzero
             for idx in ones:
-                self.hyp[idx] = self.hyp[idx] - self.nonzero
+                self.hyp[idx] -= self.nonzero
         elif zeros:
             for idx in zeros:
-                self.hyp[idx] = self.hyp[idx] + self.nonzero
+                self.hyp[idx] += self.nonzero
                 if idx > 0 and idx - 1 not in zeros:
-                    self.hyp[idx - 1] = self.hyp[idx - 1] - self.nonzero
+                    self.hyp[idx - 1] -= self.nonzero
                 else:
                     for x in range(0, len(self.hyp)):
                         if idx + x not in zeros:
-                            self.hyp[idx + x] = self.hyp[idx + x] - self.nonzero
+                            self.hyp[idx + x] -= self.nonzero
                             break
 
         sum = 0
