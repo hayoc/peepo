@@ -13,6 +13,12 @@ logging.getLogger().setLevel(logging.DEBUG)
 ================================== EXAMPLE =======================================
 ==================================================================================
 ==================================================================================
+
+Notes
+
+Add the possibility of having multiple hypothesis regions, e.g. savannah-forest affect
+danger-safety, but also foggy-clear. We can combine them by taking the averages of each
+node in each region, e.g. 9-1 and 8-2 -> 8.5-1.5
 """
 graph = {
     'root': ['A'],
