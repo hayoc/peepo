@@ -2,6 +2,7 @@ import numpy as np
 import logging
 
 from peepo.predictive_processing.discrete.hierarchy import Hierarchy
+from peepo.predictive_processing.discrete.level import Level
 from peepo.predictive_processing.discrete.region import Region
 
 logging.basicConfig()
@@ -20,8 +21,13 @@ Add the possibility of having multiple hypothesis regions, e.g. savannah-forest 
 danger-safety, but also foggy-clear. We can combine them by taking the averages of each
 node in each region, e.g. 9-1 and 8-2 -> 8.5-1.5
 """
+
+levels = [
+    Level(0, ['A']),
+    Level(1, ['B', 'C'])
+]
+
 graph = {
-    'root': ['A'],
     'A': ['B', 'C'],
     'B': [],
     'C': []
