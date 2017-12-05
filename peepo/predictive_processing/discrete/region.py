@@ -5,13 +5,14 @@ from scipy.stats import entropy
 
 
 class Region:
-
-    def __init__(self, lm, hyp=None, th=0.1, name=uuid.uuid4()):
+    def __init__(self, lm, parents=None, children=None, hyp=None, th=0.1, name=uuid.uuid4()):
         """
         Predictive Processing Region:
 
         :param lm: Likelihood matrix containing the likelihoods
          for all predictions given hypotheses.
+
+        :param children: List of child Regions.
 
         :param hyp: Optional list of hypothesis values to start with.
          Length must match column length of param lm.
@@ -27,6 +28,8 @@ class Region:
         """
 
         self.lm = lm
+        self.parents = parents
+        self.children = children
         self.numprd = lm.shape[0]
         self.numhyp = lm.shape[1]
         self.hyp = np.full(self.numhyp, 0.5) if hyp is None else hyp
