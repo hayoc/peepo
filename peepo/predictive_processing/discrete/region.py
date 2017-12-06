@@ -5,7 +5,7 @@ from scipy.stats import entropy
 
 
 class Region:
-    def __init__(self, lm, parents=None, children=None, hyp=None, th=0.1, name=uuid.uuid4()):
+    def __init__(self, lm, children=[], th=0.1, name=uuid.uuid4()):
         """
         Predictive Processing Region:
 
@@ -14,29 +14,25 @@ class Region:
 
         :param children: List of child Regions.
 
-        :param hyp: Optional list of hypothesis values to start with.
-         Length must match column length of param lm.
-
         :param th: Threshold for prediction error calculation.
 
         :param name: Unique identifier for Region, for debugging/logging purposes.
 
         :type lm: numpy.matrix
-        :type hyp: numpy.array
+        :type children: list
         :type th: float
         :type name: str
         """
 
         self.lm = lm
-        self.parents = parents
         self.children = children
+        self.hyps = {}
+        self.hyp = None
         self.numprd = lm.shape[0]
         self.numhyp = lm.shape[1]
-        self.hyp = np.full(self.numhyp, 0.5) if hyp is None else hyp
         self.th = th
         self.name = name
         self.nonzero = 0.00001
-        self.validate()
 
     def predict(self):
         """
@@ -137,8 +133,10 @@ class Region:
         if not sum == 1.0:
             logging.error('Hypothesis Distribution must add up to 1.0! Found: ' + str(sum))
 
-    def setHyp(self, hyp):
-        self.hyp = np.copy(hyp)
+    def setHyp(self, name, hyp):
+        self.hyps[name] = hyp
+        self.hyp = np.sum(list(self.hyps.values()), axis=0) / len(self.hyps)
+        self.validate()
 
     def getHyp(self):
         return np.copy(self.hyp)

@@ -8,19 +8,23 @@ class Module:
         self.levels.sort(key=lambda x: x.index)
 
     def predict_flow(self):
+        if self.iter < 10:
+            self.iter += 1
+        else:
+            logging.error('Max iterations reached. Aborting')
+            return
+
+        logging.debug("---------- PREDICT FLOW --------------")
+
         for level in self.levels:
             for region in level.regions:
                 pred = region.predict()
-                children = region.children
-                if children:
-                    for child in children:
-                        child.setHyp(pred)
+                for child in region.children:
+                    child.setHyp(region.name, pred)
 
-        if self.iter < 10:
-            self.iter += 1
-            self.error_flow()
-        else:
-            logging.error('Max iterations reached. Aborting')
+        logging.debug("---------- ERROR FLOW --------------")
+        self.error_flow()
+
 
     def error_flow(self):
         lowest = True
