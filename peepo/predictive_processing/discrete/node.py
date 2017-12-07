@@ -49,7 +49,7 @@ class Node:
 
         return self.lm[:, idx].A1
 
-    def error(self, prd, si, key=None):
+    def error(self, prd, act, key=None):
         """
         Prediction Error Calculation Step in Predictive Processing.
          Given the predicted and actual values, the Kullback-Leibler
@@ -58,7 +58,7 @@ class Node:
 
         :param prd: Predicted values.
 
-        :param si: Actual values.
+        :param act: Actual values (sensory input, or hypotheses from child region).
 
         :param key: Optional String key to find the input in SensoryInput class
 
@@ -66,31 +66,31 @@ class Node:
          be updated or not.
 
         :type prd: numpy.array
-        :type si: numpy.array
+        :type act: numpy.array
         :type key: str
         :rtype Boolean
         """
-        si = si if key is None else si.vals[key]
+        act = act if key is None else act.vals[key]
 
-        dkl = entropy(prd, si)
+        dkl = entropy(prd, act)
 
         logging.debug('PP [%s] Error: %s', self.name, str(dkl))
 
         return dkl > self.th
 
-    def update(self, si, key=None):
+    def update(self, act, key=None):
         """
         Given the actual values (E), the hypotheses (H) of the node (posterior)
          are updated using Bayesian Updating.
          P(H|E) = (P(H) * P(E|H))/P(E)
 
-        :param si: Array of (Sensory Input) Actual Values (E)
+        :param act: Array of (Sensory Input/Child hypotheses) Actual Values (E)
         :param key: Optional String key to find the input in SensoryInput class
         """
 
-        si = si if key is None else si.vals[key]
+        act = act if key is None else act.vals[key]
 
-        e = np.argmax(si)
+        e = np.argmax(act)
 
         mrglik = 0
         for idx, hyp in enumerate(self.hyp):
@@ -108,6 +108,12 @@ class Node:
         logging.debug('PP [%s] Posterior: %s', self.name, str(self.hyp.tolist()))
 
     def validate(self):
+        """
+        Validates the Node Hypotheses.
+         Alters the hypothesis values slightly in case one or more
+         hypotheses are 0.0 or 1.0.
+         Hypothesis values must add op to 1.0.
+        """
         zeros = []
         ones = []
 
@@ -140,6 +146,18 @@ class Node:
             logging.error('Hypothesis Distribution must add up to 1.0! Found: ' + str(sum))
 
     def setHyp(self, name, hyp):
+        """
+        Adds an array of hypotheses to the dictionary of hypothesis nodes.
+         In case a node has multiple parents, the hypothesis of the current
+         node is calculated by averaging over the predictions of all the
+         parent nodes.
+
+        :param name: Name of parent node for which to add predictions
+        :param hyp: Array of predictions from parent node
+
+        :type name: str
+        :type hyp: numpy.matrix
+        """
         self.hyps[name] = hyp
         self.hyp = np.sum(list(self.hyps.values()), axis=0) / len(self.hyps)
         self.validate()
