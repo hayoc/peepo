@@ -1,14 +1,12 @@
 import numpy as np
 import logging
 
-from peepo.predictive_processing.discrete.hierarchy import Hierarchy
 from peepo.predictive_processing.discrete.sensory_input import SensoryInput
 from peepo.predictive_processing.discrete.level import Level
 from peepo.predictive_processing.discrete.module import Module
 from peepo.predictive_processing.discrete.node import Node
 from peepo.predictive_processing.discrete.node_exteroceptive import NodeExteroceptive
 from peepo.predictive_processing.discrete.node_proprioceptive import NodeProprioceptive
-from peepo.predictive_processing.discrete.region import Region
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
@@ -22,9 +20,9 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 Notes
 
-- Add the possibility of having multiple hypothesis regions, e.g. savannah-forest affect
+- Add the possibility of having multiple hypothesis nodes, e.g. savannah-forest affect
 danger-safety, but also foggy-clear. We can combine them by taking the averages of each
-node in each region, e.g. 9-1 and 8-2 -> 8.5-1.5
+node in each node, e.g. 9-1 and 8-2 -> 8.5-1.5
 DONE
 
 - Add changing precision: either through threshold or weight in updating hypos

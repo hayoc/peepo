@@ -12,11 +12,11 @@ class Node:
         :param lm: Likelihood matrix containing the likelihoods
          for all predictions given hypotheses.
 
-        :param children: List of child Regions.
+        :param children: List of child Nodes.
 
         :param th: Threshold for prediction error calculation.
 
-        :param name: Unique identifier for Region, for debugging/logging purposes.
+        :param name: Unique identifier for Node, for debugging/logging purposes.
 
         :type lm: numpy.matrix
         :type children: list
@@ -80,7 +80,7 @@ class Node:
 
     def update(self, si, key=None):
         """
-        Given the actual values (E), the hypotheses (H) of the region (posterior)
+        Given the actual values (E), the hypotheses (H) of the node (posterior)
          are updated using Bayesian Updating.
          P(H|E) = (P(H) * P(E|H))/P(E)
 
@@ -148,8 +148,8 @@ class Node:
         return np.copy(self.hyp)
 
     def __str__(self):
-        return 'Region ' + self.name
+        return 'Node ' + self.name
 
     def __repr__(self):
-        s = 'discrete.region({}, {}, {}, {})'.format(str(self.lm.tolist()), str(self.hyp), self.th, self.name)
+        s = 'discrete.node({}, {}, {}, {})'.format(str(self.lm.tolist()), str(self.hyp), self.th, self.name)
         return s

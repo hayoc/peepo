@@ -5,7 +5,7 @@ class Level:
 
         :param index: Index number of level in Module Hierarchy.
 
-        :param nodes: List of Region objects.
+        :param nodes: List of Node objects.
 
         :type index: int
         :type nodes: list
