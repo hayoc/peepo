@@ -1,11 +1,11 @@
 import logging
 
 class Module:
-    def __init__(self, levels, inputs):
-        self.levels = levels
-        self.inputs = inputs
+    def __init__(self, lvls, si):
+        self.lvls = lvls
+        self.si = si
         self.iter = 0
-        self.levels.sort(key=lambda x: x.index)
+        self.lvls.sort(key=lambda x: x.index)
 
     def predict_flow(self):
         if self.iter < 10:
@@ -16,33 +16,32 @@ class Module:
 
         logging.debug("---------- PREDICT FLOW --------------")
 
-        for level in self.levels:
-            for region in level.regions:
-                pred = region.predict()
-                for child in region.children:
-                    child.setHyp(region.name, pred)
+        for level in self.lvls:
+            for node in level.nodes:
+                pred = node.predict()
+                for child in node.children:
+                    child.setHyp(node.name, pred)
 
-        logging.debug("---------- ERROR FLOW --------------")
         self.error_flow()
 
-
     def error_flow(self):
+        logging.debug("---------- ERROR FLOW --------------")
+
         lowest = True
         error = False
 
-        for level in reversed(self.levels):
+        for level in reversed(self.lvls):
             if not lowest and not error:
                 return
-            for region in level.regions:
+            for node in level.nodes:
                 if lowest:
-                    for actual in self.inputs[region.name]:
-                        if region.error(region.predict(), actual):
-                            error = True
-                            region.update(actual)
+                    if node.error(node.predict(), self.si, node.name):
+                        error = True
+                        node.update(self.si, node.name)
                 else:
-                    for child in region.children:
-                        if region.error(region.predict(), child.hyp):
+                    for child in node.children:
+                        if node.error(node.predict(), child.hyp):
                             error = True
-                            region.update(child.hyp)
+                            node.update(child.hyp)
             lowest = False
         self.predict_flow()

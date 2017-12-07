@@ -1,20 +1,20 @@
 class Level:
-    def __init__(self, index, regions):
+    def __init__(self, index, nodes):
         """
         Predictive Processing Level:
 
         :param index: Index number of level in Module Hierarchy.
 
-        :param regions: List of Region objects.
+        :param nodes: List of Region objects.
 
         :type index: int
-        :type regions: list
+        :type nodes: list
         """
         self.index = index
-        self.regions = regions
+        self.nodes = nodes
 
     def __str__(self):
         return 'Level ' + str(self.index)
 
     def __repr__(self):
-        return 'discrete.level({}, {})'.format(str(self.index), str(self.regions))
+        return 'discrete.level({}, {})'.format(str(self.index), str(self.nodes))
