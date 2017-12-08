@@ -1,5 +1,6 @@
 import logging
 
+
 class Module:
     def __init__(self, lvls, si):
         self.lvls = lvls
@@ -18,9 +19,10 @@ class Module:
 
         for level in self.lvls:
             for node in level.nodes:
-                pred = node.predict()
+                pred, th = node.predict()
                 for child in node.children:
                     child.setHyp(node.name, pred)
+                    child.th = th
 
         self.error_flow()
 
@@ -35,12 +37,12 @@ class Module:
                 return
             for node in level.nodes:
                 if lowest:
-                    if node.error(node.predict(), self.si, node.name):
+                    if node.error(node.predict()[0], self.si, node.name):
                         error = True
                         node.update(self.si, node.name)
                 else:
                     for child in node.children:
-                        if node.error(node.predict(), child.hyp):
+                        if node.error(node.predict()[0], child.hyp):
                             error = True
                             node.update(child.hyp)
             lowest = False

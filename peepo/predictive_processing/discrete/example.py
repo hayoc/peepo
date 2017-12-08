@@ -34,15 +34,17 @@ DONE
 A = Node(np.matrix([[0.3, 0.8], [0.7, 0.2]]), name='A')
 B = NodeExteroceptive(np.matrix([[0.9, 0.1], [0.1, 0.9]]), name='B')
 C = NodeProprioceptive(np.matrix([[0.7, 0.4], [0.3, 0.6]]), name='C')
-# D = Node(np.matrix([[0.7, 0.4], [0.3, 0.6]]), name='D')
-# E = Node(np.matrix([[0.9, 0.4], [0.1, 0.6]]), name='E')
+D = Node(np.matrix([[0.3, 0.8], [0.7, 0.2]]), th=0.01, name='D')
+E = Node(np.matrix([[0.3, 0.8], [0.7, 0.2]]), th=0.2, name='E')
 A.setHyp('X', np.array([0.1, 0.9]))
 A.children = [B, C]
-# B.children = [C]
-# C.children = [D, E]
+D.setHyp('Z', np.array([0.1, 0.9]))
+D.children = [C]
+E.setHyp('Y', np.array([0.1, 0.9]))
+E.children = [B]
 
 levels = [
-    Level(0, [A]),
+    Level(0, [A, D]),
     Level(1, [B, C])
 ]
 
@@ -53,22 +55,3 @@ si = SensoryInput({
 
 mod = Module(levels, si)
 mod.predict_flow()
-#
-# graph = {
-#     'root': ['A'],
-#     'A': ['B', 'C'],
-#     'B': [],
-#     'C': []
-# }
-#
-# act = {
-#     'B': np.array([0.1, 0.9]),
-#     'C': np.array([0.4, 0.6])
-# }
-#
-# regions = {'A': Region(np.matrix([[0.3, 0.8], [0.7, 0.2]]), hyp=np.array([0.1, 0.9]), name='A'),
-#            'B': Region(np.matrix([[0.9, 0.1], [0.1, 0.9]]), name='B'),
-#            'C': Region(np.matrix([[0.7, 0.4], [0.3, 0.6]]), name='C')}
-#
-# h = Hierarchy(graph, regions, act)
-# h.start()

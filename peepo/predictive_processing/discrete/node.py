@@ -40,14 +40,14 @@ class Node:
          Based on the Likelihood Matrix and the values of the hypotheses,
          a prediction is returned.
 
-        :return: Array of Predictions.
-        :rtype: numpy.array
+        :return: Array of Predictions, threshold of the node
+        :rtype: numpy.array, float
         """
         idx = np.argmax(self.hyp)
 
         logging.debug('PP [%s] Prediction: %s', self.name, str(self.lm[:, idx].A1.tolist()))
 
-        return self.lm[:, idx].A1
+        return self.lm[:, idx].A1, self.th
 
     def error(self, prd, act, key=None):
         """
@@ -156,7 +156,7 @@ class Node:
         :param hyp: Array of predictions from parent node
 
         :type name: str
-        :type hyp: numpy.matrix
+        :type hyp: numpy.array
         """
         self.hyps[name] = hyp
         self.hyp = np.sum(list(self.hyps.values()), axis=0) / len(self.hyps)
