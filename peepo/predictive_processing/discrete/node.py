@@ -72,7 +72,7 @@ class Node:
         """
         act = act if key is None else act.vals[key]
 
-        dkl = entropy(prd, act)
+        dkl = entropy(np.around(prd, decimals=10), np.around(act, decimals=10))
 
         logging.debug('PP [%s] Error: %s', self.name, str(dkl))
 
