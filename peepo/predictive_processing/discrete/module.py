@@ -9,7 +9,8 @@ class Module:
         self.lvls.sort(key=lambda x: x.index)
 
     def run(self):
-        self.predict_flow()
+        while True:
+            self.predict_flow()
 
     def predict_flow(self):
         if self.iter < 10:
