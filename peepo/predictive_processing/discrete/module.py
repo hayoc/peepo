@@ -2,11 +2,14 @@ import logging
 
 
 class Module:
-    def __init__(self, lvls, si):
-        self.lvls = lvls
-        self.si = si
+    def __init__(self, levels, actual):
+        self.lvls = levels
+        self.act = actual
         self.iter = 0
         self.lvls.sort(key=lambda x: x.index)
+
+    def run(self):
+        self.predict_flow()
 
     def predict_flow(self):
         if self.iter < 10:
@@ -19,10 +22,9 @@ class Module:
 
         for level in self.lvls:
             for node in level.nodes:
-                pred, th = node.predict()
+                pred = node.predict()
                 for child in node.children:
                     child.setHyp(node.name, pred)
-                    child.th = th
 
         self.error_flow()
 
@@ -37,12 +39,12 @@ class Module:
                 return
             for node in level.nodes:
                 if lowest:
-                    if node.error(node.predict()[0], self.si, node.name):
+                    if node.error(node.predict(), self.act[node.name]):
                         error = True
-                        node.update(self.si, node.name)
+                        node.update(self.act)
                 else:
                     for child in node.children:
-                        if node.error(node.predict()[0], child.hyp):
+                        if node.error(node.predict(), child.hyp):
                             error = True
                             node.update(child.hyp)
             lowest = False
