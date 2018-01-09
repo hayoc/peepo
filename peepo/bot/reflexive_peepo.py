@@ -75,10 +75,8 @@ mod_moving = Module(levels_mov, actuals_mov)
 ===========================================
 """
 
-peepo_bot.set_infrared(ao)
-peepo_bot.set_moving(am)
-
 if __name__ == '__main__':
+    logging.info("Initializing processes...")
     p1 = Process(target=mod_obstacles.run())
     p2 = Process(target=mod_moving.run())
     p1.start()
