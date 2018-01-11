@@ -1,8 +1,13 @@
 import logging
-
+import time
 
 class Module:
     def __init__(self, levels, actual):
+        """
+
+        :param levels:
+        :param actual: Can be np.array or function
+        """
         self.lvls = levels
         self.act = actual
         self.iter = 0
@@ -11,6 +16,8 @@ class Module:
     def run(self):
         while True:
             self.predict_flow()
+            self.iter = 0
+            time.sleep(5)
 
     def predict_flow(self):
         if self.iter < 10:
@@ -19,7 +26,7 @@ class Module:
             logging.error('Max iterations reached. Aborting')
             return
 
-        logging.debug("---------- PREDICT FLOW --------------")
+        # logging.debug("---------- PREDICT FLOW --------------")
 
         for level in self.lvls:
             for node in level.nodes:
@@ -30,7 +37,7 @@ class Module:
         self.error_flow()
 
     def error_flow(self):
-        logging.debug("---------- ERROR FLOW --------------")
+        # logging.debug("---------- ERROR FLOW --------------")
 
         lowest = True
         error = False
@@ -40,9 +47,10 @@ class Module:
                 return
             for node in level.nodes:
                 if lowest:
-                    if node.error(node.predict(), self.act[node.name]):
+                    actuals = self.act() if callable(self.act) else self.act[node.name]
+                    if node.error(node.predict(), actuals):
                         error = True
-                        node.update(self.act)
+                        node.update(actuals)
                 else:
                     for child in node.children:
                         if node.error(node.predict(), child.hyp):

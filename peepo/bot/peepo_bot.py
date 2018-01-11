@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 import ev3dev.ev3 as ev3
-
+import numpy as np
+import logging
 
 class Peepo:
 
@@ -15,10 +16,19 @@ class Peepo:
         self.infrared.mode = 'IR-PROX'
 
     def vision(self):
-        return self.infrared.value()
+        value = self.infrared.value()
+        logging.info("PEEPO VISION: " + str(value))
+        # return [OBSTACLE NO] if val > 30 else [OBSTACLE YES]
+        return np.array([0.1, 0.9]) if value > 30 else np.array([0.9, 0.1])
 
     def touch(self):
         return self.touching.value()
+
+    def movement(self):
+        speed = self.driving.count_per_rot
+        logging.info("PEEPO SPEED: " + str(speed))
+        # return [MOVING NO] if val < 500 else [MOVING YES]
+        return np.array([0.1, 0.9]) if speed < 500 else np.array([0.9, 0.1])
 
     def drive(self, speed):
         self.driving.run_forever(speed_sp=2000 * speed - 1000)

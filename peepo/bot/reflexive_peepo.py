@@ -14,12 +14,12 @@ from peepo.predictive_processing.discrete.node import Node
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
 
-#peepo_bot = PeepoVirtual()
+# peepo_bot = PeepoVirtual()
 peepo_bot = Peepo()
 
 
 def drive(act, peepo):
-    peepo[0].drive(1.0)
+    peepo[0].drive(0.9)
 
 
 def steer(act, peepo):
@@ -40,12 +40,13 @@ levels_obs = [
     Level(1, [node_infrared])
 ]
 
-ao = np.array([0.9, 0.1])
-actuals_obs = {
-    'infrared': ao
-}
+# ao = np.array([0.9, 0.1])
+# actuals_obs = {
+#     'infrared': ao
+# }
+# peepo_bot.set_infrared(ao)
 
-mod_obstacles = Module(levels_obs, actuals_obs)
+mod_obstacles = Module(levels_obs, peepo_bot.vision)
 
 """
 ===========================================
@@ -62,12 +63,14 @@ levels_mov = [
     Level(1, [node_drive])
 ]
 
-am = np.array([0.9, 0.1])
-actuals_mov = {
-    'drive': am
-}
+# am = np.array([0.9, 0.1])
+# actuals_mov = {
+#     'drive': am
+# }
+# peepo_bot.set_moving(am)
 
-mod_moving = Module(levels_mov, actuals_mov)
+
+mod_moving = Module(levels_mov, peepo_bot.movement)
 
 """
 ===========================================
@@ -76,8 +79,9 @@ mod_moving = Module(levels_mov, actuals_mov)
 """
 
 if __name__ == '__main__':
-    logging.info("Initializing processes...")
-    p1 = Process(target=mod_obstacles.run())
-    p2 = Process(target=mod_moving.run())
+    p2 = Process(target=mod_moving.run)
+    p1 = Process(target=mod_obstacles.run)
+    logging.info("Starting process 1...")
     p1.start()
+    logging.info("Starting process 2...")
     p2.start()
