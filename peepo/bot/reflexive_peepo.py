@@ -19,7 +19,7 @@ peepo_bot = Peepo()
 
 
 def drive(act, peepo):
-    peepo[0].drive(0.7)
+    peepo[0].drive(0.3)
 
 
 def steer(act, peepo):

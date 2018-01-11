@@ -33,7 +33,7 @@ class Peepo:
     def drive(self, speed):
         logging.info("PEEPO DRIVES")
         self.driving.run_forever(speed_sp=2000 * speed - 1000)
-        logging.info("PEEPO STEERING POS: " + self.steering.position_sp)
+        logging.info("PEEPO STEERING POS: " + str(self.steering.position_sp))
         self.straight()
 
     def steer(self, degrees):
