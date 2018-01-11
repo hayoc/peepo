@@ -31,7 +31,8 @@ class Peepo:
         return np.array([0.9, 0.1]) if speed < 500 else np.array([0.1, 0.9])
 
     def drive(self, speed):
-        self.driving.run_forever(speed_sp=2000 * speed - 1000)
+        # Attached the motor the wrong way... Hence negative value
+        self.driving.run_forever(speed_sp=-(2000 * speed - 1000))
 
     def steer(self, degrees):
         self.steering.run_to_rel_pos(position_sp=180 * degrees - 90, speed_sp=900, stop_action="brake")
