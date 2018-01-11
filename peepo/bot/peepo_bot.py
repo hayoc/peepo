@@ -28,7 +28,7 @@ class Peepo:
         speed = self.driving.count_per_rot
         logging.info("PEEPO SPEED: " + str(speed))
         # return [MOVING NO] if val < 500 else [MOVING YES]
-        return np.array([0.1, 0.9]) if speed < 500 else np.array([0.9, 0.1])
+        return np.array([0.9, 0.1]) if speed < 500 else np.array([0.1, 0.9])
 
     def drive(self, speed):
         self.driving.run_forever(speed_sp=2000 * speed - 1000)
