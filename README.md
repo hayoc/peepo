@@ -2,4 +2,4 @@
 
 ## peepo: an attempt at artificial general intelligence
 
-> [N]othing seems more possible to me than that people some day will come to the definite opinion that there is no copy in the [...] nervous system which corresponds to a particular thought, or a particular idea, or memory. (Ludwig Wittgenstein, Last Writings on the Philosophy of Psychology, 1948)
+> [N]othing seems more possible to me than that people some day will come to the definite opinion that there is no copy in the [...] nervous system which corresponds to a particular thought, or a particular idea, or memory. (Ludwig Wittgenstein, Writings on the Philosophy of Psychology, 1948)
