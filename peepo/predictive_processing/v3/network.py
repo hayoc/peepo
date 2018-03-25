@@ -2,6 +2,7 @@ import numpy as np
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 from pgmpy.models import BayesianModel
+from scipy.stats import entropy
 
 
 def default_network():
@@ -18,9 +19,11 @@ def default_network():
     cpd_a = TabularCPD(variable='A', variable_card=2, values=[[0.5, 0.5]])
     cpd_b = TabularCPD(variable='B', variable_card=2, values=[[0.5, 0.5],
                                                               [0.5, 0.5]], evidence=['A'], evidence_card=[2])
-    model.get_leaves()
     model.add_cpds(cpd_a, cpd_b)
     model.check_model()
+
+    model.get_parents()
+
     return model
 
 
@@ -28,21 +31,40 @@ def predict(model):
     """
     Predicts the leaf nodes (i.e. the observational nodes) based on the parent nodes (i.e. the hypothesis nodes)
 
-    Returns
-    -------
-    parameters: BayesianModel
-        Bayesian network in tree form
+    :param model: BayesianModel to use in prediction
     """
     infer = VariableElimination(model)
 
     result = []
+    evidence = get_hypotheses(model)
     for leaf in model.get_leaves():
-        result.append(infer.query([leaf], evidence=get_evidence(model))[leaf])
+        result.append(infer.query([leaf], evidence=evidence)[leaf])
     return result
 
 
-def get_evidence(model):
-    evidence = {}
+def prediction_error(pred, obs):
+    return obs - pred
+
+
+def prediction_error_size(pred, obs):
+    return entropy(obs, pred)
+
+
+def prediction_error_minimization(model, node, pes, pe, pred):
+    # PEM 1: Hypothesis Update
+    evidence = {node: pe + pred}
     for root in model.get_roots():
-        evidence.update({root: np.argmax(model.get_cpds(root).values)})
-    return evidence
+
+
+def get_hypotheses(model):
+    hypos = {}
+    for root in model.get_roots():
+        hypos.update({root: np.argmax(model.get_cpds(root).values)})
+    return hypos
+
+
+def get_observations(model):
+    obs = {}
+    for leaf in model.get_leaves():
+        obs.update({leaf: np.argmax(model.get_cpds(leaf).values)})
+    return obs
