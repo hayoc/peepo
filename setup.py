@@ -5,12 +5,12 @@ setup(
     version='0.1.0',
     author='Hayo Carrette',
     author_email='hayo.ce@gmail.com',
-    packages=['peepo', 'peepo.bot', 'peepo.predictive_processing.discrete'],
+    packages=['peepo', 'peepo.bot', 'peepo.predictive_processing.v3'],
     scripts=[],
-    url='http://conventiont.com',
+    url='https://peepo.ai',
     license='LICENSE',
     description='Personhood through Predictive Processing.',
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
     install_requires=[
-        'scipy', 'numpy'],
+        'scipy', 'numpy', 'pgmpy'],
 )
