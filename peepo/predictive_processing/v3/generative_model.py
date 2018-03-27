@@ -28,7 +28,6 @@ def default_model():
 
 class GenerativeModel:
 
-    # TODO: sensory_input should be something updateable
     def __init__(self, sensory_input, model=default_model()):
         self.sensory_input = sensory_input
         self.model = model
