@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
 git pull
-python setup.py install
-python ./peepo/peepo_v03.py
+python3 setup.py install
+python3 ./peepo/peepo_v03.py
