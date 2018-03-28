@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='Peepo',
@@ -11,6 +11,6 @@ setup(
     license='LICENSE',
     description='Personhood through Predictive Processing.',
     long_description=open('README.md').read(),
-    install_requires=[
-        'scipy', 'numpy', 'pgmpy'],
+    install_requires=['scipy', 'numpy', 'pgmpy', 'pandas', 'wrapt'],
+    setup_requires=['scipy', 'numpy', 'pgmpy', 'pandas', 'wrapt']
 )
