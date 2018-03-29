@@ -11,6 +11,8 @@ logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
 
 logging.info('logging initialized')
+bot = PeepoBot()
+logging.info('bot initialized')
 
 network = BayesianModel([('hypo', 'infrared'), ('hypo', 'motor')])
 
@@ -22,7 +24,6 @@ cpd_c = TabularCPD(variable='motor', variable_card=2, values=[[0.6, 0.2],
 network.add_cpds(cpd_a, cpd_b, cpd_c)
 network.check_model()
 
-bot = PeepoBot()
 
 sensory_input = {'infrared': np.array([0.1, 0.9] if bot.vision() > 60 else np.array([0.9, 0.1])),
                  'motor': np.array([0.1, 0.9]) if bot.is_driving_backward() else np.array([0.9, 0.1])}
