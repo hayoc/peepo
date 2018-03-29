@@ -9,12 +9,15 @@ class PeepoBot:
 
     def __init__(self):
         self.right_motor = ev3.LargeMotor('outA')
+        assert self.right_motor.connected
         self.left_motor = ev3.LargeMotor('outD')
-        # self.color = ev3.ColorSensor()
-        # assert self.color.connected
+        assert self.left_motor.connected
         self.infrared = ev3.InfraredSensor()
         assert self.infrared.connected
         self.infrared.mode = 'IR-PROX'
+
+        # self.color = ev3.ColorSensor()
+        # assert self.color.connected
 
     def vision(self):
         return self.infrared.value()
