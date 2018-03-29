@@ -11,6 +11,6 @@ setup(
     license='LICENSE',
     description='Personhood through Predictive Processing.',
     long_description=open('README.md').read(),
-    install_requires=['scipy', 'numpy', 'pgmpy', 'pandas', 'wrapt'],
-    setup_requires=['scipy', 'numpy', 'pgmpy', 'pandas', 'wrapt']
+    install_requires=['scipy', 'numpy', 'pgmpy', 'pandas', 'wrapt', 'networkx'],
+    setup_requires=['scipy', 'numpy', 'pgmpy', 'pandas', 'wrapt', 'networkx']
 )
