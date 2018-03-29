@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import logging
+
 import ev3dev.ev3 as ev3
 
 
@@ -18,10 +20,12 @@ class PeepoBot:
         return self.infrared.value()
 
     def forward(self):
+        logging.info('peepo forward')
         self.left_motor.run_forever(speed_sp=-500)
         self.right_motor.run_forever(speed_sp=-500)
 
     def backward(self):
+        logging.info('peepo backward')
         self.left_motor.run_forever(speed_sp=500)
         self.right_motor.run_forever(speed_sp=500)
 
@@ -32,9 +36,11 @@ class PeepoBot:
         return self.left_motor.count_per_rot > 250 and self.right_motor.count_per_rot > 250
 
     def turn_left(self):
+        logging.info('peepo left')
         self.right_motor.run_to_rel_pos(position_sp=-360, speed_sp=900, stop_action="brake")
 
     def turn_right(self):
+        logging.info('peepo right')
         self.left_motor.run_to_rel_pos(position_sp=-360, speed_sp=900, stop_action="brake")
 
     def stop(self):
