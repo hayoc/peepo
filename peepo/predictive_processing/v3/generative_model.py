@@ -1,11 +1,12 @@
 import logging
 
 import numpy as np
+import networkx as nx
+from pgmpy.base import DirectedGraph
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 from pgmpy.models import BayesianModel
 from scipy.stats import entropy
-
 
 def default_model():
     """
