@@ -27,6 +27,18 @@ def default_model():
 
 
 class GenerativeModel:
+    """
+    Predictive Processing Generative Model
+
+    This is a generative model, implemented as a Bayesian Causal Network. The three functions
+    prediction, prediction error and prediction error minimization are defined for this model.
+
+    :param sensory_input : Mutable dictionary containing the current sensory inputs
+    :param model : Bayesian Causal Network. Causes are hypothesis variables, effects are observational variables.
+
+    :type sensory_input : dict
+    :type model : pgmpy.models.BayesianModel
+    """
 
     def __init__(self, sensory_input, model=default_model()):
         self.sensory_input = sensory_input
