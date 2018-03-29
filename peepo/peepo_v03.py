@@ -6,6 +6,7 @@ from pgmpy.models import BayesianModel
 
 from peepo.bot.peepo_bot import PeepoBot
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
+from peepo.predictive_processing.v3.sensory_input import SensoryInput
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
@@ -24,15 +25,9 @@ cpd_c = TabularCPD(variable='motor', variable_card=2, values=[[0.9, 0.1],
 network.add_cpds(cpd_a, cpd_b, cpd_c)
 network.check_model()
 
-
-sensory_input = {'infrared': np.array([0.1, 0.9] if bot.vision() > 60 else np.array([0.9, 0.1])),
-                 'motor': np.array([0.1, 0.9]) if bot.is_driving_backward() else np.array([0.9, 0.1])}
-
-model = GenerativeModel(sensory_input, network)
+model = GenerativeModel(SensoryInput(bot), network)
 
 logging.info('starting predictive processing')
 
 while True:
     model.process()
-    sensory_input['infrared'] = np.array([0.1, 0.9] if bot.vision() > 60 else np.array([0.9, 0.1]))
-    sensory_input['motor'] = np.array([0.1, 0.9]) if bot.is_driving_backward() else np.array([0.9, 0.1])

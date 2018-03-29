@@ -1,12 +1,11 @@
 import logging
 
 import numpy as np
-import networkx as nx
-from pgmpy.base import DirectedGraph
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 from pgmpy.models import BayesianModel
 from scipy.stats import entropy
+
 
 def default_model():
     """
@@ -37,7 +36,7 @@ class GenerativeModel:
     :param sensory_input : Mutable dictionary containing the current sensory inputs
     :param model : Bayesian Causal Network. Causes are hypothesis variables, effects are observational variables.
 
-    :type sensory_input : dict
+    :type sensory_input : SensoryInput
     :type model : BayesianModel
     """
 
@@ -55,7 +54,7 @@ class GenerativeModel:
         """
         for node, prediction in self.predict().items():
             pred = prediction.values
-            obs = self.sensory_input[node]
+            obs = self.sensory_input.value(node)
             pes = self.error_size(pred, obs)
 
             # TODO: Precision weighting
@@ -127,8 +126,11 @@ class GenerativeModel:
         :type prediction: np.array
         """
         # TODO: Model update (and possible other PEM methods)
-        # PEM 1: Hypothesis Update
-        self.hypothesis_update(node, prediction_error, prediction)
+        if "motor" in node:
+            self.sensory_input.action(node, prediction_error, prediction)
+        else:
+            # PEM 1: Hypothesis Update
+            self.hypothesis_update(node, prediction_error, prediction)
 
     def hypothesis_update(self, node, prediction_error, prediction):
         """
