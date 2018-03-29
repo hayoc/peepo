@@ -64,7 +64,7 @@ class GenerativeModel:
                 pe = self.error(pred, obs)
                 self.error_minimization(node=node, prediction_error_size=pes, prediction_error=pe, prediction=pred)
             else:
-                logging.debug("node[%s] no prediction-error", node)
+                logging.debug("node[%s] no prediction-error for prediction %s", node, pred)
 
     def predict(self):
         """
