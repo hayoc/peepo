@@ -10,6 +10,8 @@ from peepo.predictive_processing.v3.generative_model import GenerativeModel
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
 
+logging.info('logging initialized')
+
 network = BayesianModel([('hypo', 'infrared'), ('hypo', 'motor')])
 
 cpd_a = TabularCPD(variable='hypo', variable_card=2, values=[[0.7, 0.3]])
@@ -26,6 +28,8 @@ sensory_input = {'infrared': np.array([0.1, 0.9] if bot.vision() > 60 else np.ar
                  'motor': np.array([0.1, 0.9]) if bot.is_driving_backward() else np.array([0.9, 0.1])}
 
 model = GenerativeModel(sensory_input, network)
+
+logging.info('starting predictive processing')
 
 while True:
     model.process()
