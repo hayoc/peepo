@@ -51,6 +51,7 @@ class PeepoBot:
         self.left_motor.run_to_rel_pos(position_sp=-360, speed_sp=900, stop_action="brake")
 
     def stop(self):
+        logging.info('peepo stop')
         self.left_motor.stop(stop_action="brake")
         self.right_motor.stop(stop_action="brake")
 
