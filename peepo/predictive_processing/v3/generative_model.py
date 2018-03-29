@@ -37,7 +37,7 @@ class GenerativeModel:
     :param model : Bayesian Causal Network. Causes are hypothesis variables, effects are observational variables.
 
     :type sensory_input : dict
-    :type model : pgmpy.models.BayesianModel
+    :type model : BayesianModel
     """
 
     def __init__(self, sensory_input, model=default_model()):
@@ -59,9 +59,12 @@ class GenerativeModel:
 
             # TODO: Precision weighting
             if pes > 0:
-                logging.debug("node[%s] with prediction-error-size %s", node, pes)
+                logging.debug("node[%s] with prediction-error-size %s ||| predicted %s -vs- %s observed", node, pes,
+                              pred, obs)
                 pe = self.error(pred, obs)
                 self.error_minimization(node=node, prediction_error_size=pes, prediction_error=pe, prediction=pred)
+            else:
+                logging.debug("node[%s] no prediction-error", node)
 
     def predict(self):
         """

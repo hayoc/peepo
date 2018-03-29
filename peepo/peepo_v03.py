@@ -19,8 +19,8 @@ network = BayesianModel([('hypo', 'infrared'), ('hypo', 'motor')])
 cpd_a = TabularCPD(variable='hypo', variable_card=2, values=[[0.7, 0.3]])
 cpd_b = TabularCPD(variable='infrared', variable_card=2, values=[[0.9, 0.1],
                                                                  [0.1, 0.9]], evidence=['hypo'], evidence_card=[2])
-cpd_c = TabularCPD(variable='motor', variable_card=2, values=[[0.6, 0.2],
-                                                              [0.4, 0.8]], evidence=['hypo'], evidence_card=[2])
+cpd_c = TabularCPD(variable='motor', variable_card=2, values=[[0.9, 0.1],
+                                                              [0.1, 0.9]], evidence=['hypo'], evidence_card=[2])
 network.add_cpds(cpd_a, cpd_b, cpd_c)
 network.check_model()
 
