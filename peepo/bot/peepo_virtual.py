@@ -6,30 +6,38 @@ class PeepoVirtual:
     """
 
     def __init__(self):
-        pass
+        self.infrared = 120
+        self.left_motor = 0
+        self.right_motor = 0
 
     def vision(self):
         return self.infrared
 
-    def touch(self):
+    def obstacle(self, visible):
+        self.infrared = 5 if visible else 120
+
+    def forward(self):
+        self.left_motor = 500
+        self.right_motor = 500
+
+    def backward(self):
+        self.left_motor = -500
+        self.right_motor = -500
+
+    def is_driving_forward(self):
+        return self.left_motor > 250 and self.right_motor > 250
+
+    def is_driving_backward(self):
+        return self.left_motor > 250 and self.right_motor > 250
+
+    def turn_left(self):
         pass
 
-    def drive(self, speed):
-        self.moving[0] = 0.1
-        self.moving[1] = 0.9
-
-    def steer(self, degrees):
-        self.infrared[0] = 0.1
-        self.infrared[1] = 0.9
+    def turn_right(self):
+        pass
 
     def stop(self):
         pass
 
     def shutdown(self):
         pass
-
-    def set_infrared(self, infrared):
-        self.infrared = infrared
-
-    def set_moving(self, moving):
-        self.moving = moving

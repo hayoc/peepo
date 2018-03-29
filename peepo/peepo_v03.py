@@ -22,12 +22,12 @@ network.check_model()
 
 bot = PeepoBot()
 
-sensory_input = {'infrared': np.array([0.1, 0.9] if bot.vision() > 30 else np.array([0.9, 0.1])),
+sensory_input = {'infrared': np.array([0.1, 0.9] if bot.vision() > 60 else np.array([0.9, 0.1])),
                  'motor': np.array([0.1, 0.9]) if bot.is_driving_backward() else np.array([0.9, 0.1])}
 
 model = GenerativeModel(sensory_input, network)
 
 while True:
     model.process()
-    sensory_input['infrared'] = np.array([0.1, 0.9] if bot.vision() > 30 else np.array([0.9, 0.1]))
+    sensory_input['infrared'] = np.array([0.1, 0.9] if bot.vision() > 60 else np.array([0.9, 0.1]))
     sensory_input['motor'] = np.array([0.1, 0.9]) if bot.is_driving_backward() else np.array([0.9, 0.1])
