@@ -36,7 +36,9 @@ class PeepoBot:
         return self.left_motor.count_per_rot > 250 and self.right_motor.count_per_rot > 250
 
     def is_driving_backward(self):
-        return self.left_motor.count_per_rot > 250 and self.right_motor.count_per_rot > 250
+        leftactive = self.left_motor.count_per_rot > 250
+        rightactive = self.right_motor.count_per_rot > 250
+        return leftactive and rightactive
 
     def turn_left(self):
         logging.info('peepo left')
