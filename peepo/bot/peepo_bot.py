@@ -20,7 +20,9 @@ class PeepoBot:
         # assert self.color.connected
 
     def vision(self):
-        return self.infrared.value()
+        value = self.infrared.value()
+        logging.info('peepo vision: %s', value)
+        return value
 
     def forward(self):
         logging.info('peepo forward')
@@ -33,14 +35,14 @@ class PeepoBot:
         self.right_motor.run_forever(speed_sp=500)
 
     def is_driving_forward(self):
-        return self.left_motor.count_per_rot > 250 and self.right_motor.count_per_rot > 250
+        return self.left_motor.count_per_rot > 400 and self.right_motor.count_per_rot > 400
 
     def is_driving_backward(self):
         leftrot = self.left_motor.count_per_rot
         rightrot = self.right_motor.count_per_rot
         logging.debug('left rotation count: %s - right rotation count: %s', leftrot, rightrot)
 
-        return leftrot > 250 and rightrot > 250
+        return leftrot > 400 and rightrot > 400
 
     def turn_left(self):
         logging.info('peepo left')
