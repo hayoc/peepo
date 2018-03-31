@@ -59,12 +59,11 @@ class GenerativeModel:
 
             # TODO: Precision weighting
             if pes > 0:
-                logging.debug("node[%s] with prediction-error-size %s ||| predicted %s -vs- %s observed", node, pes,
-                              pred, obs)
+                logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
                 pe = self.error(pred, obs)
                 self.error_minimization(node=node, prediction_error_size=pes, prediction_error=pe, prediction=pred)
             else:
-                logging.debug("node[%s] no prediction-error for prediction %s", node, pred)
+                logging.debug("node[%s] no prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
 
     def predict(self):
         """
