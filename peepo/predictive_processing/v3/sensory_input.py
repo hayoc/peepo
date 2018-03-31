@@ -8,15 +8,11 @@ class SensoryInput:
         self.bot = bot
 
     def action(self, node, prediction_error, prediction):
-        stopped = np.argmax(prediction)
-        logging.debug('issuing bot-action with prediction %s with argmax %s', prediction, stopped)
         # if prediction = [0.1, 0.9] (= moving) then move else stop
-        if stopped is 0:  # predicted stopped
-            logging.debug('asking peepo to stop')
-            self.bot.stop()
-        else:  # predicted moving
-            logging.debug('asking peepo to move')
+        if np.argmax(prediction) > 0:  # predicted moving
             self.bot.backward()
+        else:  # predicted stopped
+            self.bot.stop()
 
     def value(self, name):
         if name == 'infrared':
