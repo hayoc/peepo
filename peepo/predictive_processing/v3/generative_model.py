@@ -51,19 +51,25 @@ class GenerativeModel:
             1) prediction
             2) prediction error
             3) prediction error minimization
+        Returns the total prediction error size observed (for informational purposes...)
         """
+        total_pes = 0
         for node, prediction in self.predict().items():
             pred = prediction.values
             obs = self.sensory_input.value(node)
             pes = self.error_size(pred, obs)
 
+            # TODO: Prediction entropy weighting
             # TODO: Precision weighting
             if pes > 0:
                 logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
                 pe = self.error(pred, obs)
+                total_pes += pes
                 self.error_minimization(node=node, prediction_error_size=pes, prediction_error=pe, prediction=pred)
             else:
                 logging.debug("node[%s] no prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
+
+        return total_pes
 
     def predict(self):
         """
@@ -125,11 +131,9 @@ class GenerativeModel:
         :type prediction: np.array
         """
         # TODO: Model update (and possible other PEM methods)
-        if "motor" in node:
-            self.sensory_input.action(node, prediction_error, prediction)
-        else:
-            # PEM 1: Hypothesis Update
-            self.hypothesis_update(node, prediction_error, prediction)
+        surprise = entropy(prediction) + prediction_error_size
+        logging.debug("node[%s] surprise: %s", node, surprise)
+        self.hypothesis_update(node, prediction_error, prediction)
 
     def hypothesis_update(self, node, prediction_error, prediction):
         """
@@ -143,14 +147,20 @@ class GenerativeModel:
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        for hypo in self.model.get_roots():
-            result = self.infer.query(variables=[hypo],
-                                      evidence={node: np.argmax(
-                                          prediction_error if prediction is None else prediction_error + prediction)})
-            self.model.get_cpds(hypo).values = result.get(hypo).values
-            logging.debug("node[%s] hypothesis-update to %s", hypo, result.get(hypo).values)
-        # Should we update hypothesis variables based on only prediction error node?
-        # Or all observation nodes in the network???
+        # Theoretically speaking a hypothesis update should achieve both perceptual and motor update
+        # Currently in the implementation we make the difference explicit
+        if "motor" in node:
+            self.sensory_input.action(node, prediction_error, prediction)
+        else:
+            for hypo in self.model.get_roots():
+                result = self.infer.query(variables=[hypo],
+                                          evidence={node: np.argmax(
+                                              prediction_error if prediction is None
+                                              else prediction_error + prediction)})
+                self.model.get_cpds(hypo).values = result.get(hypo).values
+                logging.debug("node[%s] hypothesis-update to %s", hypo, result.get(hypo).values)
+            # Should we update hypothesis variables based on only prediction error node?
+            # Or all observation nodes in the network???
 
     def get_hypotheses(self):
         hypos = {}

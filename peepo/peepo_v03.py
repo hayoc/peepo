@@ -1,12 +1,11 @@
 import logging
 
-import numpy as np
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 
 from peepo.bot.peepo_bot import PeepoBot
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
-from peepo.predictive_processing.v3.sensory_input import SensoryInput
+from peepo.bot.sensory_input_bot import SensoryInput
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
