@@ -14,6 +14,6 @@ class SensoryInputCoin(SensoryInput):
 
     def value(self, name):
         # 0 = heads, 1 = tails
-        val = np.array([0.9, 0.1]) if self.coin_set[self.index] == 0 else np.array([0.1, 0.9])
+        val = np.array([0.99, 0.01]) if self.coin_set[self.index] == 0 else np.array([0.01, 0.99])
         self.index += 1
         return val

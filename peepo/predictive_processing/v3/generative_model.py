@@ -65,7 +65,9 @@ class GenerativeModel:
                 logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
                 pe = self.error(pred, obs)
                 total_pes += pes
-                self.error_minimization(node=node, prediction_error_size=pes, prediction_error=pe, prediction=pred)
+                surprise = entropy(pred) + pes
+                logging.debug("node[%s] surprise: %s", node, surprise)
+                self.error_minimization(node=node, surprise=surprise, prediction_error=pe, prediction=pred)
             else:
                 logging.debug("node[%s] no prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
 
@@ -114,26 +116,28 @@ class GenerativeModel:
         """
         return entropy(obs, pred)
 
-    def error_minimization(self, node, prediction_error_size, prediction_error, prediction):
+    def error_minimization(self, node, surprise, prediction_error, prediction):
         """
         Attempts to minimize the prediction error by one of the possible PEM methods:
             1) Hypothesis Update
             2) Model Update
 
         :param node: name of the node causing the prediction error
-        :param prediction_error_size: size of the prediction error
+        :param surprise: surprise of the prediction error
         :param prediction_error: the prediction error itself
         :param prediction: prediction causing the prediction error
 
         :type node : str
-        :type prediction_error_size: float
+        :type surprise: float
         :type prediction_error: np.array
         :type prediction: np.array
         """
         # TODO: Model update (and possible other PEM methods)
-        surprise = entropy(prediction) + prediction_error_size
-        logging.debug("node[%s] surprise: %s", node, surprise)
-        self.hypothesis_update(node, prediction_error, prediction)
+
+        if self.is_high_surprise(surprise):
+            self.model_update(node, prediction_error, prediction)
+        else:
+            self.hypothesis_update(node, prediction_error, prediction)
 
     def hypothesis_update(self, node, prediction_error, prediction):
         """
@@ -157,10 +161,17 @@ class GenerativeModel:
                                           evidence={node: np.argmax(
                                               prediction_error if prediction is None
                                               else prediction_error + prediction)})
+                before = self.model.get_cpds(hypo).values
                 self.model.get_cpds(hypo).values = result.get(hypo).values
-                logging.debug("node[%s] hypothesis-update to %s", hypo, result.get(hypo).values)
+                logging.debug("node[%s] hypothesis-update from %s to %s", hypo, before, result.get(hypo).values)
             # Should we update hypothesis variables based on only prediction error node?
             # Or all observation nodes in the network???
+
+    def model_update(self, node, prediction_error, prediction):
+        pass
+
+    def is_high_surprise(self, surprise):
+        return True
 
     def get_hypotheses(self):
         hypos = {}

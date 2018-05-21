@@ -25,8 +25,9 @@ def random_set(size):
 def process(coin_set, ax, title):
     network = BayesianModel([('hypo', 'coin')])
 
-    cpd_a = TabularCPD(variable='hypo', variable_card=2, values=[[0.51, 0.49]])
-    cpd_b = TabularCPD(variable='coin', variable_card=2, values=[[0.9, 0.1], [0.1, 0.9]], evidence=['hypo'],
+    cpd_a = TabularCPD(variable='hypo', variable_card=2, values=[[0.5, 0.5]])
+    cpd_b = TabularCPD(variable='coin', variable_card=2, values=[[0.6, 0.4],
+                                                                 [0.4, 0.6]], evidence=['hypo'],
                        evidence_card=[2])
     network.add_cpds(cpd_a, cpd_b)
     network.check_model()
@@ -46,8 +47,17 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 size = 100
 f, (ax1, ax2, ax3) = plt.subplots(3, sharex='all')
-process(paired_set(size), ax1, 'Paired')
-process(sorted_set(size), ax2, 'Sorted')
+# logging.info("========================================================================================================")
+# logging.info("================================================= PAIRED ===============================================")
+# logging.info("========================================================================================================")
+# process(paired_set(size), ax1, 'Paired')
+# logging.info("========================================================================================================")
+# logging.info("================================================== SORTED ==============================================")
+# logging.info("========================================================================================================")
+# process(sorted_set(size), ax2, 'Sorted')
+logging.info("========================================================================================================")
+logging.info("=================================================== RANDOM =============================================")
+logging.info("========================================================================================================")
 process(random_set(size), ax3, 'Random')
 
 plt.show()
