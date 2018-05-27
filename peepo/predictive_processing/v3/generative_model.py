@@ -171,7 +171,7 @@ class GenerativeModel:
         pass
 
     def is_high_surprise(self, surprise):
-        return True
+        return False
 
     def get_hypotheses(self):
         hypos = {}
