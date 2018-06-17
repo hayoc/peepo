@@ -66,12 +66,20 @@ class GenerativeModel:
                 pe = self.error(pred, obs)
                 total_pes += pes
                 surprise = entropy(pred) + pes
+                self.update_memory()
                 logging.debug("node[%s] surprise: %s", node, surprise)
-                self.error_minimization(node=node, surprise=surprise, prediction_error=pe, prediction=pred)
+                # self.error_minimization(node=node, surprise=surprise, prediction_error=pe, prediction=pred)
             else:
                 logging.debug("node[%s] no prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
 
         return total_pes
+
+    def update_memory(self):
+        predictions = self.infer.query(variables=self.model.get_leaves(), evidence=self.get_hypotheses())
+        previous = self.model.get_cpds('previous').values
+        current = predictions.get('current').values
+        self.model.get_cpds('previous').values = current
+        logging.debug("updates previous: %s to current: %s", previous, current)
 
     def predict(self):
         """
