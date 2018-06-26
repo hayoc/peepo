@@ -22,7 +22,7 @@ def random_set(size):
     return [random.choice([0, 1]) for _ in range(size)]
 
 
-def process(coin_set, ax, title):
+def default_model(coin_set):
     network = BayesianModel([('hypo', 'coin')])
 
     cpd_a = TabularCPD(variable='hypo', variable_card=2, values=[[0.5, 0.5]])
@@ -33,13 +33,7 @@ def process(coin_set, ax, title):
     network.check_model()
 
     model = GenerativeModel(SensoryInputCoin(coin_set), network)
-
-    pes_list = list()
-    for _ in coin_set:
-        pes_list.append(model.process())
-
-    ax.plot(pes_list)
-    ax.set_title(title + ' - Total Error: ' + str(sum(pes_list)))
+    return model
 
 
 def model_for_paired(coin_set):
@@ -56,7 +50,21 @@ def model_for_paired(coin_set):
     return model
 
 
-def process_for_paired(coin_set, model, ax, title):
+def model_for_sorted(coin_set):
+    network = BayesianModel([('previous', 'current')])
+    cpd_a = TabularCPD(variable='previous', variable_card=2, values=[[0.99, 0.01]])
+    cpd_b = TabularCPD(variable='current', variable_card=2, values=[[0.99, 0.01],
+                                                                    [0.01, 0.99]], evidence=['previous'],
+                       evidence_card=[2])
+
+    network.add_cpds(cpd_a, cpd_b)
+    network.check_model()
+
+    model = GenerativeModel(SensoryInputCoin(coin_set), network)
+    return model
+
+
+def plot_result(model, coin_set, ax, title):
     pes_list = list()
     for _ in coin_set:
         pes_list.append(model.process())
@@ -70,25 +78,25 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 size = 100
 
-f, (ax1) = plt.subplots(1, sharex='all')
-coin_set = paired_set(size)
-model = model_for_paired(coin_set)
-process_for_paired(coin_set, model, ax1, 'Paired')
+f, (ax1, ax2) = plt.subplots(2, sharex='all', sharey='all')
 
-# f, (ax1, ax2, ax3) = plt.subplots(3, sharex='all')
-# logging.info("========================================================================================================")
-# logging.info("================================================= PAIRED ===============================================")
-# logging.info("========================================================================================================")
-# process(paired_set(size), ax1, 'Paired')
-# logging.info("========================================================================================================")
-# logging.info("================================================== SORTED ==============================================")
-# logging.info("========================================================================================================")
-# process(sorted_set(size), ax2, 'Sorted')
-# logging.info("========================================================================================================")
-# logging.info("=================================================== RANDOM =============================================")
-# logging.info("========================================================================================================")
-# process(random_set(size), ax3, 'Random')
+logging.info("========================================================================================================")
+logging.info("================================================== PAIRED ==============================================")
+logging.info("========================================================================================================")
 
-logging.debug("showingbefore")
+paired_coin_set = paired_set(size)
+paired_model = model_for_paired(paired_coin_set)
+# paired_model = default_model(paired_coin_set)
+plot_result(paired_model, paired_coin_set, ax1, 'Paired')
+
+logging.info("========================================================================================================")
+logging.info("================================================== SORTED ==============================================")
+logging.info("========================================================================================================")
+
+sorted_coin_set = sorted_set(size)
+sorted_model = model_for_sorted(sorted_coin_set)
+# sorted_model = default_model(sorted_coin_set)
+plot_result(sorted_model, sorted_coin_set, ax2, 'Sorted')
+
 plt.show()
-logging.debug("showing")
+logging.info("================================================== DONE ================================================")
