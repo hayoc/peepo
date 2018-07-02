@@ -22,6 +22,10 @@ def random_set(size):
     return [random.choice([0, 1]) for _ in range(size)]
 
 
+def heads_heads_tails_set(size):
+    return [1 if i % 3 == 0 else 0 for i in range(size)]
+
+
 def default_model(coin_set):
     network = BayesianModel([('hypo', 'coin')])
 
@@ -38,7 +42,7 @@ def default_model(coin_set):
 
 def model_for_paired(coin_set):
     network = BayesianModel([('previous', 'current')])
-    cpd_a = TabularCPD(variable='previous', variable_card=2, values=[[0.99, 0.01]])
+    cpd_a = TabularCPD(variable='previous', variable_card=2, values=[[0.9, 0.1]])
     cpd_b = TabularCPD(variable='current', variable_card=2, values=[[0.01, 0.99],
                                                                     [0.99, 0.01]], evidence=['previous'],
                        evidence_card=[2])
@@ -52,12 +56,28 @@ def model_for_paired(coin_set):
 
 def model_for_sorted(coin_set):
     network = BayesianModel([('previous', 'current')])
-    cpd_a = TabularCPD(variable='previous', variable_card=2, values=[[0.99, 0.01]])
+    cpd_a = TabularCPD(variable='previous', variable_card=2, values=[[0.9, 0.1]])
     cpd_b = TabularCPD(variable='current', variable_card=2, values=[[0.99, 0.01],
                                                                     [0.01, 0.99]], evidence=['previous'],
                        evidence_card=[2])
 
     network.add_cpds(cpd_a, cpd_b)
+    network.check_model()
+
+    model = GenerativeModel(SensoryInputCoin(coin_set), network)
+    return model
+
+
+def generic_model(coin_set):
+    network = BayesianModel([('A', 'D'), ('B', 'D'), ('C', 'D')])
+    cpd_a = TabularCPD(variable='A', variable_card=2, values=[[0.9, 0.1]])
+    cpd_b = TabularCPD(variable='B', variable_card=2, values=[[0.1, 0.9]])
+    cpd_c = TabularCPD(variable='C', variable_card=2, values=[[0.1, 0.9]])
+    cpd_d = TabularCPD(variable='D', variable_card=2, values=[[0.1, 0.9, 0.1, 0.9, 0.1, 0.9, 0.9, 0.9],
+                                                              [0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.1, 0.1]],
+                       evidence=['A', 'B', 'C'], evidence_card=[2, 2, 2])
+
+    network.add_cpds(cpd_a, cpd_b, cpd_c, cpd_d)
     network.check_model()
 
     model = GenerativeModel(SensoryInputCoin(coin_set), network)
@@ -76,27 +96,39 @@ def plot_result(model, coin_set, ax, title):
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
 
-size = 100
+f, (ax1) = plt.subplots(1, sharex='all', sharey='all')
 
-f, (ax1, ax2) = plt.subplots(2, sharex='all', sharey='all')
-
-logging.info("========================================================================================================")
-logging.info("================================================== PAIRED ==============================================")
-logging.info("========================================================================================================")
-
-paired_coin_set = paired_set(size)
-paired_model = model_for_paired(paired_coin_set)
-# paired_model = default_model(paired_coin_set)
-plot_result(paired_model, paired_coin_set, ax1, 'Paired')
-
-logging.info("========================================================================================================")
-logging.info("================================================== SORTED ==============================================")
-logging.info("========================================================================================================")
-
-sorted_coin_set = sorted_set(size)
-sorted_model = model_for_sorted(sorted_coin_set)
-# sorted_model = default_model(sorted_coin_set)
-plot_result(sorted_model, sorted_coin_set, ax2, 'Sorted')
+coin_set = heads_heads_tails_set(100)
+model = generic_model(coin_set)
+plot_result(model, coin_set, ax1, 'Generic')
 
 plt.show()
-logging.info("================================================== DONE ================================================")
+logging.info("done")
+
+# logging.basicConfig()
+# logging.getLogger().setLevel(logging.DEBUG)
+#
+# size = 100
+#
+# f, (ax1, ax2) = plt.subplots(2, sharex='all', sharey='all')
+#
+# logging.info("========================================================================================================")
+# logging.info("================================================== PAIRED ==============================================")
+# logging.info("========================================================================================================")
+#
+# paired_coin_set = paired_set(size)
+# paired_model = model_for_paired(paired_coin_set)
+# # paired_model = default_model(paired_coin_set)
+# plot_result(paired_model, paired_coin_set, ax1, 'Paired')
+#
+# logging.info("========================================================================================================")
+# logging.info("================================================== SORTED ==============================================")
+# logging.info("========================================================================================================")
+#
+# sorted_coin_set = sorted_set(size)
+# sorted_model = model_for_sorted(sorted_coin_set)
+# # sorted_model = default_model(sorted_coin_set)
+# plot_result(sorted_model, sorted_coin_set, ax2, 'Sorted')
+#
+# plt.show()
+# logging.info("================================================== DONE ================================================")

@@ -61,24 +61,19 @@ class GenerativeModel:
 
             # TODO: Prediction entropy weighting
             # TODO: Precision weighting
+            # TODO: PEM should only happen if PES is higher than some value, this value
+            # TODO: should depend on whatever context the agent finds itself in, and the agent's goal
             if pes > 0:
                 logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
                 pe = self.error(pred, obs)
                 total_pes += pes
                 surprise = entropy(pred) + pes
-                self.update_memory(obs)
-                logging.debug("node[%s] surprise: %s", node, surprise)
-                # self.error_minimization(node=node, surprise=surprise, prediction_error=pe, prediction=pred)
+                logging.debug("node[%s] PES: %s", node, pes)
+                self.error_minimization(node=node, surprise=surprise, prediction_error=pe, prediction=pred)
             else:
                 logging.debug("node[%s] no prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
 
         return total_pes
-
-    def update_memory(self, obs):
-        predictions = self.infer.query(variables=self.model.get_leaves(), evidence=self.get_hypotheses())
-        previous = self.model.get_cpds('previous').values
-        self.model.get_cpds('previous').values = obs
-        logging.debug("updates previous: %s to current: %s", previous, obs)
 
     def predict(self):
         """
@@ -160,6 +155,8 @@ class GenerativeModel:
         """
         # Theoretically speaking a hypothesis update should achieve both perceptual and motor update
         # Currently in the implementation we make the difference explicit
+        # TODO: Need to have custom implementation of bayesian network, so that prediction errors in proprioceptive
+        # TODO: nodes (motor) are resolved by executing the motor action, and not performing hypo update
         if "motor" in node:
             self.sensory_input.action(node, prediction_error, prediction)
         else:
