@@ -60,11 +60,23 @@ class Peepo(object):
         self.rect = pg.Rect((0, 0), Peepo.SIZE)
         self.rect.center = pos
         self.speed = speed
-        self.moving = False
         self.image = self.make_image()
         self.actors = actors
-        self.obstacle = False
+        self.movingleft = False
+        self.movingright = False
+        self.movingup = False
+        self.movingdown = False
+        self.obstacleleft = False
+        self.obstacleright = False
+        self.obstacleup = False
+        self.obstacledown = False
 
+        self.modelLeft = GenerativeModel(SensoryInputVirtualPeepoLeft(self), self.create_network())
+        self.modelRight = GenerativeModel(SensoryInputVirtualPeepoRight(self), self.create_network())
+        self.modelUp = GenerativeModel(SensoryInputVirtualPeepoUp(self), self.create_network())
+        self.modelDown = GenerativeModel(SensoryInputVirtualPeepoDown(self), self.create_network())
+
+    def create_network(self):
         network = BayesianModel([('hypo', 'infrared'), ('hypo', 'motor')])
         cpd_a = TabularCPD(variable='hypo', variable_card=2, values=[[0.7, 0.3]])
         cpd_b = TabularCPD(variable='infrared', variable_card=2, values=[[0.9, 0.1],
@@ -77,25 +89,37 @@ class Peepo(object):
                            evidence_card=[2])
         network.add_cpds(cpd_a, cpd_b, cpd_c)
         network.check_model()
-
-        self.model = GenerativeModel(SensoryInputVirtualPeepo(self), network)
+        return network
 
     def update(self, screen_rect):
         self.calculate_obstacles()
-        self.model.process()
-        if self.moving:
+
+        self.modelLeft.process()
+        self.modelRight.process()
+        self.modelUp.process()
+        self.modelDown.process()
+
+        if self.movingup:
+            self.rect.y += DIRECT_DICT[pg.K_UP][1] * self.speed
+        if self.movingdown:
+            self.rect.y += DIRECT_DICT[pg.K_DOWN][1] * self.speed
+        if self.movingleft:
+            self.rect.x += DIRECT_DICT[pg.K_LEFT][0] * self.speed
+        if self.movingright:
             self.rect.x += DIRECT_DICT[pg.K_RIGHT][0] * self.speed
+
         self.rect.clamp_ip(screen_rect)  # Keep player on screen.
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
     def calculate_obstacles(self):
-        has_obstacles = False
         for actor in self.actors:
-            if math.hypot(actor.rect.x - self.rect.x, actor.rect.y - self.rect.y) < float(Peepo.DISTANCE):
-                has_obstacles = True
-        self.obstacle = has_obstacles
+            self.obstacleleft = actor.rect.x > self.rect.x and math.hypot(actor.rect.x - self.rect.x, actor.rect.y - self.rect.y) < float(Peepo.DISTANCE)
+            self.obstacleright = actor.rect.x < self.rect.x and math.hypot(actor.rect.x - self.rect.x, actor.rect.y - self.rect.y) < float(Peepo.DISTANCE)
+            self.obstacleup = actor.rect.y > self.rect.y and math.hypot(actor.rect.x - self.rect.x, actor.rect.y - self.rect.y) < float(Peepo.DISTANCE)
+            self.obstacledown = actor.rect.y < self.rect.y and math.hypot(actor.rect.x - self.rect.x, actor.rect.y - self.rect.y) < float(Peepo.DISTANCE)
+
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
@@ -106,7 +130,7 @@ class Peepo(object):
         return image
 
 
-class SensoryInputVirtualPeepo(SensoryInput):
+class SensoryInputVirtualPeepoLeft(SensoryInput):
 
     def __init__(self, peepo):
         super().__init__()
@@ -115,21 +139,86 @@ class SensoryInputVirtualPeepo(SensoryInput):
     def action(self, node, prediction_error, prediction):
         # if prediction = [0.1, 0.9] (= moving) then move else stop
         if np.argmax(prediction) > 0:  # predicted moving
-            self.peepo.moving = True
+            self.peepo.movingleft = True
         else:  # predicted stopped
-            self.peepo.moving = False
+            self.peepo.movingleft = False
 
     def value(self, name):
         if name == 'infrared':
             # [0.1, 0.9] = OBSTACLE - [0.9, 0.1] = NO OBSTACLE
-            blah = np.array([0.1, 0.9] if self.peepo.obstacle else np.array([0.9, 0.1]))
-            return blah
+            return np.array([0.1, 0.9] if self.peepo.obstacleleft else np.array([0.9, 0.1]))
         else:
             # [0.1, 0.9] = MOVING - [0.9, 0.1] = NO MOVING
-            return np.array([0.1, 0.9]) if self.peepo.moving else np.array([0.9, 0.1])
+            return np.array([0.1, 0.9]) if self.peepo.movingleft else np.array([0.9, 0.1])
 
 
-class App(object):
+class SensoryInputVirtualPeepoRight(SensoryInput):
+
+    def __init__(self, peepo):
+        super().__init__()
+        self.peepo = peepo
+
+    def action(self, node, prediction_error, prediction):
+        # if prediction = [0.1, 0.9] (= moving) then move else stop
+        if np.argmax(prediction) > 0:  # predicted moving
+            self.peepo.movingright = True
+        else:  # predicted stopped
+            self.peepo.movingright = False
+
+    def value(self, name):
+        if name == 'infrared':
+            # [0.1, 0.9] = OBSTACLE - [0.9, 0.1] = NO OBSTACLE
+            return np.array([0.1, 0.9] if self.peepo.obstacleright else np.array([0.9, 0.1]))
+        else:
+            # [0.1, 0.9] = MOVING - [0.9, 0.1] = NO MOVING
+            return np.array([0.1, 0.9]) if self.peepo.movingright else np.array([0.9, 0.1])
+
+
+class SensoryInputVirtualPeepoUp(SensoryInput):
+
+    def __init__(self, peepo):
+        super().__init__()
+        self.peepo = peepo
+
+    def action(self, node, prediction_error, prediction):
+        # if prediction = [0.1, 0.9] (= moving) then move else stop
+        if np.argmax(prediction) > 0:  # predicted moving
+            self.peepo.movingup = True
+        else:  # predicted stopped
+            self.peepo.movingup = False
+
+    def value(self, name):
+        if name == 'infrared':
+            # [0.1, 0.9] = OBSTACLE - [0.9, 0.1] = NO OBSTACLE
+            return np.array([0.1, 0.9] if self.peepo.obstacleup else np.array([0.9, 0.1]))
+        else:
+            # [0.1, 0.9] = MOVING - [0.9, 0.1] = NO MOVING
+            return np.array([0.1, 0.9]) if self.peepo.movingup else np.array([0.9, 0.1])
+
+
+class SensoryInputVirtualPeepoDown(SensoryInput):
+
+    def __init__(self, peepo):
+        super().__init__()
+        self.peepo = peepo
+
+    def action(self, node, prediction_error, prediction):
+        # if prediction = [0.1, 0.9] (= moving) then move else stop
+        if np.argmax(prediction) > 0:  # predicted moving
+            self.peepo.movingdown = True
+        else:  # predicted stopped
+            self.peepo.movingdown = False
+
+    def value(self, name):
+        if name == 'infrared':
+            # [0.1, 0.9] = OBSTACLE - [0.9, 0.1] = NO OBSTACLE
+            return np.array([0.1, 0.9] if self.peepo.obstacledown else np.array([0.9, 0.1]))
+        else:
+            # [0.1, 0.9] = MOVING - [0.9, 0.1] = NO MOVING
+            return np.array([0.1, 0.9]) if self.peepo.movingdown else np.array([0.9, 0.1])
+
+
+class PeeposWorld(object):
     """
     A class to manage our event, game loop, and overall program flow.
     """
@@ -189,12 +278,12 @@ def main():
     pg.init()
     pg.display.set_caption(CAPTION)
     pg.display.set_mode(SCREEN_SIZE)
-    App().main_loop()
+    PeeposWorld().main_loop()
     pg.quit()
     sys.exit()
 
 
 if __name__ == "__main__":
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.DEBUG)
+    # logging.basicConfig()
+    # logging.getLogger().setLevel(logging.DEBUG)
     main()
