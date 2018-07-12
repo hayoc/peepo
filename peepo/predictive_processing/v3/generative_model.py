@@ -1,4 +1,5 @@
 import logging
+import random
 
 import numpy as np
 from pgmpy.factors.discrete import TabularCPD
@@ -44,6 +45,7 @@ class GenerativeModel:
         self.sensory_input = sensory_input
         self.model = model
         self.infer = VariableElimination(model)
+        self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters]
 
     def process(self):
         """
@@ -59,19 +61,14 @@ class GenerativeModel:
             obs = self.sensory_input.value(node)
             pes = self.error_size(pred, obs)
 
-            # TODO: Prediction entropy weighting
-            # TODO: Precision weighting
             # TODO: PEM should only happen if PES is higher than some value, this value
             # TODO: should depend on whatever context the agent finds itself in, and the agent's goal
-            if pes > 0:
-                logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
-                pe = self.error(pred, obs)
-                total_pes += pes
-                surprise = entropy(pred) + pes
-                logging.debug("node[%s] PES: %s", node, pes)
-                self.error_minimization(node=node, surprise=surprise, prediction_error=pe, prediction=pred)
-            else:
-                logging.debug("node[%s] no prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
+            logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
+            precision = entropy(pred, base=2)
+            pe = self.error(pred, obs)
+            total_pes += pes
+            logging.debug("node[%s] PES: %s", node, pes)
+            self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)
 
         return total_pes
 
@@ -118,7 +115,7 @@ class GenerativeModel:
         """
         return entropy(obs, pred)
 
-    def error_minimization(self, node, surprise, prediction_error, prediction):
+    def error_minimization(self, node, precision, prediction_error, prediction):
         """
         Attempts to minimize the prediction error by one of the possible PEM methods:
             1) Hypothesis Update
@@ -134,12 +131,11 @@ class GenerativeModel:
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        # TODO: Model update (and possible other PEM methods)
-
-        if self.is_high_surprise(surprise):
-            self.model_update(node, prediction_error, prediction)
-        else:
-            self.hypothesis_update(node, prediction_error, prediction)
+        self.hypothesis_update(node, prediction_error, prediction)
+        # if precision < 0.5:
+        #     self.model_update(node, prediction_error, prediction)
+        # else:
+        #     self.hypothesis_update(node, prediction_error, prediction)
 
     def hypothesis_update(self, node, prediction_error, prediction):
         """
@@ -172,10 +168,19 @@ class GenerativeModel:
             # Or all observation nodes in the network???
 
     def model_update(self, node, prediction_error, prediction):
+        random.choice(self.atomic_updates)(node)
+
+    def add_node(self, node_in_error):
         pass
 
-    def is_high_surprise(self, surprise):
-        return False
+    def add_edge(self, node_in_error):
+        pass
+
+    def change_parameters(self, node_in_error):
+        pass
+
+    def change_valency(self, node_in_error):
+        pass
 
     def get_hypotheses(self):
         hypos = {}

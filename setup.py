@@ -5,7 +5,7 @@ setup(
     version='0.1.0',
     author='Hayo Carrette',
     author_email='hayo.ce@gmail.com',
-    packages=['peepo', 'peepo.bot', 'peepo.predictive_processing', 'peepo.predictive_processing.v3'],
+    packages=['peepo', 'peepo.bot', 'peepo.predictive_processing', 'peepo.predictive_processing.v3', 'peepo.playground'],
     scripts=[],
     url='https://peepo.ai',
     license='LICENSE',
