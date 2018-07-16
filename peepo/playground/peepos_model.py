@@ -10,33 +10,6 @@ from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
 
 
-def create_network():
-    network = BayesianModel([('hypo-left', 'obstacle-left'), ('hypo-left', 'motor-left'),
-                             ('hypo-right', 'obstacle-right'), ('hypo-right', 'motor-right'),
-                             ('hypo-up', 'obstacle-up'), ('hypo-up', 'motor-up'),
-                             ('hypo-down', 'obstacle-down'), ('hypo-down', 'motor-down')])
-
-    cpd_left = hypo_cpd('hypo-left')
-    cpd_right = hypo_cpd('hypo-right')
-    cpd_up = hypo_cpd('hypo-up')
-    cpd_down = hypo_cpd('hypo-down')
-
-    cpd_left_obs = child_cpd('obstacle-left', 'hypo-left')
-    cpd_right_obs = child_cpd('obstacle-right', 'hypo-right')
-    cpd_up_obs = child_cpd('obstacle-up', 'hypo-up')
-    cpd_down_obs = child_cpd('obstacle-down', 'hypo-down')
-
-    cpd_left_motor = child_cpd('motor-left', 'hypo-left')
-    cpd_right_motor = child_cpd('motor-right', 'hypo-right')
-    cpd_up_motor = child_cpd('motor-up', 'hypo-up')
-    cpd_down_motor = child_cpd('motor-down', 'hypo-down')
-
-    network.add_cpds(cpd_left, cpd_right, cpd_up, cpd_down, cpd_left_obs, cpd_right_obs, cpd_up_obs, cpd_down_obs,
-                     cpd_left_motor, cpd_right_motor, cpd_up_motor, cpd_down_motor)
-    network.check_model()
-    return network
-
-
 def hypo_cpd(var):
     return TabularCPD(variable=var, variable_card=2, values=[[0.7, 0.3]])
 
@@ -55,7 +28,11 @@ class PeepoModel:
     def __init__(self, actors):
         self.rect = pg.Rect((0, 0), PeepoModel.SIZE)
         self.actors = actors
-        self.model = GenerativeModel(SensoryInputVirtualPeepo(self), create_network())
+        self.models = {'left': None,
+                       'right': None,
+                       'up': None,
+                       'down': None}
+        self.create_networks()
         self.motor_output = {pg.K_LEFT: False,
                              pg.K_RIGHT: False,
                              pg.K_UP: False,
@@ -65,20 +42,63 @@ class PeepoModel:
                                'up': False,
                                'down': False}
 
+    def create_networks(self):
+        network_left = BayesianModel([('hypo-left', 'obstacle-left'), ('hypo-left', 'motor-left')])
+        network_right = BayesianModel([('hypo-right', 'obstacle-right'), ('hypo-right', 'motor-right')])
+        network_up = BayesianModel([('hypo-up', 'obstacle-up'), ('hypo-up', 'motor-up')])
+        network_down = BayesianModel([('hypo-down', 'obstacle-down'), ('hypo-down', 'motor-down')])
+
+        cpd_left = hypo_cpd('hypo-left')
+        cpd_right = hypo_cpd('hypo-right')
+        cpd_up = hypo_cpd('hypo-up')
+        cpd_down = hypo_cpd('hypo-down')
+
+        cpd_left_obs = child_cpd('obstacle-left', 'hypo-left')
+        cpd_right_obs = child_cpd('obstacle-right', 'hypo-right')
+        cpd_up_obs = child_cpd('obstacle-up', 'hypo-up')
+        cpd_down_obs = child_cpd('obstacle-down', 'hypo-down')
+
+        cpd_left_motor = child_cpd('motor-left', 'hypo-left')
+        cpd_right_motor = child_cpd('motor-right', 'hypo-right')
+        cpd_up_motor = child_cpd('motor-up', 'hypo-up')
+        cpd_down_motor = child_cpd('motor-down', 'hypo-down')
+
+        network_left.add_cpds(cpd_left, cpd_left_obs, cpd_left_motor)
+        network_left.check_model()
+        network_right.add_cpds(cpd_right, cpd_right_obs, cpd_right_motor)
+        network_right.check_model()
+        network_up.add_cpds(cpd_up, cpd_up_obs, cpd_up_motor)
+        network_up.check_model()
+        network_down.add_cpds(cpd_down, cpd_down_obs, cpd_down_motor)
+        network_down.check_model()
+
+        self.models['left'] = GenerativeModel(SensoryInputVirtualPeepo(self), network_left)
+        self.models['right'] = GenerativeModel(SensoryInputVirtualPeepo(self), network_right)
+        self.models['up'] = GenerativeModel(SensoryInputVirtualPeepo(self), network_up)
+        self.models['down'] = GenerativeModel(SensoryInputVirtualPeepo(self), network_down)
+
     def process(self):
         self.calculate_obstacles()
-        self.model.process()
+        for key in self.models:
+            self.models[key].process()
 
     def calculate_obstacles(self):
         for actor in self.actors:
-            self.obstacle_input['left'] = actor.rect.x > self.rect.x and math.hypot(actor.rect.x - self.rect.x, actor.rect.y - self.rect.y) < float(PeepoModel.DISTANCE)
-            self.obstacle_input['right'] = actor.rect.x < self.rect.x and math.hypot(actor.rect.x - self.rect.x, actor.rect.y - self.rect.y) < float(PeepoModel.DISTANCE)
-            self.obstacle_input['up'] = actor.rect.y > self.rect.y and math.hypot(actor.rect.x - self.rect.x, actor.rect.y - self.rect.y) < float(PeepoModel.DISTANCE)
-            self.obstacle_input['down'] = actor.rect.y < self.rect.y and math.hypot(actor.rect.x - self.rect.x, actor.rect.y - self.rect.y) < float(PeepoModel.DISTANCE)
+            self.obstacle_input['left'] = actor.rect.x < self.rect.x and math.hypot(actor.rect.x - self.rect.x,
+                                                                                    actor.rect.y - self.rect.y) < float(
+                PeepoModel.DISTANCE)
+            self.obstacle_input['right'] = actor.rect.x > self.rect.x and math.hypot(actor.rect.x - self.rect.x,
+                                                                                     actor.rect.y - self.rect.y) < float(
+                PeepoModel.DISTANCE)
+            self.obstacle_input['up'] = actor.rect.y < self.rect.y and math.hypot(actor.rect.x - self.rect.x,
+                                                                                  actor.rect.y - self.rect.y) < float(
+                PeepoModel.DISTANCE)
+            self.obstacle_input['down'] = actor.rect.y > self.rect.y and math.hypot(actor.rect.x - self.rect.x,
+                                                                                    actor.rect.y - self.rect.y) < float(
+                PeepoModel.DISTANCE)
 
 
 class SensoryInputVirtualPeepo(SensoryInput):
-
     def __init__(self, peepo):
         super().__init__()
         self.peepo = peepo
