@@ -1,7 +1,8 @@
 import os, sys
-
+import logging
 import pygame as pg
 
+from peepo.playground.peepo_bot import Peepo
 from peepo.playground.peepos_model import PeepoModel
 
 CAPTION = "Peepo 's World"
@@ -14,13 +15,13 @@ DIRECT_DICT = {pg.K_LEFT: (-1, 0),
                pg.K_DOWN: (0, 1)}
 
 
-class Human(object):
+class HumanActor(object):
     """ This class represents a human """
 
     SIZE = (20, 20)
 
     def __init__(self, pos, speed):
-        self.rect = pg.Rect((0, 0), Human.SIZE)
+        self.rect = pg.Rect((0, 0), HumanActor.SIZE)
         self.rect.center = pos
         self.speed = speed
         self.image = self.make_image()
@@ -30,7 +31,7 @@ class Human(object):
         image.fill(TRANSPARENT)
         image_rect = image.get_rect()
         pg.draw.rect(image, pg.Color("black"), image_rect)
-        pg.draw.rect(image, pg.Color("red"), image_rect.inflate(-2, -2))
+        pg.draw.rect(image, pg.Color("purple"), image_rect.inflate(-2, -2))
         return image
 
     def update(self, keys, screen_rect):
@@ -44,8 +45,11 @@ class Human(object):
         surface.blit(self.image, self.rect)
 
 
-class Peepo(object):
+class PeepoActor(object):
     """ This class represents peepo """
+
+    INFO_BAR_WIDTH = 25
+    INFO_BAR_MAX_LENGTH = 75
 
     def __init__(self, pos, speed, model):
         self.model = model
@@ -53,6 +57,8 @@ class Peepo(object):
         self.rect.center = pos
         self.speed = speed
         self.image = self.make_image()
+        self.peepo = Peepo()
+        self.font = pg.font.SysFont('Arial', 10)
 
     def update(self, screen_rect):
         self.model.process()
@@ -61,9 +67,54 @@ class Peepo(object):
                 self.rect.x += DIRECT_DICT[key][0] * self.speed
                 self.rect.y += DIRECT_DICT[key][1] * self.speed
         self.rect.clamp_ip(screen_rect)
+        self.peepo.update()
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
+        self.draw_hunger(surface)
+        self.draw_bladder(surface)
+
+    def draw_hunger(self, surface):
+        length = (PeepoActor.INFO_BAR_MAX_LENGTH * self.peepo.hunger) / 100
+
+        rect = pg.Rect(SCREEN_SIZE[0] - 60, SCREEN_SIZE[1] - 80, PeepoActor.INFO_BAR_WIDTH, length)
+        image = pg.Surface(rect.size).convert_alpha()
+        image.fill(TRANSPARENT)
+        image_rect = image.get_rect()
+
+        bg_rect = pg.Rect(SCREEN_SIZE[0] - 60, SCREEN_SIZE[1] - 80,
+                          PeepoActor.INFO_BAR_WIDTH, PeepoActor.INFO_BAR_MAX_LENGTH)
+        bg_img = pg.Surface((PeepoActor.INFO_BAR_WIDTH, PeepoActor.INFO_BAR_MAX_LENGTH)).convert_alpha()
+        bg_img_rect = bg_img.get_rect()
+
+        pg.draw.rect(bg_img, pg.Color("grey"), bg_img_rect)
+        pg.draw.rect(image, pg.Color("black"), image_rect)
+        pg.draw.rect(image, pg.Color("brown"), image_rect.inflate(-2, -2))
+
+        surface.blit(bg_img, bg_rect)
+        surface.blit(image, rect)
+        surface.blit(self.font.render('H', True, pg.Color("black")), (bg_rect.x + 2, bg_rect.y))
+
+    def draw_bladder(self, surface):
+        length = (PeepoActor.INFO_BAR_MAX_LENGTH * self.peepo.bladder) / 100
+
+        rect = pg.Rect(SCREEN_SIZE[0] - 30, SCREEN_SIZE[1] - 80, PeepoActor.INFO_BAR_WIDTH, length)
+        image = pg.Surface(rect.size).convert_alpha()
+        image.fill(TRANSPARENT)
+        image_rect = image.get_rect()
+
+        bg_rect = pg.Rect(SCREEN_SIZE[0] - 30, SCREEN_SIZE[1] - 80,
+                          PeepoActor.INFO_BAR_WIDTH, PeepoActor.INFO_BAR_MAX_LENGTH)
+        bg_img = pg.Surface((PeepoActor.INFO_BAR_WIDTH, PeepoActor.INFO_BAR_MAX_LENGTH)).convert_alpha()
+        bg_img_rect = bg_img.get_rect()
+
+        pg.draw.rect(bg_img, pg.Color("grey"), bg_img_rect)
+        pg.draw.rect(image, pg.Color("black"), image_rect)
+        pg.draw.rect(image, pg.Color("rosybrown4"), image_rect.inflate(-2, -2))
+
+        surface.blit(bg_img, bg_rect)
+        surface.blit(image, rect)
+        surface.blit(self.font.render('B', True, pg.Color("black")), (bg_rect.x + 2, bg_rect.y))
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
@@ -108,6 +159,8 @@ class PeeposWorld(object):
         self.screen.fill(pg.Color("white"))
         self.human.draw(self.screen)
         self.peepo.draw(self.screen)
+
+        # self.screen.blit(pg.transform.rotate(self.screen, 180), (0, 0))
         pg.display.update()
 
     def main_loop(self):
@@ -131,8 +184,8 @@ def main():
     pg.display.set_caption(CAPTION)
     pg.display.set_mode(SCREEN_SIZE)
 
-    human = Human((0, 0), 5)
-    peepo = Peepo(SCREEN_CENTER, 5, PeepoModel([human]))
+    human = HumanActor((0, 0), 5)
+    peepo = PeepoActor(SCREEN_CENTER, 5, PeepoModel([human]))
     world = PeeposWorld(peepo, human)
 
     world.main_loop()
@@ -141,6 +194,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # logging.basicConfig()
-    # logging.getLogger().setLevel(logging.DEBUG)
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
     main()

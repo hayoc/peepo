@@ -2,29 +2,9 @@ import logging
 import random
 
 import numpy as np
-from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 from pgmpy.models import BayesianModel
 from scipy.stats import entropy
-
-
-def default_model():
-    """
-    Method to create a default initialized Bayesian network.
-
-    :return: Bayesian network with two dependent nodes (A & B) with 50-50 parameters
-
-    :rtype: BayesianModel
-    """
-    model = BayesianModel([('A', 'B')])
-
-    cpd_a = TabularCPD(variable='A', variable_card=2, values=[[0.5, 0.5]])
-    cpd_b = TabularCPD(variable='B', variable_card=2, values=[[0.5, 0.5],
-                                                              [0.5, 0.5]], evidence=['A'], evidence_card=[2])
-    model.add_cpds(cpd_a, cpd_b)
-    model.check_model()
-
-    return model
 
 
 class GenerativeModel:
@@ -38,10 +18,10 @@ class GenerativeModel:
     :param model : Bayesian Causal Network. Causes are hypothesis variables, effects are observational variables.
 
     :type sensory_input : SensoryInput
-    :type model : BayesianModel
+    :type model : [BayesianModel]
     """
 
-    def __init__(self, sensory_input, model=default_model()):
+    def __init__(self, sensory_input, model):
         self.sensory_input = sensory_input
         self.model = model
         self.infer = VariableElimination(model)
@@ -122,20 +102,20 @@ class GenerativeModel:
             2) Model Update
 
         :param node: name of the node causing the prediction error
-        :param surprise: surprise of the prediction error
+        :param precision: precision of the prediction error
         :param prediction_error: the prediction error itself
         :param prediction: prediction causing the prediction error
 
         :type node : str
-        :type surprise: float
+        :type precision: float
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        self.hypothesis_update(node, prediction_error, prediction)
-        # if precision < 0.5:
-        #     self.model_update(node, prediction_error, prediction)
-        # else:
-        #     self.hypothesis_update(node, prediction_error, prediction)
+        # self.hypothesis_update(node, prediction_error, prediction)
+        if precision < 0.5:
+            self.model_update(node, prediction_error, prediction)
+        else:
+            self.hypothesis_update(node, prediction_error, prediction)
 
     def hypothesis_update(self, node, prediction_error, prediction):
         """
