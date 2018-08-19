@@ -1,9 +1,13 @@
+import math
 import os, sys
 import logging
 import pygame as pg
 
 from peepo.playground.peepo_bot import Peepo
 from peepo.playground.peepos_model import PeepoModel
+from peepo.playground.vision import collision
+
+vec = pg.math.Vector2
 
 CAPTION = "Peepo 's World"
 SCREEN_SIZE = (800, 600)
@@ -19,12 +23,18 @@ class HumanActor(object):
     """ This class represents a human """
 
     SIZE = (20, 20)
+    RADIUS = 100
 
-    def __init__(self, pos, speed):
+    def __init__(self, pos, speed, objects):
         self.rect = pg.Rect((0, 0), HumanActor.SIZE)
         self.rect.center = pos
         self.speed = speed
         self.image = self.make_image()
+        self.image_original = self.image.copy()
+        self.degree = 0
+        self.edge_right = self.end_line(self.degree + 45)
+        self.edge_left = self.end_line(self.degree - 45)
+        self.objects = objects
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
@@ -35,14 +45,38 @@ class HumanActor(object):
         return image
 
     def update(self, keys, screen_rect):
-        for key in DIRECT_DICT:
-            if keys[key]:
-                self.rect.x += DIRECT_DICT[key][0] * self.speed
-                self.rect.y += DIRECT_DICT[key][1] * self.speed
+        if keys[pg.K_LEFT] and keys[pg.K_RIGHT]:
+            self.rect.x += self.speed * math.cos(math.radians(self.degree))
+            self.rect.y += self.speed * math.sin(math.radians(self.degree))
+        elif keys[pg.K_LEFT]:
+            self.degree -= 1
+            if self.degree < 0:
+                self.degree = 360
+        elif keys[pg.K_RIGHT]:
+            self.degree += 1
+            if self.degree > 360:
+                self.degree = 0
+
+        self.image = pg.transform.rotate(self.image_original, -self.degree)
+        self.rect = self.image.get_rect(center=self.rect.center)
         self.rect.clamp_ip(screen_rect)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
+
+        self.edge_right = self.end_line(self.degree + 30)
+        self.edge_left = self.end_line(self.degree - 30)
+        pg.draw.line(surface, pg.Color("red"), self.rect.center, self.edge_right, 2)
+        pg.draw.line(surface, pg.Color("green"), self.rect.center, self.edge_left, 2)
+
+        for obj in self.objects:
+            collided = collision(obj.rect, vec(self.rect.center), self.edge_left, self.edge_right, HumanActor.RADIUS)
+            if collided:
+                print("collision")
+
+    def end_line(self, rotation):
+        center_rotate = vec(HumanActor.RADIUS, 0).rotate(rotation)
+        return center_rotate + self.rect.center
 
 
 class PeepoActor(object):
@@ -51,28 +85,53 @@ class PeepoActor(object):
     INFO_BAR_WIDTH = 25
     INFO_BAR_MAX_LENGTH = 75
 
-    def __init__(self, pos, speed, model):
-        self.model = model
+    def __init__(self, pos, speed, actors):
+        self.model = PeepoModel(self, actors)
         self.rect = self.model.rect
         self.rect.center = pos
         self.speed = speed
         self.image = self.make_image()
+        self.image_original = self.image.copy()
         self.peepo = Peepo()
         self.font = pg.font.SysFont('Arial', 10)
+        self.rotation = 0
+        self.edge_right = self.end_line(self.rotation + 30)
+        self.edge_left = self.end_line(self.rotation - 30)
 
     def update(self, screen_rect):
         self.model.process()
-        for key in DIRECT_DICT:
-            if self.model.motor_output[key]:
-                self.rect.x += DIRECT_DICT[key][0] * self.speed
-                self.rect.y += DIRECT_DICT[key][1] * self.speed
+
+        if self.model.motor_output[pg.K_LEFT] and self.model.motor_output[pg.K_RIGHT]:
+            self.rect.x += self.speed * math.cos(math.radians(self.rotation))
+            self.rect.y += self.speed * math.sin(math.radians(self.rotation))
+        elif self.model.motor_output[pg.K_LEFT]:
+            self.rotation -= 1
+            if self.rotation < 0:
+                self.rotation = 360
+        elif self.model.motor_output[pg.K_RIGHT]:
+            self.rotation += 1
+            if self.rotation > 360:
+                self.rotation = 0
+
+        self.image = pg.transform.rotate(self.image_original, -self.rotation)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+        self.edge_right = self.end_line(self.rotation + 30)
+        self.edge_left = self.end_line(self.rotation - 30)
+
         self.rect.clamp_ip(screen_rect)
         self.peepo.update()
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
+        pg.draw.line(surface, pg.Color("red"), self.rect.center, self.edge_right, 2)
+        pg.draw.line(surface, pg.Color("green"), self.rect.center, self.edge_left, 2)
         self.draw_hunger(surface)
         self.draw_bladder(surface)
+
+    def end_line(self, rotation):
+        center_rotate = vec(PeepoModel.RADIUS, 0).rotate(rotation)
+        return center_rotate + self.rect.center
 
     def draw_hunger(self, surface):
         length = (PeepoActor.INFO_BAR_MAX_LENGTH * self.peepo.hunger) / 100
@@ -123,6 +182,31 @@ class PeepoActor(object):
         pg.draw.rect(image, pg.Color("black"), image_rect)
         pg.draw.rect(image, pg.Color("green"), image_rect.inflate(-2, -2))
         return image
+
+
+class ObjectActor(object):
+    """ This class represents a human """
+
+    SIZE = (20, 20)
+
+    def __init__(self, pos):
+        self.rect = pg.Rect((0, 0), ObjectActor.SIZE)
+        self.rect.center = pos
+        self.image = self.make_image()
+
+    def make_image(self):
+        image = pg.Surface(self.rect.size).convert_alpha()
+        image.fill(TRANSPARENT)
+        image_rect = image.get_rect()
+        pg.draw.rect(image, pg.Color("black"), image_rect)
+        pg.draw.rect(image, pg.Color("pink"), image_rect.inflate(-2, -2))
+        return image
+
+    def update(self):
+        pass
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
 
 
 class PeeposWorld(object):
@@ -184,8 +268,8 @@ def main():
     pg.display.set_caption(CAPTION)
     pg.display.set_mode(SCREEN_SIZE)
 
-    human = HumanActor((0, 0), 5)
-    peepo = PeepoActor(SCREEN_CENTER, 5, PeepoModel([human]))
+    human = HumanActor((0, 0), 5, [])
+    peepo = PeepoActor(SCREEN_CENTER, 5, [human])
     world = PeeposWorld(peepo, human)
 
     world.main_loop()
