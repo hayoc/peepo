@@ -3,6 +3,11 @@ import pygame as pg
 vec = pg.math.Vector2
 
 
+def end_line(radius, rotation, center):
+    center_rotate = vec(radius, 0).rotate(rotation)
+    return center_rotate + center
+
+
 def collision(rect, center, line1, line2, radius):
     test1 = False
     test2 = False

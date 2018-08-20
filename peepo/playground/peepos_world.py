@@ -5,7 +5,7 @@ import pygame as pg
 
 from peepo.playground.peepo_bot import Peepo
 from peepo.playground.peepos_model import PeepoModel
-from peepo.playground.vision import collision
+from peepo.playground.vision import collision, end_line
 
 vec = pg.math.Vector2
 
@@ -25,16 +25,13 @@ class HumanActor(object):
     SIZE = (20, 20)
     RADIUS = 100
 
-    def __init__(self, pos, speed, objects):
+    def __init__(self, pos, speed):
         self.rect = pg.Rect((0, 0), HumanActor.SIZE)
         self.rect.center = pos
         self.speed = speed
         self.image = self.make_image()
         self.image_original = self.image.copy()
         self.degree = 0
-        self.edge_right = self.end_line(self.degree + 45)
-        self.edge_left = self.end_line(self.degree - 45)
-        self.objects = objects
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
@@ -64,30 +61,17 @@ class HumanActor(object):
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
-        self.edge_right = self.end_line(self.degree + 30)
-        self.edge_left = self.end_line(self.degree - 30)
-        pg.draw.line(surface, pg.Color("red"), self.rect.center, self.edge_right, 2)
-        pg.draw.line(surface, pg.Color("green"), self.rect.center, self.edge_left, 2)
-
-        for obj in self.objects:
-            collided = collision(obj.rect, vec(self.rect.center), self.edge_left, self.edge_right, HumanActor.RADIUS)
-            if collided:
-                print("collision")
-
-    def end_line(self, rotation):
-        center_rotate = vec(HumanActor.RADIUS, 0).rotate(rotation)
-        return center_rotate + self.rect.center
-
 
 class PeepoActor(object):
     """ This class represents peepo """
 
     INFO_BAR_WIDTH = 25
     INFO_BAR_MAX_LENGTH = 75
+    SIZE = (40, 40)
 
     def __init__(self, pos, speed, actors):
         self.model = PeepoModel(self, actors)
-        self.rect = self.model.rect
+        self.rect = pg.Rect((0, 0), PeepoActor.SIZE)
         self.rect.center = pos
         self.speed = speed
         self.image = self.make_image()
@@ -95,8 +79,8 @@ class PeepoActor(object):
         self.peepo = Peepo()
         self.font = pg.font.SysFont('Arial', 10)
         self.rotation = 0
-        self.edge_right = self.end_line(self.rotation + 30)
-        self.edge_left = self.end_line(self.rotation - 30)
+        self.edge_right = end_line(PeepoModel.RADIUS, self.rotation + 30, self.rect.center)
+        self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
 
     def update(self, screen_rect):
         self.model.process()
@@ -116,22 +100,20 @@ class PeepoActor(object):
         self.image = pg.transform.rotate(self.image_original, -self.rotation)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-        self.edge_right = self.end_line(self.rotation + 30)
-        self.edge_left = self.end_line(self.rotation - 30)
+        self.edge_right = end_line(PeepoModel.RADIUS, self.rotation + 30, self.rect.center)
+        self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
 
         self.rect.clamp_ip(screen_rect)
-        self.peepo.update()
+        self.peepo.update(self.model)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
         pg.draw.line(surface, pg.Color("red"), self.rect.center, self.edge_right, 2)
         pg.draw.line(surface, pg.Color("green"), self.rect.center, self.edge_left, 2)
-        self.draw_hunger(surface)
-        self.draw_bladder(surface)
+        # self.draw_hunger(surface)
+        # self.draw_bladder(surface)
 
-    def end_line(self, rotation):
-        center_rotate = vec(PeepoModel.RADIUS, 0).rotate(rotation)
-        return center_rotate + self.rect.center
+
 
     def draw_hunger(self, surface):
         length = (PeepoActor.INFO_BAR_MAX_LENGTH * self.peepo.hunger) / 100
@@ -268,7 +250,7 @@ def main():
     pg.display.set_caption(CAPTION)
     pg.display.set_mode(SCREEN_SIZE)
 
-    human = HumanActor((0, 0), 5, [])
+    human = HumanActor((0, 0), 5)
     peepo = PeepoActor(SCREEN_CENTER, 5, [human])
     world = PeeposWorld(peepo, human)
 

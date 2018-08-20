@@ -43,11 +43,12 @@ class GenerativeModel:
 
             # TODO: PEM should only happen if PES is higher than some value, this value
             # TODO: should depend on whatever context the agent finds itself in, and the agent's goal
-            logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
             precision = entropy(pred, base=2)
             pe = self.error(pred, obs)
             total_pes += pes
-            logging.debug("node[%s] PES: %s", node, pes)
+            if pes > 0.5:
+                logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
+                logging.debug("node[%s] PES: %s", node, pes)
             self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)
 
         return total_pes

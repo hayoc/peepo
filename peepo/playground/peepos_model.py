@@ -6,7 +6,7 @@ import numpy as np
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 
-from peepo.playground.vision import collision
+from peepo.playground.vision import collision, end_line
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
 
@@ -34,22 +34,24 @@ def double_hypo_cpd(var, evi_1, evi_2):
                       evidence=[evi_1, evi_2],
                       evidence_card=[2, 2])
 
+
 class PeepoModel:
-    DISTANCE = 75
-    SIZE = (40, 40)
+
     RADIUS = 100
 
     def __init__(self, peepo_actor, actors):
         self.peepo_actor = peepo_actor
         self.actors = actors
-        self.models = {'main': None}
+        self.models = self.create_networks()
         self.create_networks()
         self.motor_output = {pg.K_LEFT: False,
                              pg.K_RIGHT: False}
-        self.obstacle_input = {'left': False,
-                               'right': False,
-                               'up': False,
-                               'down': False}
+        self.obstacle_input = {'1': False,
+                               '2': False,
+                               '3': False,
+                               '4': False,
+                               '5': False,
+                               '6': False}
 
     def create_networks(self):
         network = BayesianModel([('wandering_left', 'motor_left'), ('wandering_right', 'motor_right'),
@@ -78,7 +80,7 @@ class PeepoModel:
                          cpd_8, cpd_9, cpd_10, cpd_11, cpd_12)
         network.check_model()
 
-        self.models['main'] = GenerativeModel(SensoryInputVirtualPeepo(self), network)
+        return {'main': GenerativeModel(SensoryInputVirtualPeepo(self), network)}
 
     def process(self):
         self.calculate_obstacles()
@@ -86,28 +88,28 @@ class PeepoModel:
             self.models[key].process()
 
     def calculate_obstacles(self):
-        collided1, collided2, collided3, collided4, collided5, collided6 = False
+        for key in self.obstacle_input:
+            self.obstacle_input[key] = False
+
         for actor in self.actors:
-            collided = collision(actor.rect, vec(self.peepo_actor.rect.center), self.peepo_actor.edge_left,
+            peepo_vec = vec(self.peepo_actor.rect.center)
+            collided = collision(actor.rect, peepo_vec, self.peepo_actor.edge_left,
                                  self.peepo_actor.edge_right, PeepoModel.RADIUS)
             if collided:
-                pass
+                edge1 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 30, self.peepo_actor.rect.center)
+                edge2 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 20, self.peepo_actor.rect.center)
+                edge3 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 10, self.peepo_actor.rect.center)
+                edge4 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation, self.peepo_actor.rect.center)
+                edge5 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 10, self.peepo_actor.rect.center)
+                edge6 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 20, self.peepo_actor.rect.center)
+                edge7 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 30, self.peepo_actor.rect.center)
 
-
-
-        for actor in self.actors:
-            self.obstacle_input['left'] = actor.rect.x < self.rect.x and math.hypot(actor.rect.x - self.rect.x,
-                                                                                    actor.rect.y - self.rect.y) < float(
-                PeepoModel.DISTANCE)
-            self.obstacle_input['right'] = actor.rect.x > self.rect.x and math.hypot(actor.rect.x - self.rect.x,
-                                                                                     actor.rect.y - self.rect.y) < float(
-                PeepoModel.DISTANCE)
-            self.obstacle_input['up'] = actor.rect.y < self.rect.y and math.hypot(actor.rect.x - self.rect.x,
-                                                                                  actor.rect.y - self.rect.y) < float(
-                PeepoModel.DISTANCE)
-            self.obstacle_input['down'] = actor.rect.y > self.rect.y and math.hypot(actor.rect.x - self.rect.x,
-                                                                                    actor.rect.y - self.rect.y) < float(
-                PeepoModel.DISTANCE)
+                self.obstacle_input['1'] = collision(actor.rect, peepo_vec, edge1, edge2, PeepoModel.RADIUS)
+                self.obstacle_input['2'] = collision(actor.rect, peepo_vec, edge2, edge3, PeepoModel.RADIUS)
+                self.obstacle_input['3'] = collision(actor.rect, peepo_vec, edge3, edge4, PeepoModel.RADIUS)
+                self.obstacle_input['4'] = collision(actor.rect, peepo_vec, edge4, edge5, PeepoModel.RADIUS)
+                self.obstacle_input['5'] = collision(actor.rect, peepo_vec, edge5, edge6, PeepoModel.RADIUS)
+                self.obstacle_input['6'] = collision(actor.rect, peepo_vec, edge6, edge7, PeepoModel.RADIUS)
 
 
 class SensoryInputVirtualPeepo(SensoryInput):
