@@ -22,8 +22,8 @@ def obstacle_hypo_cpd(var):
 
 
 def single_hypo_cpd(var, evi):
-    return TabularCPD(variable=var, variable_card=2, values=[[0.9, 0.9],
-                                                             [0.1, 0.1]],
+    return TabularCPD(variable=var, variable_card=2, values=[[0.9, 0.1],
+                                                             [0.1, 0.9]],
                       evidence=[evi],
                       evidence_card=[2])
 

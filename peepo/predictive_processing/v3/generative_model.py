@@ -49,7 +49,7 @@ class GenerativeModel:
             if pes > 0.5:
                 logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
                 logging.debug("node[%s] PES: %s", node, pes)
-            self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)
+                self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)
 
         return total_pes
 
