@@ -43,7 +43,6 @@ class PeepoModel:
         self.peepo_actor = peepo_actor
         self.actors = actors
         self.models = self.create_networks()
-        self.create_networks()
         self.motor_output = {pg.K_LEFT: False,
                              pg.K_RIGHT: False}
         self.obstacle_input = {'1': False,
@@ -134,20 +133,20 @@ class SensoryInputVirtualPeepo(SensoryInput):
         if 'vision' in name:
             # [0.1, 0.9] = OBSTACLE - [0.9, 0.1] = NO OBSTACLE
             if '1' in name:
-                return np.array([0.1, 0.9] if self.peepo.obstacle_input['1'] else np.array([0.9, 0.1]))
+                return np.array([0.9, 0.1]) if self.peepo.obstacle_input['1'] else np.array([0.1, 0.9])
             if '2' in name:
-                return np.array([0.1, 0.9] if self.peepo.obstacle_input['2'] else np.array([0.9, 0.1]))
+                return np.array([0.9, 0.1]) if self.peepo.obstacle_input['2'] else np.array([0.1, 0.9])
             if '3' in name:
-                return np.array([0.1, 0.9] if self.peepo.obstacle_input['3'] else np.array([0.9, 0.1]))
+                return np.array([0.9, 0.1]) if self.peepo.obstacle_input['3'] else np.array([0.1, 0.9])
             if '4' in name:
-                return np.array([0.1, 0.9] if self.peepo.obstacle_input['4'] else np.array([0.9, 0.1]))
+                return np.array([0.9, 0.1]) if self.peepo.obstacle_input['4'] else np.array([0.1, 0.9])
             if '5' in name:
-                return np.array([0.1, 0.9] if self.peepo.obstacle_input['5'] else np.array([0.9, 0.1]))
+                return np.array([0.9, 0.1]) if self.peepo.obstacle_input['5'] else np.array([0.1, 0.9])
             if '6' in name:
-                return np.array([0.1, 0.9] if self.peepo.obstacle_input['6'] else np.array([0.9, 0.1]))
+                return np.array([0.9, 0.1]) if self.peepo.obstacle_input['6'] else np.array([0.1, 0.9])
         elif 'motor' in name:
             # [0.1, 0.9] = MOVING - [0.9, 0.1] = NO MOVING
             if 'left' in name:
-                return np.array([0.1, 0.9]) if self.peepo.motor_output[pg.K_RIGHT] else np.array([0.9, 0.1])
+                return np.array([0.9, 0.1]) if self.peepo.motor_output[pg.K_RIGHT] else np.array([0.1, 0.9])
             if 'right' in name:
-                return np.array([0.1, 0.9]) if self.peepo.motor_output[pg.K_LEFT] else np.array([0.9, 0.1])
+                return np.array([0.9, 0.1]) if self.peepo.motor_output[pg.K_LEFT] else np.array([0.1, 0.9])
