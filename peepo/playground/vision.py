@@ -88,6 +88,8 @@ def flat_intersection(rect, center, line1):
 
 
 def in_sector(center, line_1, line_2, radius, pos):
+    if not pos:
+        return False
     if ((pos[0] - center[0]) ** 2 + (pos[1] - center[1]) ** 2) <= radius ** 2:
         pos_1 = line_1 - center
         rot_1 = pos_1.angle_to(vec(1, 0)) % 360

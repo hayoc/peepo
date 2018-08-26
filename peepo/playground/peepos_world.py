@@ -1,11 +1,13 @@
 import math
-import os, sys
-import logging
+import os
+import random
+import sys
+
 import pygame as pg
 
 from peepo.playground.peepo_bot import Peepo
 from peepo.playground.peepos_model import PeepoModel
-from peepo.playground.vision import collision, end_line
+from peepo.playground.vision import end_line
 
 vec = pg.math.Vector2
 
@@ -26,12 +28,15 @@ class HumanActor(object):
     RADIUS = 100
     SPEED = 3
 
-    def __init__(self, pos):
+    def __init__(self, pos, walls):
         self.rect = pg.Rect((0, 0), HumanActor.SIZE)
         self.rect.center = pos
         self.image = self.make_image()
         self.image_original = self.image.copy()
         self.degree = 0
+        self.walls = walls
+        self.edge_right = end_line(PeepoModel.RADIUS, self.degree + 30, self.rect.center)
+        self.edge_left = end_line(PeepoModel.RADIUS, self.degree - 30, self.rect.center)
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
@@ -56,10 +61,35 @@ class HumanActor(object):
 
         self.image = pg.transform.rotate(self.image_original, -self.degree)
         self.rect = self.image.get_rect(center=self.rect.center)
+
+        self.edge_right = end_line(PeepoModel.RADIUS, self.degree + 30, self.rect.center)
+        self.edge_left = end_line(PeepoModel.RADIUS, self.degree - 30, self.rect.center)
+
+        # for wall in self.walls:
+        #     human_vec = vec(self.rect.center)
+        #     collided = collision(wall.rect, human_vec, self.edge_left,
+        #                          self.edge_right, PeepoModel.RADIUS)
+        #
+        #     if collided:
+        #         edge = end_line(PeepoModel.RADIUS, self.degree, self.rect.center)
+        #         if 'left' in wall.id:
+        #             wall_vec = vec((5, self.rect.y))
+        #         elif 'right' in wall.id:
+        #             wall_vec = vec((1598, self.rect.y))
+        #         elif 'up' in wall.id:
+        #             wall_vec = vec((5, self.rect.y))
+        #         else:
+        #             wall_vec = vec((5, self.rect.y))
+        #
+        #         deg = math.degrees(math.atan2(wall_vec.y - human_vec.y, wall_vec.x - human_vec.x)) + self.degree
+        #         print(deg)
+
         self.rect.clamp_ip(screen_rect)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
+        pg.draw.line(surface, pg.Color("red"), self.rect.center, self.edge_right, 2)
+        pg.draw.line(surface, pg.Color("green"), self.rect.center, self.edge_left, 2)
 
 
 class PeepoActor(object):
@@ -89,11 +119,11 @@ class PeepoActor(object):
         self.rect.y += PeepoActor.SPEED * math.sin(math.radians(self.rotation))
 
         if self.model.motor_output[pg.K_LEFT]:
-            self.rotation -= 1
+            self.rotation -= random.randint(10, 30)
             if self.rotation < 0:
                 self.rotation = 360
         if self.model.motor_output[pg.K_RIGHT]:
-            self.rotation += 1
+            self.rotation += random.randint(10, 30)
             if self.rotation > 360:
                 self.rotation = 0
 
@@ -165,14 +195,14 @@ class PeepoActor(object):
 
 
 class ObjectActor(object):
-    """ This class represents a human """
 
     SIZE = (20, 20)
 
-    def __init__(self, pos):
+    def __init__(self, id, pos):
         self.rect = pg.Rect((0, 0), ObjectActor.SIZE)
         self.rect.center = pos
         self.image = self.make_image()
+        self.id = id
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
@@ -189,12 +219,32 @@ class ObjectActor(object):
         surface.blit(self.image, self.rect)
 
 
+class Wall(object):
+
+    def __init__(self, id, pos, size):
+        self.id = id
+        self.rect = pg.Rect((0, 0), size)
+        self.rect.center = pos
+        self.image = self.make_image()
+
+    def make_image(self):
+        image = pg.Surface(self.rect.size).convert_alpha()
+        image.fill(TRANSPARENT)
+        image_rect = image.get_rect()
+        pg.draw.rect(image, pg.Color("brown"), image_rect)
+        pg.draw.rect(image, pg.Color("brown"), image_rect.inflate(-1, -1))
+        return image
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+
+
 class PeeposWorld(object):
     """
     A class to manage our event, game loop, and overall program flow.
     """
 
-    def __init__(self, peepo, human):
+    def __init__(self, peepo, human, objects):
         self.screen = pg.display.get_surface()
         self.screen_rect = self.screen.get_rect()
         self.clock = pg.time.Clock()
@@ -203,6 +253,7 @@ class PeeposWorld(object):
         self.keys = pg.key.get_pressed()
         self.human = human
         self.peepo = peepo
+        self.objects = objects
 
     def event_loop(self):
         """
@@ -221,7 +272,9 @@ class PeeposWorld(object):
         Perform all necessary drawing and update the screen.
         """
         self.screen.fill(pg.Color("white"))
-        self.human.draw(self.screen)
+        for obj in self.objects:
+            obj.draw(self.screen)
+        # self.human.draw(self.screen)
         self.peepo.draw(self.screen)
 
         # self.screen.blit(pg.transform.rotate(self.screen, 180), (0, 0))
@@ -233,7 +286,7 @@ class PeeposWorld(object):
         """
         while not self.done:
             self.event_loop()
-            self.human.update(self.keys, self.screen_rect)
+            # self.human.update(self.keys, self.screen_rect)
             self.peepo.update(self.screen_rect)
             self.render()
             self.clock.tick(self.fps)
@@ -248,9 +301,20 @@ def main():
     pg.display.set_caption(CAPTION)
     pg.display.set_mode(SCREEN_SIZE)
 
-    human = HumanActor((0, 0))
-    peepo = PeepoActor(SCREEN_CENTER, [human])
-    world = PeeposWorld(peepo, human)
+    wall1 = Wall('wall_up', (0, 0), (3200, 5))
+    wall2 = Wall('wall_left', (0, 0), (5, 2000))
+    wall3 = Wall('wall_right', (1598, 0), (5, 2000))
+    wall4 = Wall('wall_down', (0, 998), (3200, 5))
+
+    obstacles = []
+    for x in range(0, 30):
+        obstacles.append(ObjectActor('obj_' + str(x), (random.randint(100, 1500), random.randint(100, 900))))
+        obstacles.extend([wall1, wall2, wall3, wall4])
+
+    human = HumanActor(SCREEN_CENTER, [wall1, wall2, wall3, wall4])
+    peepo = PeepoActor((0, 500), obstacles)
+
+    world = PeeposWorld(peepo, human, obstacles)
 
     world.main_loop()
     pg.quit()

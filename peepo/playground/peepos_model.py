@@ -1,8 +1,7 @@
 import math
 
-import pygame as pg
 import numpy as np
-
+import pygame as pg
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 
@@ -36,7 +35,6 @@ def double_hypo_cpd(var, evi_1, evi_2):
 
 
 class PeepoModel:
-
     RADIUS = 100
 
     def __init__(self, peepo_actor, actors):
@@ -95,20 +93,56 @@ class PeepoModel:
             collided = collision(actor.rect, peepo_vec, self.peepo_actor.edge_left,
                                  self.peepo_actor.edge_right, PeepoModel.RADIUS)
             if collided:
-                edge1 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 30, self.peepo_actor.rect.center)
-                edge2 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 20, self.peepo_actor.rect.center)
-                edge3 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 10, self.peepo_actor.rect.center)
-                edge4 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation, self.peepo_actor.rect.center)
-                edge5 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 10, self.peepo_actor.rect.center)
-                edge6 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 20, self.peepo_actor.rect.center)
-                edge7 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 30, self.peepo_actor.rect.center)
+                if 'wall' in actor.id:
+                    edge = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation, self.peepo_actor.rect.center)
+                    if 'left' in actor.id:
+                        wall_vec = vec((5, self.peepo_actor.rect.y))
+                        deg = math.degrees(
+                            math.atan2(wall_vec.y - edge.y, wall_vec.x - edge.x)) + self.peepo_actor.rotation
+                        if deg < 0:
+                            self.obstacle_input['6'] = True
+                        else:
+                            self.obstacle_input['1'] = True
+                    elif 'right' in actor.id:
+                        wall_vec = vec((1598, self.peepo_actor.rect.y))
+                        deg = math.degrees(
+                            math.atan2(wall_vec.y - edge.y, wall_vec.x - edge.x)) + self.peepo_actor.rotation
+                        if deg < 0:
+                            self.obstacle_input['1'] = True
+                        else:
+                            self.obstacle_input['6'] = True
+                    elif 'up' in actor.id:
+                        wall_vec = vec((5, self.peepo_actor.rect.y))
+                        deg = math.degrees(
+                            math.atan2(wall_vec.y - edge.y, wall_vec.x - edge.x)) + self.peepo_actor.rotation
+                        if deg < 90:
+                            self.obstacle_input['6'] = True
+                        else:
+                            self.obstacle_input['1'] = True
+                    else:
+                        wall_vec = vec((5, self.peepo_actor.rect.y))
+                        deg = math.degrees(
+                            math.atan2(wall_vec.y - edge.y, wall_vec.x - edge.x)) + self.peepo_actor.rotation
+                        if deg < -90:
+                            self.obstacle_input['6'] = True
+                        else:
+                            self.obstacle_input['1'] = True
 
-                self.obstacle_input['1'] = collision(actor.rect, peepo_vec, edge1, edge2, PeepoModel.RADIUS)
-                self.obstacle_input['2'] = collision(actor.rect, peepo_vec, edge2, edge3, PeepoModel.RADIUS)
-                self.obstacle_input['3'] = collision(actor.rect, peepo_vec, edge3, edge4, PeepoModel.RADIUS)
-                self.obstacle_input['4'] = collision(actor.rect, peepo_vec, edge4, edge5, PeepoModel.RADIUS)
-                self.obstacle_input['5'] = collision(actor.rect, peepo_vec, edge5, edge6, PeepoModel.RADIUS)
-                self.obstacle_input['6'] = collision(actor.rect, peepo_vec, edge6, edge7, PeepoModel.RADIUS)
+                else:
+                    edge1 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 30, self.peepo_actor.rect.center)
+                    edge2 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 20, self.peepo_actor.rect.center)
+                    edge3 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 10, self.peepo_actor.rect.center)
+                    edge4 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation, self.peepo_actor.rect.center)
+                    edge5 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 10, self.peepo_actor.rect.center)
+                    edge6 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 20, self.peepo_actor.rect.center)
+                    edge7 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 30, self.peepo_actor.rect.center)
+
+                    self.obstacle_input['1'] = collision(actor.rect, peepo_vec, edge1, edge2, PeepoModel.RADIUS)
+                    self.obstacle_input['2'] = collision(actor.rect, peepo_vec, edge2, edge3, PeepoModel.RADIUS)
+                    self.obstacle_input['3'] = collision(actor.rect, peepo_vec, edge3, edge4, PeepoModel.RADIUS)
+                    self.obstacle_input['4'] = collision(actor.rect, peepo_vec, edge4, edge5, PeepoModel.RADIUS)
+                    self.obstacle_input['5'] = collision(actor.rect, peepo_vec, edge5, edge6, PeepoModel.RADIUS)
+                    self.obstacle_input['6'] = collision(actor.rect, peepo_vec, edge6, edge7, PeepoModel.RADIUS)
 
 
 class SensoryInputVirtualPeepo(SensoryInput):
@@ -117,17 +151,17 @@ class SensoryInputVirtualPeepo(SensoryInput):
         self.peepo = peepo
 
     def action(self, node, prediction_error, prediction):
-        # if prediction = [0.1, 0.9] (= moving) then move else stop
-        if np.argmax(prediction) > 0:  # predicted moving
-            if 'left' in node:
-                self.peepo.motor_output[pg.K_RIGHT] = True
-            if 'right' in node:
-                self.peepo.motor_output[pg.K_LEFT] = True
-        else:  # predicted stopped
+        # if prediction = [0.9, 0.1] (= moving) then move else stop
+        if np.argmax(prediction) > 0:  # predicted stopping
             if 'left' in node:
                 self.peepo.motor_output[pg.K_RIGHT] = False
             if 'right' in node:
                 self.peepo.motor_output[pg.K_LEFT] = False
+        else:  # predicted moving
+            if 'left' in node:
+                self.peepo.motor_output[pg.K_RIGHT] = True
+            if 'right' in node:
+                self.peepo.motor_output[pg.K_LEFT] = True
 
     def value(self, name):
         if 'vision' in name:
