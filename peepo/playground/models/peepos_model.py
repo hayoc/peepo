@@ -5,7 +5,7 @@ import pygame as pg
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 
-from peepo.playground.vision import collision, end_line
+from peepo.playground.util.vision import collision, end_line
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
 

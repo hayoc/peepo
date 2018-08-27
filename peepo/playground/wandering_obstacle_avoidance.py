@@ -5,9 +5,9 @@ import sys
 
 import pygame as pg
 
-from peepo.playground.peepo_bot import Peepo
-from peepo.playground.peepos_model import PeepoModel
-from peepo.playground.vision import end_line
+from peepo.playground.models.peepo_bot import Peepo
+from peepo.playground.models.peepos_model import PeepoModel
+from peepo.playground.util.vision import end_line
 
 vec = pg.math.Vector2
 

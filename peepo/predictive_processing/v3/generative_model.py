@@ -3,7 +3,6 @@ import random
 
 import numpy as np
 from pgmpy.inference import VariableElimination
-from pgmpy.models import BayesianModel
 from scipy.stats import entropy
 
 
