@@ -5,8 +5,8 @@ import sys
 
 import pygame as pg
 
-from peepo.playground.models.wandering_obstacle_avoidance_model import PeepoModel
-from peepo.playground.models.wandering_obstacle_avoidance_peepo import Peepo
+from peepo.playground.models.goal_obstacle_advoidance_model import PeepoModel
+from peepo.playground.models.goal_obstacle_avoidance_peepo import Peepo
 from peepo.playground.util.vision import end_line
 
 vec = pg.math.Vector2
@@ -19,6 +19,9 @@ DIRECT_DICT = {pg.K_LEFT: (-1, 0),
                pg.K_RIGHT: (1, 0),
                pg.K_UP: (0, -1),
                pg.K_DOWN: (0, 1)}
+
+START_POS = (50, 50)
+GOAL_POS = (1500, 800)
 
 
 class PeepoActor(object):
@@ -33,10 +36,10 @@ class PeepoActor(object):
         self.rect.center = pos
         self.image = self.make_image()
         self.image_original = self.image.copy()
-        self.peepo = Peepo()
         self.rotation = 0
         self.edge_right = end_line(PeepoModel.RADIUS, self.rotation + 30, self.rect.center)
         self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
+        self.peepo = Peepo(self, GOAL_POS)
 
     def update(self, screen_rect):
         self.model.process()
@@ -78,43 +81,19 @@ class PeepoActor(object):
 
 class ObjectActor(object):
 
-    SIZE = (20, 20)
-
-    def __init__(self, id, pos):
-        self.rect = pg.Rect((0, 0), ObjectActor.SIZE)
-        self.rect.center = pos
-        self.image = self.make_image()
-        self.id = id
-
-    def make_image(self):
-        image = pg.Surface(self.rect.size).convert_alpha()
-        image.fill(TRANSPARENT)
-        image_rect = image.get_rect()
-        pg.draw.rect(image, pg.Color("black"), image_rect)
-        pg.draw.rect(image, pg.Color("pink"), image_rect.inflate(-2, -2))
-        return image
-
-    def update(self):
-        pass
-
-    def draw(self, surface):
-        surface.blit(self.image, self.rect)
-
-
-class Wall(object):
-
-    def __init__(self, id, pos, size):
+    def __init__(self, id, pos, size, color):
         self.id = id
         self.rect = pg.Rect((0, 0), size)
         self.rect.center = pos
+        self.color = color
         self.image = self.make_image()
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
         image.fill(TRANSPARENT)
         image_rect = image.get_rect()
-        pg.draw.rect(image, pg.Color("brown"), image_rect)
-        pg.draw.rect(image, pg.Color("brown"), image_rect.inflate(-1, -1))
+        pg.draw.rect(image, self.color, image_rect)
+        pg.draw.rect(image, self.color, image_rect.inflate(-2, -2))
         return image
 
     def draw(self, surface):
@@ -179,17 +158,19 @@ def main():
     pg.display.set_caption(CAPTION)
     pg.display.set_mode(SCREEN_SIZE)
 
-    wall1 = Wall('wall_up', (0, 0), (3200, 5))
-    wall2 = Wall('wall_left', (0, 0), (5, 2000))
-    wall3 = Wall('wall_right', (1598, 0), (5, 2000))
-    wall4 = Wall('wall_down', (0, 998), (3200, 5))
+    wall1 = ObjectActor('wall_up', (0, 0), (3200, 5), pg.Color('brown'))
+    wall2 = ObjectActor('wall_left', (0, 0), (5, 2000), pg.Color('brown'))
+    wall3 = ObjectActor('wall_right', (1598, 0), (5, 2000), pg.Color('brown'))
+    wall4 = ObjectActor('wall_down', (0, 998), (3200, 5), pg.Color('brown'))
 
     obstacles = []
-    for x in range(0, 30):
-        obstacles.append(ObjectActor('obj_' + str(x), (random.randint(100, 1500), random.randint(100, 900))))
-        obstacles.extend([wall1, wall2, wall3, wall4])
+    for x in range(0, 50):
+        obstacles.append(ObjectActor('obj_' + str(x), (random.randint(100, 1500), random.randint(100, 900)), (20, 20),
+                                     pg.Color('red')))
+    goal = ObjectActor('goal', GOAL_POS, (50, 50), pg.Color('blue'))
+    obstacles.extend([wall1, wall2, wall3, wall4, goal])
 
-    peepo = PeepoActor((0, 500), obstacles)
+    peepo = PeepoActor(START_POS, obstacles)
 
     world = PeeposWorld(peepo, obstacles)
 
