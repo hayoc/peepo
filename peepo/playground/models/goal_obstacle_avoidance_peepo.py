@@ -22,11 +22,12 @@ class Peepo():
         target = math.radians(degs)
 
         # TODO: check whether obstacle is active, if it is, don't update navigation module
+        # TODO: turn off hypos every time we recalculate
+        # TODO: we should not be changing hypos manually - instead sensory inputs can be given which change the
+        # TODO: hypos by generating prediction errors
+        network.get_cpds('goal_right').values = np.array([0.1, 0.9])
+        network.get_cpds('goal_left').values = np.array([0.1, 0.9])
         if origin < target and target - origin > 0.2:
-            print('Orienting left')
-            network.get_cpds('goal_right').values = np.array([0.1, 0.9])
             network.get_cpds('goal_left').values = np.array([0.9, 0.1])
         elif origin > target and origin - target > 0.2:
-            print('Orienting right')
-            network.get_cpds('goal_left').values = np.array([0.1, 0.9])
             network.get_cpds('goal_right').values = np.array([0.9, 0.1])
