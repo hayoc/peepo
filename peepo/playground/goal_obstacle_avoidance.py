@@ -20,7 +20,7 @@ DIRECT_DICT = {pg.K_LEFT: (-1, 0),
                pg.K_UP: (0, -1),
                pg.K_DOWN: (0, 1)}
 
-START_POS = (50, 50)
+START_POS = (50, 500)
 GOAL_POS = (1500, 800)
 
 
@@ -49,12 +49,9 @@ class PeepoActor(object):
 
         if self.model.motor_output[pg.K_LEFT]:
             self.rotation -= random.randint(10, 30)
-            if self.rotation < 0:
-                self.rotation = 360
         if self.model.motor_output[pg.K_RIGHT]:
             self.rotation += random.randint(10, 30)
-            if self.rotation > 360:
-                self.rotation = 0
+        self.rotation = self.rotation % 360
 
         self.image = pg.transform.rotate(self.image_original, -self.rotation)
         self.rect = self.image.get_rect(center=self.rect.center)

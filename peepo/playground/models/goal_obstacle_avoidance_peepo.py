@@ -27,7 +27,10 @@ class Peepo():
         # TODO: hypos by generating prediction errors
         network.get_cpds('goal_right').values = np.array([0.1, 0.9])
         network.get_cpds('goal_left').values = np.array([0.1, 0.9])
+
         if origin < target and target - origin > 0.2:
+            print('setting goal right')
             network.get_cpds('goal_left').values = np.array([0.9, 0.1])
         elif origin > target and origin - target > 0.2:
+            print('setting goal left')
             network.get_cpds('goal_right').values = np.array([0.9, 0.1])
