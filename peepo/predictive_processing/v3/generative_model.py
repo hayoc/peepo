@@ -1,5 +1,4 @@
 import logging
-import random
 
 import numpy as np
 from pgmpy.inference import VariableElimination
@@ -24,7 +23,7 @@ class GenerativeModel:
         self.sensory_input = sensory_input
         self.model = model
         self.infer = VariableElimination(model)
-        self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters]
+        self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters, self.change_valency]
 
     def process(self):
         """
@@ -35,7 +34,7 @@ class GenerativeModel:
         Returns the total prediction error size observed (for informational purposes...)
         """
         total_pes = 0
-        for node, prediction in self.predict().items():
+        for node, prediction in self.predict(self.model).items():
             pred = prediction.values
             obs = self.sensory_input.value(node)
             pes = self.error_size(pred, obs)
@@ -52,7 +51,7 @@ class GenerativeModel:
 
         return total_pes
 
-    def predict(self):
+    def predict(self, model):
         """
         Predicts the leaf nodes (i.e. the observational nodes) based on the parent nodes (i.e. the hypothesis nodes)
         The predicted values of the observations are the maximum a posteriori (MAP) distributions over the
@@ -62,7 +61,7 @@ class GenerativeModel:
 
         :rtype: dict
         """
-        return self.infer.query(variables=self.model.get_leaves(), evidence=self.get_hypotheses())
+        return self.infer.query(variables=model.get_leaves(), evidence=self.get_hypotheses(model))
 
     @staticmethod
     def error(pred, obs):
@@ -112,6 +111,7 @@ class GenerativeModel:
         :type prediction: np.array
         """
         self.hypothesis_update(node, prediction_error, prediction)
+        # TODO: make the choice more sophisticated, with precision, surprise, yada yada yada
         # if precision < 0.5:
         #     self.model_update(node, prediction_error, prediction)
         # else:
@@ -138,9 +138,7 @@ class GenerativeModel:
         else:
             for hypo in self.model.get_roots():
                 result = self.infer.query(variables=[hypo],
-                                          evidence={node: np.argmax(
-                                              prediction_error if prediction is None
-                                              else prediction_error + prediction)})
+                                          evidence={node: np.argmax(prediction_error + prediction)})
                 before = self.model.get_cpds(hypo).values
                 self.model.get_cpds(hypo).values = result.get(hypo).values
                 logging.debug("node[%s] hypothesis-update from %s to %s", hypo, before, result.get(hypo).values)
@@ -148,28 +146,41 @@ class GenerativeModel:
             # Or all observation nodes in the network???
 
     def model_update(self, node, prediction_error, prediction):
-        random.choice(self.atomic_updates)(node)
+        lowest_error_size = self.error_size(prediction, prediction_error + prediction)
+        best_model = self.model
 
-    def add_node(self, node_in_error):
-        pass
+        for idx, val in enumerate(self.atomic_updates):
+            updated_model = val(self.model.copy(), node)
+            updated_prediction = self.predict(updated_model)[node].values
+            updated_error_size = self.error_size(updated_prediction, prediction_error + prediction)
+            if updated_error_size < lowest_error_size:
+                lowest_error_size = updated_error_size
+                best_model = updated_model
 
-    def add_edge(self, node_in_error):
-        pass
+        self.model = best_model
 
-    def change_parameters(self, node_in_error):
-        pass
+    def add_node(self, model, node_in_error):
+        return self.model
 
-    def change_valency(self, node_in_error):
-        pass
+    def add_edge(self, model, node_in_error):
+        return self.model
 
-    def get_hypotheses(self):
+    def change_parameters(self, model, node_in_error):
+        return self.model
+
+    def change_valency(self, model, node_in_error):
+        return self.model
+
+    @staticmethod
+    def get_hypotheses(model):
         hypos = {}
-        for root in self.model.get_roots():
-            hypos.update({root: np.argmax(self.model.get_cpds(root).values)})
+        for root in model.get_roots():
+            hypos.update({root: np.argmax(model.get_cpds(root).values)})
         return hypos
 
-    def get_observations(self):
+    @staticmethod
+    def get_observations(model):
         obs = {}
-        for leaf in self.model.get_leaves():
-            obs.update({leaf: np.argmax(self.model.get_cpds(leaf).values)})
+        for leaf in model.get_leaves():
+            obs.update({leaf: np.argmax(model.get_cpds(leaf).values)})
         return obs
