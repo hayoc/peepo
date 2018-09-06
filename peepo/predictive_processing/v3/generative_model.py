@@ -4,6 +4,8 @@ import numpy as np
 from pgmpy.inference import VariableElimination
 from scipy.stats import entropy
 
+from peepo.visualize.graph import draw_network
+
 
 class GenerativeModel:
     """
@@ -24,6 +26,7 @@ class GenerativeModel:
         self.model = model
         self.infer = VariableElimination(model)
         self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters, self.change_valency]
+        draw_network(model)
 
     def process(self):
         """
@@ -158,6 +161,7 @@ class GenerativeModel:
                 best_model = updated_model
 
         self.model = best_model
+        draw_network(self.model)
 
     def add_node(self, model, node_in_error):
         return self.model
