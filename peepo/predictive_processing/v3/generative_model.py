@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 from scipy.stats import entropy
 
@@ -20,6 +21,8 @@ class GenerativeModel:
     :type sensory_input : SensoryInput
     :type model : [BayesianModel]
     """
+
+    MAX_NODES = 10
 
     def __init__(self, sensory_input, model):
         self.sensory_input = sensory_input
@@ -113,12 +116,12 @@ class GenerativeModel:
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        self.hypothesis_update(node, prediction_error, prediction)
+        #        self.hypothesis_update(node, prediction_error, prediction)
         # TODO: make the choice more sophisticated, with precision, surprise, yada yada yada
-        # if precision < 0.5:
-        #     self.model_update(node, prediction_error, prediction)
-        # else:
-        #     self.hypothesis_update(node, prediction_error, prediction)
+        if precision < 0.5:
+            self.model_update(node, prediction_error, prediction)
+        else:
+            self.hypothesis_update(node, prediction_error, prediction)
 
     def hypothesis_update(self, node, prediction_error, prediction):
         """
@@ -153,7 +156,7 @@ class GenerativeModel:
         best_model = self.model
 
         for idx, val in enumerate(self.atomic_updates):
-            updated_model = val(self.model.copy(), node)
+            updated_model = val(self.model.copy(), node, prediction, prediction_error + prediction)
             updated_prediction = self.predict(updated_model)[node].values
             updated_error_size = self.error_size(updated_prediction, prediction_error + prediction)
             if updated_error_size < lowest_error_size:
@@ -163,8 +166,42 @@ class GenerativeModel:
         self.model = best_model
         draw_network(self.model)
 
-    def add_node(self, model, node_in_error):
-        return self.model
+    def add_node(self, model, node_in_error, original_prediction, observation):
+        if len(model) >= GenerativeModel.MAX_NODES:
+            return model
+
+        lowest_error = self.error_size(original_prediction, observation)
+        best_model = model
+
+        for active_node in model.active_trail_nodes(node_in_error):
+            new_model = model.copy()
+            new_node_name = str(len(model))
+            new_model.add_node(new_node_name)
+            new_model.add_edge(new_node_name, active_node)
+
+            new_node_cpd = TabularCPD(variable=new_node_name, variable_card=2, values=[[0.1, 0.9]])
+            old_cpd = new_model.get_cpds(active_node)
+            new_model.get_cpds(active_node).values = np.append(new_model.get_cpds(active_node).values, [[0.5], [0.5]],
+                                                               axis=1)
+            evidence = old_cpd.get_evidence()
+            evidence.append(new_node_name)
+            evidence_card = list(old_cpd.get_cardinality(old_cpd.get_evidence()).values())
+            evidence_card.append(2)
+            values = np.append(old_cpd.values, [[0.5], [0.5]], axis=1)
+            new_cpd_for_active_node = TabularCPD(variable=active_node,
+                                                 variable_card=old_cpd.variable_card,
+                                                 values=values,
+                                                 evidence=evidence,
+                                                 evidence_card=evidence_card)
+            new_model.add_cpds(new_node_cpd, new_cpd_for_active_node)
+
+            new_prediction = self.predict(new_model)[node_in_error].values
+            new_error = self.error_size(new_prediction, observation)
+            if new_error < lowest_error:
+                lowest_error = new_error
+                best_model = new_model
+
+        return best_model
 
     def add_edge(self, model, node_in_error):
         return self.model
