@@ -181,8 +181,7 @@ class GenerativeModel:
 
             new_node_cpd = TabularCPD(variable=new_node_name, variable_card=2, values=[[0.1, 0.9]])
             old_cpd = new_model.get_cpds(active_node)
-            new_model.get_cpds(active_node).values = np.append(new_model.get_cpds(active_node).values, [[0.5], [0.5]],
-                                                               axis=1)
+
             evidence = old_cpd.get_evidence()
             evidence.append(new_node_name)
             evidence_card = list(old_cpd.get_cardinality(old_cpd.get_evidence()).values())
@@ -193,6 +192,7 @@ class GenerativeModel:
                                                  values=values,
                                                  evidence=evidence,
                                                  evidence_card=evidence_card)
+
             new_model.add_cpds(new_node_cpd, new_cpd_for_active_node)
 
             new_prediction = self.predict(new_model)[node_in_error].values
@@ -203,8 +203,38 @@ class GenerativeModel:
 
         return best_model
 
-    def add_edge(self, model, node_in_error):
-        return self.model
+    def add_edge(self, model, node_in_error, original_prediction, observation):
+        lowest_error = self.error_size(original_prediction, observation)
+        best_model = model
+
+        for node in model.get_nodes():
+            if node == node_in_error:
+                continue
+
+            new_model = model.copy()
+            new_model.add_edge(node, node_in_error)
+
+            old_cpd = new_model.get_cpds(node_in_error)
+            evidence = old_cpd.get_evidence()
+            evidence.append(node)
+            evidence_card = list(old_cpd.get_cardinality(old_cpd.get_evidence()).values())
+            evidence_card.append(new_model.get_cpds(node).get_cardinality(node))
+            values = np.append(old_cpd.values, [[0.5], [0.5]], axis=1)  # TODO: length should be based on cardinality
+            new_cpd = TabularCPD(variable=node_in_error,
+                                 variable_card=old_cpd.variable_card,
+                                 values=values,
+                                 evidence=evidence,
+                                 evidence_card=evidence_card)
+
+            new_model.add_cpds(new_cpd)
+
+            new_prediction = self.predict(new_model)[node_in_error].values
+            new_error = self.error_size(new_prediction, observation)
+            if new_error < lowest_error:
+                lowest_error = new_error
+                best_model = new_model
+
+        return best_model
 
     def change_parameters(self, model, node_in_error):
         return self.model
