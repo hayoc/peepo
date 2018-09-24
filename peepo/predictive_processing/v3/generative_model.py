@@ -1,4 +1,5 @@
 import logging
+import math
 
 import numpy as np
 from pgmpy.factors.discrete import TabularCPD
@@ -173,7 +174,7 @@ class GenerativeModel:
         lowest_error = self.error_size(original_prediction, observation)
         best_model = model
 
-        for active_node in model.active_trail_nodes(node_in_error):
+        for active_node in model.active_trail_nodes(node_in_error)[node_in_error]:
             new_model = model.copy()
             new_node_name = str(len(model))
             new_model.add_node(new_node_name)
@@ -236,8 +237,35 @@ class GenerativeModel:
 
         return best_model
 
-    def change_parameters(self, model, node_in_error):
-        return self.model
+    def change_parameters(self, model, node_in_error, original_prediction, observation):
+        lowest_error = self.error_size(original_prediction, observation)
+        best_model = model
+
+        for active_node in model.active_trail_nodes('vision_1')['vision_1'] - set(model.get_roots()):
+            vals = model.get_cpds(active_node).values
+
+            for idx_col, col in enumerate(vals.T):
+                for idx_row, row in enumerate(col):
+                    new_model = model.copy()
+                    new_vals = np.copy(vals)
+
+                    to_add = abs(math.log(row, 10))
+                    to_subtract = to_add / len(col)
+
+                    new_vals[idx_row, idx_col] = new_vals[idx_row, idx_col] + to_add
+                    for idx_row_copy, row_copy in enumerate(col):
+                        if idx_row_copy is not idx_row:
+                            new_vals[idx_row_copy, idx_col] = new_vals[idx_row_copy, idx_col] - to_subtract
+
+                    new_model.get_cpds(active_node).values = new_vals
+
+                    new_prediction = self.predict(new_model)[node_in_error].values
+                    new_error = self.error_size(new_prediction, observation)
+                    if new_error < lowest_error:
+                        lowest_error = new_error
+                        best_model = new_model
+
+        return best_model
 
     def change_valency(self, model, node_in_error):
         return self.model
