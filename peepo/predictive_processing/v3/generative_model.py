@@ -153,6 +153,20 @@ class GenerativeModel:
             # Or all observation nodes in the network???
 
     def model_update(self, node, prediction_error, prediction):
+        """
+        Updates the generative model by changing its structure (i.e. nodes, edges) or its parameters (i.e. CPDs)
+
+        :param node: name of the node for which the prediction generated a prediction error high/precise enough to
+        warrant a model update
+        :param prediction_error: the difference between the prediction and the observation
+        :param prediction: the prediction of the node - based on the hypothesis nodes in the model
+        :return: the update model, hopefully one which generates predictions with less prediction error
+
+        :type node: str
+        :type prediction_error: np.array
+        :type prediction: np.array
+        :rtype BayesianModel
+        """
         lowest_error_size = self.error_size(prediction, prediction_error + prediction)
         best_model = self.model
 
@@ -168,6 +182,21 @@ class GenerativeModel:
         draw_network(self.model)
 
     def add_node(self, model, node_in_error, original_prediction, observation):
+        """
+        Updates the generative model by adding a new node, connected to the node which caused the prediction error
+
+        :param model: the generative model to be updated
+        :param node_in_error: name of the node which cause the prediction error
+        :param original_prediction: the prediction before the model update
+        :param observation: the observation which didn't match the prediction
+        :return: the updated model
+
+        :type model: BayesianModel
+        :type node_in_error: str
+        :type original_prediction: np.array
+        :type observation: np.array
+        :rtype BayesianModel
+        """
         if len(model) >= GenerativeModel.MAX_NODES:
             return model
 
@@ -205,6 +234,22 @@ class GenerativeModel:
         return best_model
 
     def add_edge(self, model, node_in_error, original_prediction, observation):
+        """
+        Updates the generative model by adding a new edge, connecting the node which caused the prediction error to
+        a random node
+
+        :param model: the generative model to be updated
+        :param node_in_error: name of the node which cause the prediction error
+        :param original_prediction: the prediction before the model update
+        :param observation: the observation which didn't match the prediction
+        :return: the updated model
+
+        :type model: BayesianModel
+        :type node_in_error: str
+        :type original_prediction: np.array
+        :type observation: np.array
+        :rtype BayesianModel
+        """
         lowest_error = self.error_size(original_prediction, observation)
         best_model = model
 
@@ -238,6 +283,21 @@ class GenerativeModel:
         return best_model
 
     def change_parameters(self, model, node_in_error, original_prediction, observation):
+        """
+        Updates the generative model by changing the parameters of the node which caused the prediction error
+
+        :param model: the generative model to be updated
+        :param node_in_error: name of the node which cause the prediction error
+        :param original_prediction: the prediction before the model update
+        :param observation: the observation which didn't match the prediction
+        :return: the updated model
+
+        :type model: BayesianModel
+        :type node_in_error: str
+        :type original_prediction: np.array
+        :type observation: np.array
+        :rtype BayesianModel
+        """
         lowest_error = self.error_size(original_prediction, observation)
         best_model = model
 
@@ -267,7 +327,23 @@ class GenerativeModel:
 
         return best_model
 
-    def change_valency(self, model, node_in_error):
+    def change_valency(self, model, node_in_error, original_prediction, observation):
+        """
+        Updates the generative model by changing the valency (i.e. the amount of parameters in the CPD) of the
+        node which caused the prediction error
+
+        :param model: the generative model to be updated
+        :param node_in_error: name of the node which cause the prediction error
+        :param original_prediction: the prediction before the model update
+        :param observation: the observation which didn't match the prediction
+        :return: the updated model
+
+        :type model: BayesianModel
+        :type node_in_error: str
+        :type original_prediction: np.array
+        :type observation: np.array
+        :rtype BayesianModel
+        """
         return self.model
 
     @staticmethod
