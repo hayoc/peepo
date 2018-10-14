@@ -28,7 +28,6 @@ class GenerativeModel:
     def __init__(self, sensory_input, model):
         self.sensory_input = sensory_input
         self.model = model
-        self.infer = VariableElimination(model)
         self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters, self.change_valency]
         draw_network(model)
 
@@ -68,7 +67,8 @@ class GenerativeModel:
 
         :rtype: dict
         """
-        return self.infer.query(variables=model.get_leaves(), evidence=self.get_hypotheses(model))
+        infer = VariableElimination(model)
+        return infer.query(variables=model.get_leaves(), evidence=self.get_hypotheses(model))
 
     @staticmethod
     def error(pred, obs):
@@ -175,6 +175,7 @@ class GenerativeModel:
             updated_prediction = self.predict(updated_model)[node].values
             updated_error_size = self.error_size(updated_prediction, prediction_error + prediction)
             if updated_error_size < lowest_error_size:
+                print('Better update from: ' + str(val))
                 lowest_error_size = updated_error_size
                 best_model = updated_model
 
@@ -208,22 +209,23 @@ class GenerativeModel:
             new_node_name = str(len(model))
             new_model.add_node(new_node_name)
             new_model.add_edge(new_node_name, active_node)
+            new_node_cpd = TabularCPD(variable=new_node_name, variable_card=2, values=[[0.5, 0.5]])
+            new_model.add_cpds(new_node_cpd)
 
-            new_node_cpd = TabularCPD(variable=new_node_name, variable_card=2, values=[[0.1, 0.9]])
             old_cpd = new_model.get_cpds(active_node)
-
             evidence = old_cpd.get_evidence()
             evidence.append(new_node_name)
             evidence_card = list(old_cpd.get_cardinality(old_cpd.get_evidence()).values())
             evidence_card.append(2)
-            values = np.append(old_cpd.values, [[0.5], [0.5]], axis=1)
+            values = np.append(self.get_two_dim(old_cpd.values),
+                               self.get_cpd_based_on_cardinality(old_cpd.variable_card, evidence_card), axis=1)
             new_cpd_for_active_node = TabularCPD(variable=active_node,
                                                  variable_card=old_cpd.variable_card,
                                                  values=values,
                                                  evidence=evidence,
                                                  evidence_card=evidence_card)
 
-            new_model.add_cpds(new_node_cpd, new_cpd_for_active_node)
+            new_model.add_cpds(new_cpd_for_active_node)
 
             new_prediction = self.predict(new_model)[node_in_error].values
             new_error = self.error_size(new_prediction, observation)
@@ -359,3 +361,16 @@ class GenerativeModel:
         for leaf in model.get_leaves():
             obs.update({leaf: np.argmax(model.get_cpds(leaf).values)})
         return obs
+
+    @staticmethod
+    def get_two_dim(array):
+        if len(array.shape) > 1:
+            return array
+        return array.reshape(array.shape[0], -1)
+
+    @staticmethod
+    def get_cpd_based_on_cardinality(var_card, evi_card):
+        # TODO: This should be dependent on the cardinality of the variable & evidence
+        a = np.empty((var_card, len(evi_card)))
+        a[:] = 0.5
+        return a

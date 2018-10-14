@@ -141,6 +141,7 @@ class PeeposWorld(object):
         One event loop. Never cut your game off from the event loop.
         Your OS may decide your program has hung if the event queue is not
         accessed for a prolonged period of time.
+        Stuff like user input can be processed here
         """
         for event in pg.event.get():
             if event.type == pg.QUIT or self.keys[pg.K_ESCAPE]:
@@ -161,7 +162,7 @@ class PeeposWorld(object):
 
     def main_loop(self):
         """
-        One game loop. Simple and clean.
+        Game loop
         """
         while not self.done:
             self.event_loop()
@@ -172,7 +173,9 @@ class PeeposWorld(object):
 
 def main():
     """
-    Prepare our environment, create a display, and start the program.
+    Prepare our environment, create a display, and start the program (pygame).
+
+    Initialize the game screen with the actors: walls, obstacles and peepo
     """
     os.environ['SDL_VIDEO_CENTERED'] = '1'
     pg.init()
@@ -187,17 +190,23 @@ def main():
     obstacles = []
     for x in range(0, 30):
         obstacles.append(ObjectActor('obj_' + str(x), (random.randint(100, 1500), random.randint(100, 900))))
-        obstacles.extend([wall1, wall2, wall3, wall4])
+    obstacles.extend([wall1, wall2, wall3, wall4])
 
     peepo = PeepoActor((0, 500), obstacles)
 
     world = PeeposWorld(peepo, obstacles)
 
     world.main_loop()
+
     pg.quit()
     sys.exit()
 
 
+"""
+####################################################################################
+############################### BEGIN HERE #########################################
+####################################################################################
+"""
 if __name__ == "__main__":
     # logging.basicConfig()
     # logging.getLogger().setLevel(logging.DEBUG)

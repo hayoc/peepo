@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 
-def draw_network(network):
+def draw_network(network, block=False):
     plt.clf()
 
     G = nx.DiGraph()
@@ -27,4 +27,4 @@ def draw_network(network):
     nx.draw_networkx_labels(G, pos_attrs, labels=custom_node_attrs, font_size=6)
     plt.pause(1)
 
-    plt.show(block=False)
+    plt.show(block=block)
