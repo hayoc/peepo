@@ -1,5 +1,6 @@
 import logging
 import math
+import random
 
 import numpy as np
 from pgmpy.factors.discrete import TabularCPD
@@ -373,4 +374,10 @@ class GenerativeModel:
     def get_cpd_based_on_cardinality(var_values, evi_card):
         if evi_card == 1:
             evi_card = 2
-        return np.repeat(var_values, evi_card, axis=1)
+        cpd = np.repeat(var_values, evi_card, axis=1)
+        for x in range(0, cpd.shape[1], evi_card):
+            perturbation = random.uniform(-0.1, 0.1)
+            cpd[0, x] = cpd[0, x] + perturbation  # TODO: Now it only works when variable has 2 values... fix this
+            cpd[1, x] = cpd[1, x] - perturbation
+
+        return cpd
