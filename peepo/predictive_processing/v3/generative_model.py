@@ -140,12 +140,13 @@ class GenerativeModel:
         # Currently in the implementation we make the difference explicit
         # TODO: Need to have custom implementation of bayesian network, so that prediction errors in proprioceptive
         # TODO: nodes (motor) are resolved by executing the motor action, and not performing hypo update
+        infer = VariableElimination(self.model)
         if "motor" in node:
             self.sensory_input.action(node, prediction_error, prediction)
         else:
             for hypo in self.model.get_roots():
-                result = self.infer.query(variables=[hypo],
-                                          evidence={node: np.argmax(prediction_error + prediction)})
+                result = infer.query(variables=[hypo],
+                                     evidence={node: np.argmax(prediction_error + prediction)})
                 before = self.model.get_cpds(hypo).values
                 self.model.get_cpds(hypo).values = result.get(hypo).values
                 logging.debug("node[%s] hypothesis-update from %s to %s", hypo, before, result.get(hypo).values)
@@ -217,8 +218,7 @@ class GenerativeModel:
             evidence.append(new_node_name)
             evidence_card = list(old_cpd.get_cardinality(old_cpd.get_evidence()).values())
             evidence_card.append(2)
-            values = np.append(self.get_two_dim(old_cpd.values),
-                               self.get_cpd_based_on_cardinality(old_cpd.variable_card, evidence_card), axis=1)
+            values = self.get_cpd_based_on_cardinality(self.get_two_dim(old_cpd.values), len(evidence_card))
             new_cpd_for_active_node = TabularCPD(variable=active_node,
                                                  variable_card=old_cpd.variable_card,
                                                  values=values,
@@ -255,8 +255,8 @@ class GenerativeModel:
         lowest_error = self.error_size(original_prediction, observation)
         best_model = model
 
-        for node in model.get_nodes():
-            if node == node_in_error:
+        for node in model.nodes():
+            if node == node_in_error or (node, node_in_error) in model.edges():
                 continue
 
             new_model = model.copy()
@@ -266,8 +266,8 @@ class GenerativeModel:
             evidence = old_cpd.get_evidence()
             evidence.append(node)
             evidence_card = list(old_cpd.get_cardinality(old_cpd.get_evidence()).values())
-            evidence_card.append(new_model.get_cpds(node).get_cardinality(node))
-            values = np.append(old_cpd.values, [[0.5], [0.5]], axis=1)  # TODO: length should be based on cardinality
+            evidence_card.append(new_model.get_cpds(node).variable_card)
+            values = self.get_cpd_based_on_cardinality(self.get_two_dim(old_cpd.values), len(evidence_card))
             new_cpd = TabularCPD(variable=node_in_error,
                                  variable_card=old_cpd.variable_card,
                                  values=values,
@@ -279,6 +279,7 @@ class GenerativeModel:
             new_prediction = self.predict(new_model)[node_in_error].values
             new_error = self.error_size(new_prediction, observation)
             if new_error < lowest_error:
+                logging.info("Found better model by adding edge")
                 lowest_error = new_error
                 best_model = new_model
 
@@ -369,8 +370,7 @@ class GenerativeModel:
         return array.reshape(array.shape[0], -1)
 
     @staticmethod
-    def get_cpd_based_on_cardinality(var_card, evi_card):
-        # TODO: This should be dependent on the cardinality of the variable & evidence
-        a = np.empty((var_card, len(evi_card)))
-        a[:] = 0.5
-        return a
+    def get_cpd_based_on_cardinality(var_values, evi_card):
+        if evi_card == 1:
+            evi_card = 2
+        return np.repeat(var_values, evi_card, axis=1)
