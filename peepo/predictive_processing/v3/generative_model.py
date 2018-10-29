@@ -305,7 +305,7 @@ class GenerativeModel:
         lowest_error = self.error_size(original_prediction, observation)
         best_model = model
 
-        for active_node in model.active_trail_nodes('vision_1')['vision_1'] - set(model.get_roots()):
+        for active_node in model.active_trail_nodes(node_in_error)[node_in_error] - set(model.get_roots()):
             vals = model.get_cpds(active_node).values
 
             for idx_col, col in enumerate(vals.T):

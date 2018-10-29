@@ -86,6 +86,19 @@ def test_add_edge():
     draw_network(new_model, True)
 
 
-#
-# TODO: Current implementation does not technically work - since any new model will have same prediction error size
-test_add_edge()
+def test_change_params():
+    gen_model = create_network()
+
+    prediction = gen_model.predict(gen_model.model)['B'].values
+    observation = gen_model.sensory_input.value('B')
+    prediction_error = gen_model.error(prediction, observation)
+
+    # time.sleep(20)
+    logging.warning('Changing params now...')
+
+    new_model = gen_model.change_parameters(gen_model.model, 'B', prediction, observation)
+    draw_network(new_model, True)
+
+
+# test_add_edge()
+test_change_params()
