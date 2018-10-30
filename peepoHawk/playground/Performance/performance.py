@@ -7,7 +7,7 @@ class Metrics(object):
     """ This class represents metrics to evaluate the performance of the models"""
 
 
-    def __init__(self, epoch,max_epochs):
+    def __init__(self, epoch,max_epochs):#NOT USED
         self.max_epoch = max_epochs
         self.epoch = epoch
         self.number_of_successes = 0
