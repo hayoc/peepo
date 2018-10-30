@@ -29,7 +29,7 @@ class GenerativeModel:
     def __init__(self, sensory_input, model):
         self.sensory_input = sensory_input
         self.model = model
-        self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters, self.change_valency]
+        self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters] #TODO: Add change_valency
         draw_network(model)
 
     def process(self):
@@ -171,18 +171,22 @@ class GenerativeModel:
         """
         lowest_error_size = self.error_size(prediction, prediction_error + prediction)
         best_model = self.model
+        best_update = 'none'
 
         for idx, val in enumerate(self.atomic_updates):
             updated_model = val(self.model.copy(), node, prediction, prediction_error + prediction)
             updated_prediction = self.predict(updated_model)[node].values
             updated_error_size = self.error_size(updated_prediction, prediction_error + prediction)
             if updated_error_size < lowest_error_size:
-                print('Better update from: ' + str(val))
+                logging.info('Better update from: ' + val.__name__)
                 lowest_error_size = updated_error_size
                 best_model = updated_model
+                best_update = val.__name__
 
         self.model = best_model
+        logging.info('Best Update: ' + best_update)
         draw_network(self.model)
+        return self.model
 
     def add_node(self, model, node_in_error, original_prediction, observation):
         """
@@ -313,21 +317,21 @@ class GenerativeModel:
                     new_model = model.copy()
                     new_vals = np.copy(vals)
 
-                    to_add = abs(math.log(row, 10))
-                    to_subtract = to_add / len(col)
+                    to_add = abs(math.log(row, 100))
+                    to_subtract = to_add / (len(col) - 1)
 
                     new_vals[idx_row, idx_col] = new_vals[idx_row, idx_col] + to_add
                     for idx_row_copy, row_copy in enumerate(col):
                         if idx_row_copy is not idx_row:
                             new_vals[idx_row_copy, idx_col] = new_vals[idx_row_copy, idx_col] - to_subtract
 
-                    new_model.get_cpds(active_node).values = new_vals
+                new_model.get_cpds(active_node).values = new_vals
 
-                    new_prediction = self.predict(new_model)[node_in_error].values
-                    new_error = self.error_size(new_prediction, observation)
-                    if new_error < lowest_error:
-                        lowest_error = new_error
-                        best_model = new_model
+                new_prediction = self.predict(new_model)[node_in_error].values
+                new_error = self.error_size(new_prediction, observation)
+                if new_error < lowest_error:
+                    lowest_error = new_error
+                    best_model = new_model
 
         return best_model
 
@@ -348,6 +352,7 @@ class GenerativeModel:
         :type observation: np.array
         :rtype BayesianModel
         """
+        # TODO
         return self.model
 
     @staticmethod

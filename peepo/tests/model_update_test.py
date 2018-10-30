@@ -12,10 +12,10 @@ from peepo.visualize.graph import draw_network
 def create_network():
     network = BayesianModel([('A', 'B')])
 
-    cpd_a = TabularCPD(variable='A', variable_card=2, values=[[0.1, 0.9]])
+    cpd_a = TabularCPD(variable='A', variable_card=2, values=[[0.2, 0.8]])
     cpd_b = TabularCPD(variable='B', variable_card=2,
-                       values=[[0.1, 0.9],
-                               [0.9, 0.1]],
+                       values=[[0.1, 0.7],
+                               [0.9, 0.3]],
                        evidence=['A'],
                        evidence_card=[2])
     network.add_cpds(cpd_a, cpd_b)
@@ -100,5 +100,19 @@ def test_change_params():
     draw_network(new_model, True)
 
 
+def test_add_all():
+    gen_model = create_network_for_add_edge()
+
+    prediction = gen_model.predict(gen_model.model)['B'].values
+    observation = gen_model.sensory_input.value('B')
+    prediction_error = gen_model.error(prediction, observation)
+
+    # time.sleep(20)
+
+    new_model = gen_model.model_update('B', prediction=prediction, prediction_error=prediction_error)
+    draw_network(new_model, True)
+
+
 # test_add_edge()
-test_change_params()
+# test_change_params()
+test_add_all()
