@@ -162,7 +162,7 @@ class PoopieActor(object):
                 self.stop = True
 
 
-
+#version 11/11/2018
 class PoopieObject(object):
     SIZE = (20, 20)
 
