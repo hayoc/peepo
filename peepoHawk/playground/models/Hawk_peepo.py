@@ -23,7 +23,7 @@ class Peepo():
         else:
             self.wander_left_chance += 0.1
             if random.randint(0, 100) <= self.wander_left_chance:
-                network.get_cpds('Azimuth_Predicted').values = np.array([0.1, 0.1, 0.4, 0.1, 0.1, 0.1, 0.1])
+                network.get_cpds('Azimuth_Predicted').values = network.get_cpds('Azimuth_next_cycle').values
                 self.wandering_left = True
 
         if self.wandering_right:
@@ -33,7 +33,7 @@ class Peepo():
         else:
             self.wander_right_chance += 0.1
             if random.randint(0, 100) <= self.wander_right_chance:
-                network.get_cpds('Reward_Predicted').values = np.array([0.8,0.1, 0.1])
+                network.get_cpds('Reward_Predicted').values =  network.get_cpds('Reward_next_cycle').values
                 self.wandering_right = True
 
         if self.hunger < 100:

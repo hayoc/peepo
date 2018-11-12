@@ -246,20 +246,21 @@ class PeepoModel:
         self.sectors = peepo_actor.sector
         self.R_previous = peepo_actor.R_previous
         self.R_now = peepo_actor.R_now
-        self.models = self.create_networks()
         self.motor_output = {pg.K_LEFT: False, pg.K_RIGHT: False}
         self.target_sector = 3
         self.distance_now = 10000
         self.distance_previous = self.distance_now
         self.angle = peepo_actor.angle
         self.Reward = 0
+        self.network = BayesianModel()
+        self.models = self.create_networks()
 
 
 
     def create_networks(self):
         gamma = 1 # this controls how steep the discrimination will be between the classes (gamma << 1 low discrimination, gamma >> 1 : high discrimination
         sigma = 1 # this controls how steep the squezing of the action will be
-        network = BayesianModel()
+
         ParentNodes = []
         ParentNodes.append("Azimuth_Belief")
         ParentNodes.append("Azimuth_Predicted")
@@ -267,7 +268,7 @@ class PeepoModel:
         ParentNodes.append("Reward_Predicted")
         count = 0
         while count < len(ParentNodes):
-            network.add_node(ParentNodes[count])
+            self.network.add_node(ParentNodes[count])
             count = count+1
 
         LatentNodes = []
@@ -276,7 +277,7 @@ class PeepoModel:
         LatentNodes.append("Action")
         count = 0
         while count < len(LatentNodes):
-            network.add_node(LatentNodes[count])
+            self.network.add_node(LatentNodes[count])
             count = count + 1
 
         LeafNodes = []
@@ -284,22 +285,22 @@ class PeepoModel:
         LeafNodes.append("Reward_next_cycle")
         count = 0
         while count < len(LeafNodes):
-            network.add_node(LeafNodes[count])
+            self.network.add_node(LeafNodes[count])
             count = count + 1
 
-        network.add_edge(ParentNodes[0], LatentNodes[0])
-        network.add_edge(ParentNodes[1], LatentNodes[0])
-        network.add_edge(ParentNodes[2], LatentNodes[1])
-        network.add_edge(ParentNodes[3], LatentNodes[1])
-        network.add_edge(LatentNodes[0], LatentNodes[2])
-        network.add_edge(LatentNodes[1], LatentNodes[2])
+        self.network.add_edge(ParentNodes[0], LatentNodes[0])
+        self.network.add_edge(ParentNodes[1], LatentNodes[0])
+        self.network.add_edge(ParentNodes[2], LatentNodes[1])
+        self.network.add_edge(ParentNodes[3], LatentNodes[1])
+        self.network.add_edge(LatentNodes[0], LatentNodes[2])
+        self.network.add_edge(LatentNodes[1], LatentNodes[2])
 
-        network.add_edge(LatentNodes[0], LeafNodes[0])
-        network.add_edge(LatentNodes[0], LeafNodes[1])
-        network.add_edge(LatentNodes[1], LeafNodes[0])
-        network.add_edge(LatentNodes[1], LeafNodes[1])
-        network.add_edge(LatentNodes[2], LeafNodes[0])
-        network.add_edge(LatentNodes[2], LeafNodes[1])
+        self.network.add_edge(LatentNodes[0], LeafNodes[0])
+        self.network.add_edge(LatentNodes[0], LeafNodes[1])
+        self.network.add_edge(LatentNodes[1], LeafNodes[0])
+        self.network.add_edge(LatentNodes[1], LeafNodes[1])
+        self.network.add_edge(LatentNodes[2], LeafNodes[0])
+        self.network.add_edge(LatentNodes[2], LeafNodes[1])
 
         cardinality_azimuth = 7
         cardinality_reward  = 3
@@ -310,22 +311,22 @@ class PeepoModel:
         CPD_Parents.append(parent_cpd(ParentNodes[2],cardinality_reward,  int(cardinality_reward/2), sigma/2))
         CPD_Parents.append(parent_cpd(ParentNodes[3],cardinality_reward,  int(cardinality_reward/2), sigma/2))
         for n in range(0, len(CPD_Parents)):
-            network.add_cpds(CPD_Parents[n])
+            self.network.add_cpds(CPD_Parents[n])
         count = 0
         CPD_Latents = []
         CPD_Latents.append(latent_cpd(LatentNodes[0],cardinality_azimuth,[cardinality_azimuth,cardinality_azimuth],[ParentNodes[0],ParentNodes[1]], 'fixed', gamma))
         CPD_Latents.append(latent_cpd(LatentNodes[1],cardinality_reward,[cardinality_reward,cardinality_reward],[ParentNodes[2],ParentNodes[3]],'fixed', gamma))
         CPD_Latents.append(latent_cpd(LatentNodes[2],cardinality_action,[cardinality_azimuth, cardinality_reward], [LatentNodes[0], LatentNodes[1]], 'action', sigma))
         for n in range(0,len(CPD_Latents)):
-            network.add_cpds(CPD_Latents[n])
+            self.network.add_cpds(CPD_Latents[n])
         CPD_Leafs = []
         CPD_Leafs.append(leaf_cpd(LeafNodes[0],cardinality_azimuth,[cardinality_azimuth,cardinality_reward,cardinality_action ,],[LatentNodes[0], LatentNodes[1], LatentNodes[2]], 'azimuth', gamma))
         CPD_Leafs.append(leaf_cpd(LeafNodes[1],cardinality_reward ,[cardinality_azimuth,cardinality_reward,cardinality_action,],[LatentNodes[0], LatentNodes[1], LatentNodes[2]], 'reward', gamma))
 
         for n in range(0,len(CPD_Leafs)):
-            network.add_cpds(CPD_Leafs[n])
+            self.network.add_cpds(CPD_Leafs[n])
         #draw_network(network)
-        network.check_model()
+        self.network.check_model()
         '''for n in range(0,len(CPD_Parents)):
             print("Parents :")
             print(CPD_Parents[n])
@@ -336,12 +337,30 @@ class PeepoModel:
             print("Leafs :")
             print(CPD_Leafs[n])'''
         #wait = input("PRESS ENTER TO CONTINUE.")
-        return {'main': GenerativeModel(SensoryInputVirtualPeepo(self), network)}
+        return {'main': GenerativeModel(SensoryInputVirtualPeepo(self), self.network)}
 
     def process(self):
         self.calculate_environment()
         for key in self.models:
             self.models[key].process()
+            azmuth = self.network.get_cpds('Action').values
+            vorm = azmuth.shape
+            azimuth = np.zeros((vorm[0],vorm[1]*vorm[2]))
+            for row in range(0,vorm[0]):
+                column = 0
+                for c1 in range(0,vorm[1]):
+                    for c2 in range(0, vorm[2]):
+                        azimuth[row][column] = azmuth[row][c1][c2]
+                        column += 1
+
+            print(" azimith : ", azimuth)
+            #print(" azimith : ", self.network.get_cpds('Action'))
+            #azimuth.transpose(2, 0, 1).reshape(-1, azimuth.shape[1]).shape
+            #print(" azimith : ", azimuth)
+            #pos_azimuth = np.unravel_index(np.argmax(azimuth), np.array(azimuth).shape)
+            pos_azimuth = np.argmax(azimuth)
+            print("shape azimuth : ",azimuth.shape)
+            print("argmax azimith : ", pos_azimuth)
 
     def calculate_environment(self):
         peepo_vec = vec(self.peepo_actor.rect.center)
@@ -444,11 +463,10 @@ class SensoryInputVirtualPeepo(SensoryInput):
         if 'Reward' in name:
             # [0.1, 0.9] = OBSTACLE - [0.9, 0.1] = NO OBSTACLE
             if 'next_cycle' in name:
-                return np.array([0.1,0.8,0.1]) if self.peepo.target_sector == 3 else np.array([0.6,0.4,0.1])
+                if self.peepo.Reward == 0:
+                    return np.array([1, 0, 0])
+                if self.peepo.Reward == 1:
+                    return np.array([0, 1, 0])
+                if self.peepo.Reward == 2:
+                    return np.array([0, 0, 1])
 
-        elif 'motor' in name:
-            # [0.1, 0.9] = MOVING - [0.9, 0.1] = NO MOVING
-            if 'left' in name:
-                return np.array([0.9, 0.1]) if self.peepo.motor_output[pg.K_RIGHT] else np.array([0.1, 0.9])
-            if 'right' in name:
-                return np.array([0.9, 0.1]) if self.peepo.motor_output[pg.K_LEFT] else np.array([0.1, 0.9])

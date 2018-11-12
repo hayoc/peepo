@@ -4,7 +4,7 @@ vec = pg.math.Vector2
 
 
 def end_line(radius, rotation, center):
-    center_rotate = vec(radius, 0).rotate(rotation)
+    center_rotate = vec(radius, 0).rotate(180*rotation/3.141516)
     return center_rotate + center
 
 

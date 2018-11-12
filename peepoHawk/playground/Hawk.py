@@ -206,14 +206,12 @@ class PeepoActor(object):
         self.image_original = self.image.copy()
         self.peepo = Peepo()#see Hawk_peepo.py
         self.angle = 0
-        self.edge_right = end_line(PeepoModel.RADIUS, self.angle + 30, self.rect.center)
-        self.edge_left = end_line(PeepoModel.RADIUS, self.angle - 30, self.rect.center)
         self.speed = PeepoActor.SPEED
         self.trajectory = []
         self.trajectory.append((int(self.rect.x + PeepoActor.SIZE[0]/2), int(self.rect.y +  PeepoActor.SIZE[1]/2)))
         self.pos_x = 0#self.tensor_of_poopies[row][0]
         self.pos_y = 0#self.tensor_of_poopies[row][1]
-        self.max_sector = math.pi
+        self.max_sector = math.pi/2
         self.sector = np.zeros(8)
         self.quadrants = np.zeros(7)
         self.R_now = 0
@@ -221,6 +219,8 @@ class PeepoActor(object):
         self.make_quadrants()
         self.update_sectors()
         self.model = PeepoModel(self, target, wall)#see Hawk_model.py
+        self.edge_right = end_line(PeepoModel.RADIUS, self.angle + self.max_sector/2 ,self.rect.center)
+        self.edge_left = end_line(PeepoModel.RADIUS, self.angle - self.max_sector/2, self.rect.center)
 
     def make_quadrants(self):
 
@@ -277,8 +277,8 @@ class PeepoActor(object):
         self.image = pg.transform.rotate(self.image_original, -self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-        self.edge_right = end_line(PeepoModel.RADIUS, self.angle + math.pi/3, self.rect.center)
-        self.edge_left = end_line(PeepoModel.RADIUS, self.angle - math.pi/3, self.rect.center)
+        self.edge_right = end_line(PeepoModel.RADIUS, self.angle + self.max_sector/2, self.rect.center)
+        self.edge_left = end_line(PeepoModel.RADIUS, self.angle - self.max_sector/2, self.rect.center)
 
         self.rect.clamp_ip(screen_rect)
         self.update_sectors()
@@ -287,8 +287,8 @@ class PeepoActor(object):
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
-        pg.draw.line(surface, pg.Color("red"), self.rect.center, self.edge_right, 2)
-        pg.draw.line(surface, pg.Color("green"), self.rect.center, self.edge_left, 2)
+        pg.draw.line(surface, pg.Color("blue"), self.rect.center, self.edge_right, 2)
+        pg.draw.line(surface, pg.Color("blue"), self.rect.center, self.edge_left, 2)
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
@@ -375,7 +375,6 @@ class PeeposWorld(object):
             wall2 = Wall('wall_left', (0, 0), (5, WALL_SIZE[1] * 2))
             wall3 = Wall('wall_right', (WALL_SIZE[0], 0), (5, WALL_SIZE[1] * 2))
             wall4 = Wall('wall_down', (0, WALL_SIZE[1]), (WALL_SIZE[0] * 2, 5))
-            #obstacles.extend([wall1, wall2, wall3, wall4])
             self.target = self.poopies.get_poopies_obstacles()
             self.render()
             self.clock.tick(self.fps)
@@ -402,7 +401,7 @@ def main():
     poopies = PoopieActor(1)  # class adress for the poopies
     target = poopies.get_poopies_obstacles()
     wall = [0, 0, WALL_SIZE[0], WALL_SIZE[1]]
-    #target.extend([wall1, wall2, wall3, wall4])
+    target.extend([wall1, wall2, wall3, wall4])
     peepo = PeepoActor((0, WALL_SIZE[1] / 2), poopies, wall)
     Apx = poopies.Apx
     beta = poopies.beta
