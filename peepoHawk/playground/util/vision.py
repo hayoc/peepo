@@ -9,6 +9,11 @@ def end_line(radius, rotation, center):
 
 
 def observation(rect, center, line1, line2, radius):
+    print("rect = ", rect)
+    print("center = ",center)
+    print("line1 = ", line1)
+    print("line2 = ", line2)
+    print("radius = ", radius)
     #to construct
     return 20,40,False
 

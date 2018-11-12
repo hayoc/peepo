@@ -29,8 +29,8 @@ class GenerativeModel:
     def __init__(self, sensory_input, model):
         self.sensory_input = sensory_input
         self.model = model
-        self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters] #TODO: Add change_valency
-        draw_network(model)
+        #self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters] #TODO: Add change_valency
+        #draw_network(model)
 
     def process(self):
         """
@@ -43,7 +43,9 @@ class GenerativeModel:
         total_pes = 0
         for node, prediction in self.predict(self.model).items():
             pred = prediction.values
+            #print("pred for node ", node , " = ", pred)
             obs = self.sensory_input.value(node)
+            #print("obs for node ", node , " = ", obs)
             pes = self.error_size(pred, obs)
 
             # TODO: PEM should only happen if PES is higher than some value, this value

@@ -16,25 +16,24 @@ class Peepo():
 
     def update(self, model):
         network = model.models['main'].model
-
         if self.wandering_left:
-            network.get_cpds('wandering_left').values = np.array([0.1, 0.9])
+            network.get_cpds('Azimuth_Belief').values = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.4])
             self.wander_left_chance = 0
             self.wandering_left = False
         else:
             self.wander_left_chance += 0.1
             if random.randint(0, 100) <= self.wander_left_chance:
-                network.get_cpds('wandering_left').values = np.array([0.9, 0.1])
+                network.get_cpds('Azimuth_Predicted').values = np.array([0.1, 0.1, 0.4, 0.1, 0.1, 0.1, 0.1])
                 self.wandering_left = True
 
         if self.wandering_right:
-            network.get_cpds('wandering_right').values = np.array([0.1, 0.9])
+            network.get_cpds('Reward_Belief').values = np.array([0.1,0.1, 0.8])
             self.wander_right_chance = 0
             self.wandering_right = False
         else:
             self.wander_right_chance += 0.1
             if random.randint(0, 100) <= self.wander_right_chance:
-                network.get_cpds('wandering_right').values = np.array([0.9, 0.1])
+                network.get_cpds('Reward_Predicted').values = np.array([0.8,0.1, 0.1])
                 self.wandering_right = True
 
         if self.hunger < 100:

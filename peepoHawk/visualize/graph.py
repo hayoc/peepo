@@ -13,7 +13,7 @@ def draw_network(network, block=False):
 
     G.add_edges_from(network.edges())
 
-    pos_nodes = nx.spring_layout(G)
+    pos_nodes = nx.circular_layout(G)
     nx.draw(G, pos_nodes, node_color='#a0cbe2', edge_color='#a1a9ad', with_labels=True)
     pos_attrs = {}
     for node, coords in pos_nodes.items():

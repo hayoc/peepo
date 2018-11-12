@@ -39,7 +39,6 @@ class Analytic_Solution(object):
 
     def __init__(self,Apx,Apy,Ahx,Ahy,beta,vp,vh):
         self.Apx = Apx
-        print("Apx = ", self.Apx)
         self.Apy = Apy
         self.Ahx = Ahx
         self.Ahy = Ahy
@@ -107,9 +106,11 @@ class PoopieActor(object):
         self.tensor_of_poopies = np.zeros(shape=(number_of_poopies, 4))
         self.beta = 0
         self.Apx = 0
-        self.first_tensor()
         self.max_speed = PoopieActor.MAXSPEED
         self.stop = False
+        self.pos_x = 0
+        self.pos_y = 0
+        self.first_tensor()
 
 
     def first_tensor(self):
@@ -121,6 +122,8 @@ class PoopieActor(object):
             self.tensor_of_poopies[row][1] = 0  # random.uniform(0, WALL_SIZE[1])
             self.beta = self.tensor_of_poopies[row][3]
             self.Apx = self.tensor_of_poopies[row][0]
+            self.pos_x = self.tensor_of_poopies[row][0]
+            self.pos_y = self.tensor_of_poopies[row][1]
 
     def get_Apx(self):
         return self.Apx
@@ -135,7 +138,7 @@ class PoopieActor(object):
         obstacles = []
         for row in range(0, self.number_of_poopies):
             obstacles.append(
-                PoopieObject('obj_' + str(row), (self.tensor_of_poopies[row][0], self.tensor_of_poopies[row][1])))
+                PoopieObject('target_' + str(row), (self.tensor_of_poopies[row][0], self.tensor_of_poopies[row][1])))
         return obstacles
 
     def update(self):
@@ -143,6 +146,8 @@ class PoopieActor(object):
         for row in range(0, self.number_of_poopies):
             self.tensor_of_poopies[row][0] += self.tensor_of_poopies[row][2] * math.cos(self.tensor_of_poopies[row][3])
             self.tensor_of_poopies[row][1] += self.tensor_of_poopies[row][2] * math.sin(self.tensor_of_poopies[row][3])
+            self.pos_x = self.tensor_of_poopies[row][0]
+            self.pos_y = self.tensor_of_poopies[row][1]
             # once the Poopie has reached safely a wall, he rests and stays there
             if self.tensor_of_poopies[row][0] >= WALL_SIZE[0]:
                 self.speed = 0
@@ -193,23 +198,50 @@ class PeepoActor(object):
     SIZE = (40, 40)
     SPEED = 10
 
-    def __init__(self, pos, target):
-        self.model = PeepoModel(self, target)
+    def __init__(self, pos, target, wall):
+
         self.rect = pg.Rect((0, 0), PeepoActor.SIZE)
         self.rect.center = pos
         self.image = self.make_image()
         self.image_original = self.image.copy()
-        self.peepo = Peepo()
-        self.rotation = 0
-        self.edge_right = end_line(PeepoModel.RADIUS, self.rotation + 30, self.rect.center)
-        self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
+        self.peepo = Peepo()#see Hawk_peepo.py
+        self.angle = 0
+        self.edge_right = end_line(PeepoModel.RADIUS, self.angle + 30, self.rect.center)
+        self.edge_left = end_line(PeepoModel.RADIUS, self.angle - 30, self.rect.center)
         self.speed = PeepoActor.SPEED
         self.trajectory = []
         self.trajectory.append((int(self.rect.x + PeepoActor.SIZE[0]/2), int(self.rect.y +  PeepoActor.SIZE[1]/2)))
+        self.pos_x = 0#self.tensor_of_poopies[row][0]
+        self.pos_y = 0#self.tensor_of_poopies[row][1]
+        self.max_sector = math.pi
+        self.sector = np.zeros(8)
+        self.quadrants = np.zeros(7)
+        self.R_now = 0
+        self.R_previous = 0
+        self.make_quadrants()
+        self.update_sectors()
+        self.model = PeepoModel(self, target, wall)#see Hawk_model.py
+
+    def make_quadrants(self):
+
+        gamma = self.max_sector/5
+        for i in range(0,4):
+            self.quadrants[i] = gamma -  2/3*gamma*(i-3)
+        for i in range(4,7):
+            self.quadrants[i] = gamma +  2/3*gamma*(i-3)
+        norm = 0
+        for i in range(0,7):
+            norm += self.quadrants[i]
+        for i in range(0,7):
+            self.quadrants[i] *= self.max_sector/norm
+
+    def update_sectors(self):
+        self.sector[0] = self.angle - self.max_sector/2
+        for alfa in range(1, len(self.sector)):
+            self.sector[alfa] = self.sector[alfa-1] + self.quadrants[alfa-1]
 
     def render_traject(self, screen, state):
         for p in range(0, len(self.trajectory)):
-            #print([int(self.trajectory[p][0]), int(self.trajectory[p][1])])
             pg.draw.circle(screen,GREY, [int(self.trajectory[p][0]), int(self.trajectory[p][1])], 2)
         pg.display.update()
         count = 0
@@ -224,30 +256,34 @@ class PeepoActor(object):
 
     def update(self, screen_rect):
         self.model.process()
-        self.rotation = -self.rotation
-        self.rect.x += PeepoActor.SPEED * math.cos(math.radians(self.rotation))
-        self.rect.y += PeepoActor.SPEED * math.sin(math.radians(self.rotation))
+        self.angle = -self.angle
+        self.rect.x += PeepoActor.SPEED * math.cos(self.angle)
+        self.rect.y += PeepoActor.SPEED * math.sin(self.angle)
+        self.pos_x = self.rect.x
+        self.pos_y = self.rect.y
         if self.rect.x >= SCREEN_SIZE[0] or self.rect.y >= SCREEN_SIZE[0] or self.rect.x <= 0 or self.rect.y<= 0:
-            self.rotation = self.rotation + 180
+            self.angle = self.angle + math.pi
         #print(self.rect.x, "/", self.rect.y)
         self.trajectory.append(( int(self.rect.x + PeepoActor.SIZE[0]/2), int(self.rect.y +  PeepoActor.SIZE[1]/2)))
         if self.model.motor_output[pg.K_LEFT]:
-            self.rotation -= random.randint(10, 30)
-            if self.rotation < 0:
-                self.rotation = 360
+            self.angle -= random.randint(math.pi8, math.pi/6)
+            if self.angle < 0:
+                self.angle = 2*math.pi
         if self.model.motor_output[pg.K_RIGHT]:
-            self.rotation += random.randint(10, 30)
-            if self.rotation > 360:
-                self.rotation = 0
+            self.rotation += random.randint(math.pi/8, math.pi/6)
+            if self.angle > 2*math.pi:
+                self.angle = 0
 
-        self.image = pg.transform.rotate(self.image_original, -self.rotation)
+        self.image = pg.transform.rotate(self.image_original, -self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-        self.edge_right = end_line(PeepoModel.RADIUS, self.rotation + 30, self.rect.center)
-        self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
+        self.edge_right = end_line(PeepoModel.RADIUS, self.angle + math.pi/3, self.rect.center)
+        self.edge_left = end_line(PeepoModel.RADIUS, self.angle - math.pi/3, self.rect.center)
 
         self.rect.clamp_ip(screen_rect)
+        self.update_sectors()
         self.peepo.update(self.model)
+
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
@@ -288,7 +324,7 @@ class PeeposWorld(object):
     A class to manage our event, game loop, and overall program flow.
     """
 
-    def __init__(self, peepo, objects, poopies, metrics, analytical):
+    def __init__(self, peepo, target, poopies, metrics, analytical):
         self.screen = pg.display.get_surface()
         self.screen_rect = self.screen.get_rect()
         self.clock = pg.time.Clock()
@@ -296,7 +332,7 @@ class PeeposWorld(object):
         self.done = False
         self.keys = pg.key.get_pressed()
         self.peepo = peepo
-        self.objects = objects
+        self.target = target
         self.poopies = poopies
         self.metrics = metrics
         self.analytical = analytical
@@ -320,7 +356,7 @@ class PeeposWorld(object):
         """
         self.screen.fill(pg.Color("white"))
         self.analytical.draw(self.screen)
-        for obj in self.objects:
+        for obj in self.target:
             obj.draw(self.screen)
         self.peepo.draw(self.screen)
         if self.poopies.stop:
@@ -339,9 +375,8 @@ class PeeposWorld(object):
             wall2 = Wall('wall_left', (0, 0), (5, WALL_SIZE[1] * 2))
             wall3 = Wall('wall_right', (WALL_SIZE[0], 0), (5, WALL_SIZE[1] * 2))
             wall4 = Wall('wall_down', (0, WALL_SIZE[1]), (WALL_SIZE[0] * 2, 5))
-            obstacles = self.poopies.get_poopies_obstacles()
-            obstacles.extend([wall1, wall2, wall3, wall4])
-            self.objects = obstacles
+            #obstacles.extend([wall1, wall2, wall3, wall4])
+            self.target = self.poopies.get_poopies_obstacles()
             self.render()
             self.clock.tick(self.fps)
 
@@ -365,16 +400,16 @@ def main():
     Epoch = 0
     metrics = Metrics(Epoch, Max_Epochs)  # not used for the moment, intented to run Max_Epochs runs to assess statistically the effectiveness of the model
     poopies = PoopieActor(1)  # class adress for the poopies
-    obstacles = poopies.get_poopies_obstacles()
-    obstacles.extend([wall1, wall2, wall3, wall4])
-    peepo = PeepoActor((0, WALL_SIZE[1] / 2), obstacles)
+    target = poopies.get_poopies_obstacles()
+    wall = [0, 0, WALL_SIZE[0], WALL_SIZE[1]]
+    #target.extend([wall1, wall2, wall3, wall4])
+    peepo = PeepoActor((0, WALL_SIZE[1] / 2), poopies, wall)
     Apx = poopies.Apx
     beta = poopies.beta
-    print("Apx = ", Apx, " and beta = ", beta)
     vp = poopies.max_speed
     vh = peepo.speed
     analytic_solution = Analytic_Solution(Apx,0,0,WALL_SIZE[1]/2,beta,vp,vh)
-    world = PeeposWorld(peepo, obstacles, poopies, metrics,analytic_solution )
+    world = PeeposWorld(peepo, target, poopies, metrics,analytic_solution )
     world.main_loop()
     pg.quit()
     sys.exit()
