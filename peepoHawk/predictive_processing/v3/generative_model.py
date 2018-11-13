@@ -70,6 +70,11 @@ class GenerativeModel:
 
         :rtype: dict
         """
+        print("Model : ")
+        print("Leaves :")
+        print(model.get_leaves())
+        print("Evidence :")
+        print(self.get_hypotheses(model))
         infer = VariableElimination(model)
         return infer.query(variables=model.get_leaves(), evidence=self.get_hypotheses(model))
 
@@ -127,6 +132,44 @@ class GenerativeModel:
         # else:
         #     self.hypothesis_update(node, prediction_error, prediction)
 
+
+    @staticmethod
+    def get_hypotheses(model):
+        hypos = {}
+        print("HYPO's :")
+        for root in model.get_roots():
+            M = {root: model.get_cpds(root).values}
+            print("M :")
+            print({root: model.get_cpds(root).values})
+            hypos.update({root: np.argmax(model.get_cpds(root).values)})
+        return hypos
+
+    @staticmethod
+    def get_observations(model):
+        obs = {}
+        for leaf in model.get_leaves():
+            obs.update({leaf: np.argmax(model.get_cpds(leaf).values)})
+        return obs
+
+    @staticmethod
+    def get_two_dim(array):
+        if len(array.shape) > 1:
+            return array
+        return array.reshape(array.shape[0], -1)
+
+    @staticmethod
+    def get_cpd_based_on_cardinality(var_values, evi_card):
+        print("method get_cpd_based_on_cardinality CALLED")
+        if evi_card == 1:
+            evi_card = 2
+        cpd = np.repeat(var_values, evi_card, axis=1)
+        for x in range(0, cpd.shape[1], evi_card):
+            perturbation = random.uniform(-0.1, 0.1)
+            cpd[0, x] = cpd[0, x] + perturbation  # TODO: Now it only works when variable has 2 values... fix this
+            cpd[1, x] = cpd[1, x] - perturbation
+
+        return cpd
+
     def hypothesis_update(self, node, prediction_error, prediction):
         """
         Updates the hypotheses of the generative model to minimize prediction error
@@ -151,6 +194,8 @@ class GenerativeModel:
                 result = infer.query(variables=[hypo],
                                      evidence={node: np.argmax(prediction_error + prediction)})
                 before = self.model.get_cpds(hypo).values
+                #print("Result ")
+                #print(result.get(hypo))
                 self.model.get_cpds(hypo).values = result.get(hypo).values
                 logging.debug("node[%s] hypothesis-update from %s to %s", hypo, before, result.get(hypo).values)
             # Should we update hypothesis variables based on only prediction error node?
@@ -356,35 +401,3 @@ class GenerativeModel:
         """
         # TODO
         return self.model
-
-    @staticmethod
-    def get_hypotheses(model):
-        hypos = {}
-        for root in model.get_roots():
-            hypos.update({root: np.argmax(model.get_cpds(root).values)})
-        return hypos
-
-    @staticmethod
-    def get_observations(model):
-        obs = {}
-        for leaf in model.get_leaves():
-            obs.update({leaf: np.argmax(model.get_cpds(leaf).values)})
-        return obs
-
-    @staticmethod
-    def get_two_dim(array):
-        if len(array.shape) > 1:
-            return array
-        return array.reshape(array.shape[0], -1)
-
-    @staticmethod
-    def get_cpd_based_on_cardinality(var_values, evi_card):
-        if evi_card == 1:
-            evi_card = 2
-        cpd = np.repeat(var_values, evi_card, axis=1)
-        for x in range(0, cpd.shape[1], evi_card):
-            perturbation = random.uniform(-0.1, 0.1)
-            cpd[0, x] = cpd[0, x] + perturbation  # TODO: Now it only works when variable has 2 values... fix this
-            cpd[1, x] = cpd[1, x] - perturbation
-
-        return cpd

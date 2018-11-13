@@ -10,7 +10,7 @@ import scipy.optimize as opt
 from  scipy.optimize import minimize
 from peepoHawk.playground.models.Hawk_model import PeepoModel
 from peepoHawk.playground.models.Hawk_peepo import Peepo
-
+from peepoHawk.playground.models.Hawk_model import normalize_angle
 from peepoHawk.playground.util.vision import end_line
 from peepoHawk.playground.Performance.performance import  Metrics  # NOT used for the moment: intended to measure te effectiveness of the leanning rate
 
@@ -211,7 +211,7 @@ class PeepoActor(object):
         self.trajectory.append((int(self.rect.x + PeepoActor.SIZE[0]/2), int(self.rect.y +  PeepoActor.SIZE[1]/2)))
         self.pos_x = 0#self.tensor_of_poopies[row][0]
         self.pos_y = 0#self.tensor_of_poopies[row][1]
-        self.max_sector = math.pi/2
+        self.max_sector = math.pi/4
         self.sector = np.zeros(8)
         self.quadrants = np.zeros(7)
         self.R_now = 0
@@ -236,7 +236,9 @@ class PeepoActor(object):
             self.quadrants[i] *= self.max_sector/norm
 
     def update_sectors(self):
-        self.sector[0] = self.angle - self.max_sector/2
+        self.angle = normalize_angle(self.angle)
+        #print("self.angle in update sector = ", self.angle*180/math.pi," degrees")
+        self.sector[0] = self.angle - self.quadrants[3]/2 - self.quadrants[2]-self.quadrants[1]-self.quadrants[0]
         for alfa in range(1, len(self.sector)):
             self.sector[alfa] = self.sector[alfa-1] + self.quadrants[alfa-1]
 
@@ -255,24 +257,26 @@ class PeepoActor(object):
                 count = 0
 
     def update(self, screen_rect):
+        #print("IN PEEPACTOR")
         self.model.process()
-        self.angle = -self.angle
+        self.angle = normalize_angle(self.angle)
+        #self.angle = -self.angle
         self.rect.x += PeepoActor.SPEED * math.cos(self.angle)
         self.rect.y += PeepoActor.SPEED * math.sin(self.angle)
         self.pos_x = self.rect.x
         self.pos_y = self.rect.y
-        if self.rect.x >= SCREEN_SIZE[0] or self.rect.y >= SCREEN_SIZE[0] or self.rect.x <= 0 or self.rect.y<= 0:
-            self.angle = self.angle + math.pi
+        """if self.rect.x >= SCREEN_SIZE[0] or self.rect.y >= SCREEN_SIZE[0] or self.rect.x <= 0 or self.rect.y<= 0:
+            self.angle = self.angle + math.pi"""
         #print(self.rect.x, "/", self.rect.y)
         self.trajectory.append(( int(self.rect.x + PeepoActor.SIZE[0]/2), int(self.rect.y +  PeepoActor.SIZE[1]/2)))
-        if self.model.motor_output[pg.K_LEFT]:
+        """if self.model.motor_output[pg.K_LEFT]:
             self.angle -= random.randint(math.pi8, math.pi/6)
             if self.angle < 0:
                 self.angle = 2*math.pi
         if self.model.motor_output[pg.K_RIGHT]:
             self.rotation += random.randint(math.pi/8, math.pi/6)
             if self.angle > 2*math.pi:
-                self.angle = 0
+                self.angle = 0"""
 
         self.image = pg.transform.rotate(self.image_original, -self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)

@@ -16,6 +16,12 @@ from peepoHawk.predictive_processing.v3.sensory_input import SensoryInput
 from peepoHawk.visualize.graph import draw_network
 
 vec = pg.math.Vector2
+def normalize_angle(angle):
+    if angle >= 2 * math.pi:
+        angle -= 2 * math.pi
+    if angle <= -2 * math.pi:
+        angle += 2 * math.pi
+    return angle
 
 def get_index_matrix(cardinality):#creates a matrix for the header of the contingency table (used  in create latent distribution with a fixed distibution)
     C = np.prod(cardinality)
@@ -243,14 +249,12 @@ class PeepoModel:
         self.Poopies = Poopie
         self.wall = wall
         self.target = self.Poopies.get_poopies_obstacles()
-        self.sectors = peepo_actor.sector
         self.R_previous = peepo_actor.R_previous
         self.R_now = peepo_actor.R_now
         self.motor_output = {pg.K_LEFT: False, pg.K_RIGHT: False}
         self.target_sector = 3
         self.distance_now = 10000
         self.distance_previous = self.distance_now
-        self.angle = peepo_actor.angle
         self.Reward = 0
         self.network = BayesianModel()
         self.models = self.create_networks()
@@ -327,6 +331,12 @@ class PeepoModel:
             self.network.add_cpds(CPD_Leafs[n])
         #draw_network(network)
         self.network.check_model()
+        print("ROOTS")
+        print(self.network.get_roots())
+        print("LEAVES")
+        print(self.network.get_leaves())
+
+
         '''for n in range(0,len(CPD_Parents)):
             print("Parents :")
             print(CPD_Parents[n])
@@ -343,53 +353,44 @@ class PeepoModel:
         self.calculate_environment()
         for key in self.models:
             self.models[key].process()
-            azmuth = self.network.get_cpds('Action').values
-            vorm = azmuth.shape
-            azimuth = np.zeros((vorm[0],vorm[1]*vorm[2]))
-            for row in range(0,vorm[0]):
-                column = 0
-                for c1 in range(0,vorm[1]):
-                    for c2 in range(0, vorm[2]):
-                        azimuth[row][column] = azmuth[row][c1][c2]
-                        column += 1
+            azimuth = self.network.get_cpds('Action').values
+            azimuth = azimuth.reshape((azimuth.shape[0],-1),order = 'F')
+            pos_azimuth = np.unravel_index(np.argmax(azimuth), np.array(azimuth).shape)[0]
+            print("Adapted sector = ",pos_azimuth)
+            self.peepo_actor.angle = normalize_angle(self.peepo_actor.angle + self.peepo_actor.sector[pos_azimuth])
+            print("new angle = ", self.peepo_actor.angle*180/math.pi," degrees")
+            self.peepo_actor.update_sectors()
+            self.peepo_actor.sector = self.peepo_actor.sector
 
-            print(" azimith : ", azimuth)
-            #print(" azimith : ", self.network.get_cpds('Action'))
-            #azimuth.transpose(2, 0, 1).reshape(-1, azimuth.shape[1]).shape
-            #print(" azimith : ", azimuth)
-            #pos_azimuth = np.unravel_index(np.argmax(azimuth), np.array(azimuth).shape)
-            pos_azimuth = np.argmax(azimuth)
-            print("shape azimuth : ",azimuth.shape)
-            print("argmax azimith : ", pos_azimuth)
 
     def calculate_environment(self):
         peepo_vec = vec(self.peepo_actor.rect.center)
-        print("peepo_vec = ", peepo_vec)
+        #print("peepo_vec = ", peepo_vec)
 
         #first check if no collision with the wall occurred
         if peepo_vec[0] <= self.wall[0]:
-            if math.cos(self.angle) == 0:
-                self.angle = 0.009*math.pi/2
-                self.angle = math.atan(math.sin(self.angle)/math.cos(-self.angle))
+            if math.cos(self.peepo_actor.angle) == 0:
+                self.peepo_actor.angle = 0.009*math.pi/2
+                self.peepo_actor.angle = math.atan(math.sin(self.peepo_actor.angle)/math.cos(-self.peepo_actor.angle))
         if peepo_vec[1] <= self.wall[1]:
-            if math.cos(self.angle) == 0:
-                self.angle = 0.009 * math.pi / 2
-                self.angle = math.atan(math.sin(-self.angle)/math.cos(self.angle))
+            if math.cos(self.peepo_actor.angle) == 0:
+                self.peepo_actor.angle = 0.009 * math.pi / 2
+                self.peepo_actor.angle = math.atan(math.sin(-self.peepo_actor.angle)/math.cos(self.peepo_actor.angle))
         if peepo_vec[0] >= self.wall[2]:
-            if math.cos(self.angle) == 0:
-                self.angle = 0.009*math.pi/2
-                self.angle = math.atan(math.sin(self.angle)/math.cos(-self.angle))
+            if math.cos(self.peepo_actor.angle) == 0:
+                self.peepo_actor.angle = 0.009*math.pi/2
+                self.peepo_actor.angle = math.atan(math.sin(self.peepo_actor.angle)/math.cos(-self.peepo_actor.angle))
         if peepo_vec[1] >= self.wall[3]:
-            if math.cos(self.angle) == 0:
-                self.angle = 0.009 * math.pi / 2
-                self.angle = math.atan(math.sin(-self.angle)/math.cos(self.angle))
+            if math.cos(self.peepo_actor.angle) == 0:
+                self.peepo_actor.angle = 0.009 * math.pi / 2
+                self.peepo_actor.angle = math.atan(math.sin(-self.peepo_actor.angle)/math.cos(self.peepo_actor.angle))
 
         #Calculate distance and sector of the target
         for target in self.target:
-            print("Target = ", self.Poopies.pos_x, self.Poopies.pos_y)
+            #print("Target = ", self.Poopies.pos_x, self.Poopies.pos_y)
             #distance (is in fact the square of the distance but this doesn't matter here
             self.distance_now = (self.Poopies.pos_x - peepo_vec[0])*(self.Poopies.pos_x - peepo_vec[0])  + (self.Poopies.pos_y - peepo_vec[1])*(self.Poopies.pos_y - peepo_vec[1])
-            print( "Distance now = ", math.sqrt(self.distance_now), " and previous distance = ",  math.sqrt(self.distance_previous))
+            #print( "Distance now = ", math.sqrt(self.distance_now), " and previous distance = ",  math.sqrt(self.distance_previous))
             if self.distance_now - self.distance_previous < 0:
                 self.Reward = 2
             if self.distance_now - self.distance_previous > 0:
@@ -397,27 +398,26 @@ class PeepoModel:
             if self.distance_now - self.distance_previous == 0:
                 self.Reward = 1
             self.distance_previous = self.distance_now
-
-
                 #calculate in which quadrants the target is
-            relative_angle_target = math.atan((self.Poopies.pos_y - peepo_vec[1])/(self.Poopies.pos_x - peepo_vec[0])) - self.angle
-            for sec in range(0, len(self.sectors)):
-                if relative_angle_target < self.sectors[1] or relative_angle_target < self.sectors[0]:
-                    self.target_sector = 0
-                if relative_angle_target > self.sectors[1]:
-                    self.target_sector = 1
-                    if relative_angle_target > self.sectors[2]:
-                        self.target_sector = 2
-                        if relative_angle_target > self.sectors[3]:
-                            self.target_sector = 3
-                            if relative_angle_target > self.sectors[4]:
-                                self.target_sector = 4
-                                if relative_angle_target > self.sectors[5]:
-                                    self.target_sector = 5
-                                    if relative_angle_target > self.sectors[6]:
+            absolute_angle_target = math.atan((self.Poopies.pos_y - peepo_vec[1])/(self.Poopies.pos_x - peepo_vec[0]))
+            #relative_angle_target = math.atan(self.Poopies.pos_y/self.Poopies.pos_x)  - math.atan(peepo_vec[1]/peepo_vec[0]) - self.peepo_actor.angle
+            if absolute_angle_target < self.peepo_actor.sector[1] or absolute_angle_target <= self.peepo_actor.sector[0]:
+                self.target_sector = 0
+                #print("absolute angle : ", absolute_angle_target, " and choosen sector is 0 or 1 with sector angle :" , self.peepo_actor.sector[1])
+            if absolute_angle_target >= self.peepo_actor.sector[1]:
+                self.target_sector = 1
+                if absolute_angle_target >= self.peepo_actor.sector[2]:
+                    self.target_sector = 2
+                    if absolute_angle_target >= self.peepo_actor.sector[3]:
+                        self.target_sector = 3
+                        if absolute_angle_target >= self.peepo_actor.sector[4]:
+                            self.target_sector = 4
+                            if absolute_angle_target >= self.peepo_actor.sector[5]:
+                                self.target_sector = 5
+                                if absolute_angle_target >= self.peepo_actor.sector[6]:
+                                    self.target_sector = 6
+                                    if absolute_angle_target >= self.peepo_actor.sector[7]:
                                         self.target_sector = 6
-                                        if relative_angle_target > self.sectors[7]:
-                                            self.target_sector = 6
             print("Target is sector ", self.target_sector)
             print("Reward ", self.Reward)
 
@@ -441,9 +441,11 @@ class SensoryInputVirtualPeepo(SensoryInput):
                 self.peepo.motor_output[pg.K_LEFT] = True
 
     def value(self, name):
+        print("In sensory input")
         if 'Azimuth' in name:
             # [0.1, 0.9] = OBSTACLE - [0.9, 0.1] = NO OBSTACLE
             if 'next_cycle' in name:
+                print("with Azimuth_next_cycle")
                 if self.peepo.target_sector == 0:
                     return np.array([1, 0, 0, 0, 0, 0, 0])
                 if self.peepo.target_sector == 1:
@@ -461,6 +463,7 @@ class SensoryInputVirtualPeepo(SensoryInput):
 
 
         if 'Reward' in name:
+            print("with Reward_next_cycle")
             # [0.1, 0.9] = OBSTACLE - [0.9, 0.1] = NO OBSTACLE
             if 'next_cycle' in name:
                 if self.peepo.Reward == 0:
