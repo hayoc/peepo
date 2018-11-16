@@ -43,14 +43,16 @@ class GenerativeModel:
         """
         total_pes = 0
         next_azimuth = []
-        next_reward = []
+        next_reward = next_reward = [0.1,0.1,0.8]
         for node, prediction in self.predict(self.model).items():
             pred = prediction.values
             if  'Azimuth' in node:
                 next_azimuth = pred
             if 'Reward' in node:
-                next_reward = pred
-            obs = self.sensory_input.value(node)
+                next_reward = [0.1,0.1,0.8]
+            if 'Action' in node:
+                next_azimuth = pred
+        '''obs = self.sensory_input.value(node)
             #print("obs for node ", node , " = ", obs)
             pes = self.error_size(pred, obs)
 
@@ -62,7 +64,7 @@ class GenerativeModel:
             if pes > 0.5:
                 logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
                 logging.debug("node[%s] PES: %s", node, pes)
-                self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)
+                self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)'''
 
         return total_pes, next_azimuth, next_reward
 
@@ -79,7 +81,6 @@ class GenerativeModel:
 
         infer = VariableElimination(model)
         return infer.query(variables=model.get_leaves(), evidence=self.get_hypotheses(model))
-        #return infer.query(variables=model.get_leaves(), evidence=model.get_roots())
 
     @staticmethod
     def error(pred, obs):
@@ -152,7 +153,7 @@ class GenerativeModel:
             obs.update({leaf: np.argmax(model.get_cpds(leaf).values)})
         return obs
 
-   
+
 
     def hypothesis_update(self, node, prediction_error, prediction):
         """

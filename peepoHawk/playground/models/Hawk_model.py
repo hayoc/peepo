@@ -54,7 +54,7 @@ class PeepoModel:
 
     def create_networks(self):
         gamma = 1 # this controls how steep the discrimination will be between the classes (gamma << 1 low discrimination, gamma >> 1 : high discrimination
-        sigma = 1 # this controls how steep the squezing of the action will be
+        sigma = 1 # this controls how steep the squeezing of the action will be
 
         ParentNodes = []
         ParentNodes.append("Azimuth_Belief")
@@ -75,13 +75,13 @@ class PeepoModel:
             self.network.add_node(LatentNodes[count])
             count = count + 1
 
-        LeafNodes = []
+        '''LeafNodes = []
         LeafNodes.append("Azimuth_next_cycle")
         LeafNodes.append("Reward_next_cycle")
         count = 0
         while count < len(LeafNodes):
             self.network.add_node(LeafNodes[count])
-            count = count + 1
+            count = count + 1'''
 
         self.network.add_edge(ParentNodes[0], LatentNodes[0])
         self.network.add_edge(ParentNodes[1], LatentNodes[0])
@@ -90,12 +90,12 @@ class PeepoModel:
         self.network.add_edge(LatentNodes[0], LatentNodes[2])
         self.network.add_edge(LatentNodes[1], LatentNodes[2])
 
-        self.network.add_edge(LatentNodes[0], LeafNodes[0])
+        '''self.network.add_edge(LatentNodes[0], LeafNodes[0])
         self.network.add_edge(LatentNodes[0], LeafNodes[1])
         self.network.add_edge(LatentNodes[1], LeafNodes[0])
         self.network.add_edge(LatentNodes[1], LeafNodes[1])
         self.network.add_edge(LatentNodes[2], LeafNodes[0])
-        self.network.add_edge(LatentNodes[2], LeafNodes[1])
+        self.network.add_edge(LatentNodes[2], LeafNodes[1])'''
 
         cardinality_azimuth = 7
         cardinality_reward  = 3
@@ -110,16 +110,16 @@ class PeepoModel:
         count = 0
         CPD_Latents = []
         CPD_Latents.append(CPD.latent_cpd(LatentNodes[0],cardinality_azimuth,[cardinality_azimuth,cardinality_azimuth],[ParentNodes[0],ParentNodes[1]], 'fixed', gamma))
-        CPD_Latents.append(CPD.reward_cpd(LatentNodes[1],cardinality_reward,[cardinality_reward,cardinality_reward],[ParentNodes[2],ParentNodes[3]],'fixed', gamma))
+        CPD_Latents.append(CPD.latent_cpd(LatentNodes[1],cardinality_reward,[cardinality_reward,cardinality_reward],[ParentNodes[2],ParentNodes[3]],'reward', gamma))
         CPD_Latents.append(CPD.latent_cpd(LatentNodes[2],cardinality_action,[cardinality_azimuth, cardinality_reward], [LatentNodes[0], LatentNodes[1]], 'action', sigma))
         for n in range(0,len(CPD_Latents)):
             self.network.add_cpds(CPD_Latents[n])
-        CPD_Leafs = []
+        '''CPD_Leafs = []
         CPD_Leafs.append(CPD.leaf_cpd(LeafNodes[0],cardinality_azimuth,[cardinality_azimuth,cardinality_reward,cardinality_action ,],[LatentNodes[0], LatentNodes[1], LatentNodes[2]], 'azimuth', gamma))
         CPD_Leafs.append(CPD.leaf_cpd(LeafNodes[1],cardinality_reward ,[cardinality_azimuth,cardinality_reward,cardinality_action,],[LatentNodes[0], LatentNodes[1], LatentNodes[2]], 'reward', gamma))
 
         for n in range(0,len(CPD_Leafs)):
-            self.network.add_cpds(CPD_Leafs[n])
+            self.network.add_cpds(CPD_Leafs[n])'''
         #draw_network(network)
         self.network.check_model()
         '''print("ROOTS")
@@ -138,6 +138,11 @@ class PeepoModel:
         #wait = input("PRESS ENTER TO CONTINUE.")
         return {'main': GenerativeModel(SensoryInputVirtualPeepo(self), self.network)}
 
+    def Azimuth_Correction(self,action, alpha):
+        delta = alpha - action
+        correction = delta*1
+        return correction
+
     def process(self):
         self.calculate_environment()
         for key in self.models:
@@ -146,11 +151,12 @@ class PeepoModel:
             #print("Next reward  ----> ", self.next_reward)
             #azimuth = self.network.get_cpds('Action').values
             #azimuth = azimuth.reshape((azimuth.shape[0],-1),order = 'F')
-            index_peepos_angle  = np.argmax(self.next_azimuth)
-            print("next azimuth :", self.next_azimuth, " giving an index_peepos_angle = ", index_peepos_angle)
-            new_azimuth = (self.peepo_actor.sector[index_peepos_angle] + self.peepo_actor.sector[index_peepos_angle+1])/2
+            index_action_angle  = np.argmax(self.next_azimuth)
+            print("Action a s next azimuth :", self.next_azimuth, " giving an index_peepos_angle = ", index_action_angle, " and next_reward = ", self.next_reward)
+            action = (self.peepo_actor.sector[index_action_angle] + self.peepo_actor.sector[index_action_angle+1])/2
+            azimuth_correction = self.Azimuth_Correction(action, self.peepo_actor.angle)
             #print("Adapted sector = ",pos_azimuth)
-            self.peepo_actor.angle = normalize_angle(0*self.peepo_actor.angle + new_azimuth )
+            self.peepo_actor.angle = normalize_angle(self.peepo_actor.angle + azimuth_correction)
             print("Peepo's new moving direction :  ", self.peepo_actor.angle*180/math.pi," degrees")
             self.peepo_actor.update_sectors()
             self.network.get_cpds('Azimuth_Belief').values = CPD.updated_cpd(7, self.observed_azimuth)
@@ -185,6 +191,7 @@ class PeepoModel:
                 self.peepo_actor.angle = math.atan(math.sin(-self.peepo_actor.angle)/math.cos(self.peepo_actor.angle))
 
         #Calculate distance and sector of the target
+        #we suppose Peepo has the capability to assess the direction and the distance of the prey
         for target in self.target:
             #print("Target = ", self.Poopies.pos_x, self.Poopies.pos_y)
             #distance (is in fact the square of the distance but this doesn't matter here
@@ -197,7 +204,7 @@ class PeepoModel:
             if self.distance_now - self.distance_previous == 0:
                 self.Reward = 1
             self.distance_previous = self.distance_now
-                #calculate in which quadrants the target is
+            #calculate in which sector the target is
             absolute_angle_target = normalize_angle(math.atan((self.Poopies.pos_y - peepo_vec[1])/(self.Poopies.pos_x - peepo_vec[0])))
             if absolute_angle_target < self.peepo_actor.sector[1] or absolute_angle_target <= self.peepo_actor.sector[0]:
                 self.target_sector = 0

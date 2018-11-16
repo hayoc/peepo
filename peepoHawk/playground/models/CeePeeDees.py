@@ -59,6 +59,26 @@ class CPD:
         M = CPD.get_index_matrix(card_parent)
         for row in range(0, card_latent):
             for column in range(0, C):
+                distance =  sigma*abs(row - M[0][column]) + abs(2  - M[1][column])
+                matrix[row][column] = math.exp(-distance)
+        # Normalize distribution
+        for column in range(0, C):
+            factor = 0
+            for row in range(0, card_latent):
+                factor += matrix[row][column]
+            for row in range(0, card_latent):
+                matrix[row][column] /= factor
+        return matrix
+
+    def back_up_create_action_distribution(card_latent, card_parent, sigma):
+        # CREATES : a CPD with a distribution depending on the "distance" of the latent variable index to the indexes of the parents
+        # the distance is the inverse of an exponentional of the sum of the distances coorected with a factor sigma
+        # cardinality of the latent must be the same as the cardinality of the parents
+        C = np.prod(card_parent)
+        matrix = np.zeros((card_latent, C))
+        M = CPD.get_index_matrix(card_parent)
+        for row in range(0, card_latent):
+            for column in range(0, C):
                 correction = 1
                 if M[1][column] == 2:
                     x = (row - M[0][column]) * (row - M[0][column]) / sigma / sigma
@@ -78,7 +98,7 @@ class CPD:
                 matrix[row][column] /= factor
         return matrix
 
-    def create_latent_reward_distribution():
+    def create_reward_distribution():
         # CREATES : aCPD a distribution depending on the "distance" of the latent variable index to the indexes of the parents
         # the distance is the inverse of an exponentional of the sum of the distances coorected with a factor (set to 1 for the moment)
         # cardinality of the latent must be the same as the cardinality of the parents
@@ -103,7 +123,7 @@ class CPD:
                 for M_row in range(0, len(card_parent)):
                     distance += abs(row - M[M_row][column])
                 matrix[row][column] = math.exp(-gamma * distance)
-        # Normalize ditribution
+        # Normalize distribution
         for column in range(0, C):
             factor = 0
             for row in range(0, card_latent):
@@ -121,11 +141,11 @@ class CPD:
                 delta_reward = M[1][column]
                 for row in range(0, card_leaf):
                     delta_index = abs(M[0][column] - M[2][column])
-                    if delta_reward == 2:
+                    if delta_reward == 0:
                         mu = delta_index
                         y = (row - mu) * (row - mu) / sigma / sigma
                         matrix[row][column] = math.exp(-y)
-                    if delta_reward == 0:
+                    if delta_reward == 2:
                         mu = card_leaf - delta_index
                         y = (row - mu) * (row - mu) / sigma / sigma
                         matrix[row][column] = math.exp(-y)
@@ -191,6 +211,8 @@ class CPD:
             table = CPD.create_latent_distribution(card_latent, card_parent, gamma)
         if (modus == 'action'):
             table = CPD.create_action_distribution(card_latent, card_parent, gamma)
+        if (modus == 'reward'):
+            table = CPD.create_reward_distribution()
         if (modus == 'random'):
             cardinality = 1
             for n in range(0, len(card_parent)):
@@ -203,17 +225,6 @@ class CPD:
                     factor += table[r][c]
                 for r in range(0, len(table)):
                     table[r][c] /= factor
-        evidence = []
-        car_par = []
-        for n in range(0, len(evid)):
-            evidence.append(evid[n])
-            car_par.append(card_parent[n])
-        return TabularCPD(variable=var, variable_card=card_latent, values=table,
-                          evidence=evidence,
-                          evidence_card=car_par)
-
-    def reward_cpd(var, card_latent, card_parent, evid, modus, gamma):
-        table = CPD.create_latent_reward_distribution()
         evidence = []
         car_par = []
         for n in range(0, len(evid)):
