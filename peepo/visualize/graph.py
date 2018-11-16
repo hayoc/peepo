@@ -1,8 +1,8 @@
 import json
 import os
+
 import networkx as nx
 from networkx.readwrite import json_graph
-
 
 path = os.path.dirname(os.path.realpath(__file__))
 
@@ -10,7 +10,7 @@ path = os.path.dirname(os.path.realpath(__file__))
 def draw_network(network, block=False):
     """
     To view the results of the drawing, run this script separately: peepo/visualize/server.py
-    and go to: http://localhost:8000/force.html
+    and go to: http://localhost:8000/peepo.html
 
     :param network:
     :param block:
@@ -40,9 +40,5 @@ def draw_network(network, block=False):
     d = json_graph.node_link_data(G)  # node-link format to serialize
 
     # write json
-    json.dump(d, open(path + '/force/force.json', 'w'))
-    print('Wrote node-link JSON data to force/force.json')
-
-
-
-
+    json.dump(d, open(path + '/static/peepo.json', 'w'))
+    print('Wrote node-link JSON data to static/peepo.json')

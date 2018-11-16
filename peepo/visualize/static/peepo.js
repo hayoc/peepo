@@ -1,5 +1,5 @@
 
-d3.json("force.json", function(error, json) {
+d3.json("peepo.json", function(error, json) {
     var w = 1200,
         h = 800;
 
@@ -57,8 +57,8 @@ d3.json("force.json", function(error, json) {
     var force = d3.layout.force()
         .nodes(json.nodes)
         .links([])
-        .gravity(0.001)
-        .charge(-10)
+        .gravity(0.1)
+        .charge(-1000)
         .size([w, h]);
 
     var edges = [];
