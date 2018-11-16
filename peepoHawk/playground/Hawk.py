@@ -211,7 +211,7 @@ class PeepoActor(object):
         self.trajectory.append((int(self.rect.x + PeepoActor.SIZE[0]/2), int(self.rect.y +  PeepoActor.SIZE[1]/2)))
         self.pos_x = 0#self.tensor_of_poopies[row][0]
         self.pos_y = 0#self.tensor_of_poopies[row][1]
-        self.max_sector = math.pi/4
+        self.max_sector = math.pi/2
         self.sector = np.zeros(8)
         self.quadrants = np.zeros(7)
         self.R_now = 0
@@ -219,8 +219,9 @@ class PeepoActor(object):
         self.make_quadrants()
         self.update_sectors()
         self.model = PeepoModel(self, target, wall)#see Hawk_model.py
-        self.edge_right = end_line(PeepoModel.RADIUS, self.angle + self.max_sector/2 ,self.rect.center)
-        self.edge_left = end_line(PeepoModel.RADIUS, self.angle - self.max_sector/2, self.rect.center)
+        self.edge_right = end_line(PeepoModel.RADIUS, (self.angle + self.max_sector/2) ,self.rect.center)
+        self.edge_left = end_line(PeepoModel.RADIUS, (self.angle - self.max_sector/2), self.rect.center)
+        self.edge_direction = end_line(PeepoModel.RADIUS/2, self.angle , self.rect.center)
 
     def make_quadrants(self):
 
@@ -241,6 +242,8 @@ class PeepoActor(object):
         self.sector[0] = self.angle - self.quadrants[3]/2 - self.quadrants[2]-self.quadrants[1]-self.quadrants[0]
         for alfa in range(1, len(self.sector)):
             self.sector[alfa] = self.sector[alfa-1] + self.quadrants[alfa-1]
+        for alfa in range(0, len(self.sector)):
+            self.sector[alfa] = normalize_angle(self.sector[alfa])
 
     def render_traject(self, screen, state):
         for p in range(0, len(self.trajectory)):
@@ -278,11 +281,12 @@ class PeepoActor(object):
             if self.angle > 2*math.pi:
                 self.angle = 0"""
 
-        self.image = pg.transform.rotate(self.image_original, -self.angle)
+        self.image = pg.transform.rotate(self.image_original, -self.angle*180/math.pi)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-        self.edge_right = end_line(PeepoModel.RADIUS, self.angle + self.max_sector/2, self.rect.center)
-        self.edge_left = end_line(PeepoModel.RADIUS, self.angle - self.max_sector/2, self.rect.center)
+        self.edge_right = end_line(PeepoModel.RADIUS, normalize_angle(self.angle + self.max_sector/2) ,self.rect.center)
+        self.edge_left = end_line(PeepoModel.RADIUS, normalize_angle(self.angle - self.max_sector/2), self.rect.center)
+        self.edge_direction = end_line(PeepoModel.RADIUS/2, self.angle, self.rect.center)
 
         self.rect.clamp_ip(screen_rect)
         self.update_sectors()
@@ -291,8 +295,9 @@ class PeepoActor(object):
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
-        pg.draw.line(surface, pg.Color("blue"), self.rect.center, self.edge_right, 2)
-        pg.draw.line(surface, pg.Color("blue"), self.rect.center, self.edge_left, 2)
+        pg.draw.line(surface, pg.Color("grey"), self.rect.center, self.edge_right, 2)
+        pg.draw.line(surface, pg.Color("grey"), self.rect.center, self.edge_left, 2)
+        pg.draw.line(surface, pg.Color("blue"), self.rect.center, self.edge_direction, 1)
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
