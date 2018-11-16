@@ -140,7 +140,7 @@ class PeepoModel:
 
     def Azimuth_Correction(self,action, alpha):
         delta = alpha - action
-        correction = delta*1
+        correction = delta/5
         return correction
 
     def process(self):
