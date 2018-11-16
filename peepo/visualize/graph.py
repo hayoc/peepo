@@ -8,6 +8,14 @@ path = os.path.dirname(os.path.realpath(__file__))
 
 
 def draw_network(network, block=False):
+    """
+    To view the results of the drawing, run this script separately: peepo/visualize/server.py
+    and go to: http://localhost:8000/force.html
+
+    :param network:
+    :param block:
+    :return:
+    """
     G = nx.DiGraph()
 
     for node in network.nodes():
