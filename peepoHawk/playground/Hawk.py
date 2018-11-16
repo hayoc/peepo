@@ -1,4 +1,4 @@
-#3/11/2018
+#15/11/2018
 import math
 import os
 import random
@@ -328,14 +328,14 @@ class PeeposWorld(object):
     A class to manage our event, game loop, and overall program flow.
     """
 
-    def __init__(self, peepo, target, poopies, metrics, analytical):
+    def __init__(self, peepo_actor, target, poopies, metrics, analytical):
         self.screen = pg.display.get_surface()
         self.screen_rect = self.screen.get_rect()
         self.clock = pg.time.Clock()
         self.fps = 60
         self.done = False
         self.keys = pg.key.get_pressed()
-        self.peepo = peepo
+        self.peepo_actor = peepo_actor
         self.target = target
         self.poopies = poopies
         self.metrics = metrics
@@ -362,9 +362,9 @@ class PeeposWorld(object):
         self.analytical.draw(self.screen)
         for obj in self.target:
             obj.draw(self.screen)
-        self.peepo.draw(self.screen)
+        self.peepo_actor.draw(self.screen)
         if self.poopies.stop:
-            self.peepo.render_traject(self.screen, False)
+            self.peepo_actor.render_traject(self.screen, False)
         pg.display.update()
 
     def main_loop(self):
@@ -373,7 +373,7 @@ class PeeposWorld(object):
         """
         while not self.done:
             self.event_loop()
-            self.peepo.update(self.screen_rect)
+            self.peepo_actor.update(self.screen_rect)
             self.poopies.update()
             wall1 = Wall('wall_up', (0, 0), (WALL_SIZE[0] * 2, 5))
             wall2 = Wall('wall_left', (0, 0), (5, WALL_SIZE[1] * 2))
@@ -406,13 +406,13 @@ def main():
     target = poopies.get_poopies_obstacles()
     wall = [0, 0, WALL_SIZE[0], WALL_SIZE[1]]
     target.extend([wall1, wall2, wall3, wall4])
-    peepo = PeepoActor((0, WALL_SIZE[1] / 2), poopies, wall)
+    peepo_actor = PeepoActor((0, WALL_SIZE[1] / 2), poopies, wall)
     Apx = poopies.Apx
     beta = poopies.beta
     vp = poopies.max_speed
-    vh = peepo.speed
+    vh = peepo_actor.speed
     analytic_solution = Analytic_Solution(Apx,0,0,WALL_SIZE[1]/2,beta,vp,vh)
-    world = PeeposWorld(peepo, target, poopies, metrics,analytic_solution )
+    world = PeeposWorld(peepo_actor, target, poopies, metrics,analytic_solution )
     world.main_loop()
     pg.quit()
     sys.exit()

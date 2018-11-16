@@ -1,4 +1,4 @@
-#version 12/11/2018
+#version 15/11/2018
 
 
 import math
@@ -94,6 +94,18 @@ def create_action_distribution(card_latent, card_parent, sigma):
             matrix[row][column] /= factor
     return matrix
 
+def create_latent_reward_distribution():
+    #CREATES : aCPD a distribution depending on the "distance" of the latent variable index to the indexes of the parents
+    #the distance is the inverse of an exponentional of the sum of the distances coorected with a factor (set to 1 for the moment)
+    #cardinality of the latent must be the same as the cardinality of the parents
+    card_parent = [3,3]
+    card_latent = 3
+    C = np.prod(card_parent)
+    matrix = [[0.1,0.2,0.8,0.1,0.1,0.4,0.1,0.1,0.8],
+              [0.1,0.4,0.1,0.1,0.1,0.4,0.1,0.1,0.1],
+              [0.8,0.4,0.1,0.8,0.8,0.2,0.8,0.8,0.1]]
+    return matrix
+
 def create_latent_distribution(card_latent, card_parent, gamma):
     #CREATES : aCPD a distribution depending on the "distance" of the latent variable index to the indexes of the parents
     #the distance is the inverse of an exponentional of the sum of the distances coorected with a factor (set to 1 for the moment)
@@ -168,6 +180,12 @@ def create_leaf_distribution(card_leaf, card_latent, modus, sigma):
 
     return matrix
 
+def updated_cpd(cardinality, index):
+    v = np.zeros(cardinality)
+    for i in range (0, cardinality):
+        v[i] =0.1/(cardinality-1)
+    v[index] = 0.9
+    return v
 
 def parent_cpd(var, cardinality, mu, sigma):
     table = np.zeros(cardinality)
@@ -211,7 +229,16 @@ def latent_cpd(var, card_latent, card_parent, evid, modus, gamma):
                       evidence=evidence,
                       evidence_card=car_par)
 
-
+def reward_cpd(var, card_latent, card_parent, evid, modus, gamma):
+    table = create_latent_reward_distribution()
+    evidence = []
+    car_par = []
+    for n in range(0,len(evid)):
+        evidence.append(evid[n])
+        car_par.append(card_parent[n])
+    return TabularCPD(variable=var, variable_card= card_latent, values=table,
+                      evidence=evidence,
+                      evidence_card=car_par)
 
 def leaf_cpd(var, card_leaf, card_latent, evid, modus, sigma):
     table =[]
@@ -244,9 +271,9 @@ def leaf_cpd(var, card_leaf, card_latent, evid, modus, sigma):
 class PeepoModel:
     RADIUS = 100
 
-    def __init__(self, peepo_actor, Poopie, wall):
+    def __init__(self, peepo_actor, Poopies, wall):
         self.peepo_actor = peepo_actor
-        self.Poopies = Poopie
+        self.Poopies = Poopies
         self.wall = wall
         self.target = self.Poopies.get_poopies_obstacles()
         self.R_previous = peepo_actor.R_previous
@@ -257,7 +284,11 @@ class PeepoModel:
         self.distance_previous = self.distance_now
         self.Reward = 0
         self.network = BayesianModel()
-        self.models = self.create_networks()
+        self.models = self.create_networks()#see generative_model.py
+        self.next_azimuth = 0
+        self.observed_azimuth = 0
+        self.next_reward = 0
+        self.observed_reward = 0
 
 
 
@@ -319,7 +350,7 @@ class PeepoModel:
         count = 0
         CPD_Latents = []
         CPD_Latents.append(latent_cpd(LatentNodes[0],cardinality_azimuth,[cardinality_azimuth,cardinality_azimuth],[ParentNodes[0],ParentNodes[1]], 'fixed', gamma))
-        CPD_Latents.append(latent_cpd(LatentNodes[1],cardinality_reward,[cardinality_reward,cardinality_reward],[ParentNodes[2],ParentNodes[3]],'fixed', gamma))
+        CPD_Latents.append(reward_cpd(LatentNodes[1],cardinality_reward,[cardinality_reward,cardinality_reward],[ParentNodes[2],ParentNodes[3]],'fixed', gamma))
         CPD_Latents.append(latent_cpd(LatentNodes[2],cardinality_action,[cardinality_azimuth, cardinality_reward], [LatentNodes[0], LatentNodes[1]], 'action', sigma))
         for n in range(0,len(CPD_Latents)):
             self.network.add_cpds(CPD_Latents[n])
@@ -331,12 +362,10 @@ class PeepoModel:
             self.network.add_cpds(CPD_Leafs[n])
         #draw_network(network)
         self.network.check_model()
-        print("ROOTS")
+        '''print("ROOTS")
         print(self.network.get_roots())
         print("LEAVES")
-        print(self.network.get_leaves())
-
-
+        print(self.network.get_leaves())'''
         '''for n in range(0,len(CPD_Parents)):
             print("Parents :")
             print(CPD_Parents[n])
@@ -352,16 +381,25 @@ class PeepoModel:
     def process(self):
         self.calculate_environment()
         for key in self.models:
-            self.models[key].process()
+            er, self.next_azimuth, self.next_reward = self.models[key].process()
+            #print("Next azimuth ----> ", self.next_azimuth)
+            #print("Next reward  ----> ", self.next_reward)
+
             azimuth = self.network.get_cpds('Action').values
             azimuth = azimuth.reshape((azimuth.shape[0],-1),order = 'F')
             pos_azimuth = np.unravel_index(np.argmax(azimuth), np.array(azimuth).shape)[0]
-            print("Adapted sector = ",pos_azimuth)
+            #print("Adapted sector = ",pos_azimuth)
             self.peepo_actor.angle = normalize_angle(self.peepo_actor.angle + self.peepo_actor.sector[pos_azimuth])
             print("new angle = ", self.peepo_actor.angle*180/math.pi," degrees")
             self.peepo_actor.update_sectors()
-            self.peepo_actor.sector = self.peepo_actor.sector
-
+            self.network.get_cpds('Azimuth_Belief').values = updated_cpd(7, self.observed_azimuth)
+            self.network.get_cpds('Reward_Belief').values = updated_cpd(3, self.observed_reward)
+            self.network.get_cpds('Reward_Predicted').values = self.next_reward
+            self.network.get_cpds('Azimuth_Predicted').values = self.next_azimuth
+            '''print(self.network.get_cpds('Azimuth_Belief'))
+            print(self.network.get_cpds('Reward_Belief'))
+            print(self.network.get_cpds('Reward_Predicted'))
+            print(self.network.get_cpds('Azimuth_Predicted'))'''
 
     def calculate_environment(self):
         peepo_vec = vec(self.peepo_actor.rect.center)
@@ -420,6 +458,8 @@ class PeepoModel:
                                         self.target_sector = 6
             print("Target is sector ", self.target_sector)
             print("Reward ", self.Reward)
+            self.observed_azimuth = self.target_sector
+            self.observed_reward = self.Reward
 
 
 class SensoryInputVirtualPeepo(SensoryInput):
@@ -427,25 +467,14 @@ class SensoryInputVirtualPeepo(SensoryInput):
         super().__init__()
         self.peepo = peepo
 
-    def action(self, node, prediction_error, prediction):
-        # if prediction = [0.9, 0.1] (= moving) then move else stop
-        if np.argmax(prediction) > 0:  # predicted stopping
-            if 'left' in node:
-                self.peepo.motor_output[pg.K_RIGHT] = False
-            if 'right' in node:
-                self.peepo.motor_output[pg.K_LEFT] = False
-        else:  # predicted moving
-            if 'left' in node:
-                self.peepo.motor_output[pg.K_RIGHT] = True
-            if 'right' in node:
-                self.peepo.motor_output[pg.K_LEFT] = True
+
 
     def value(self, name):
-        print("In sensory input")
+        #print("In sensory input")
         if 'Azimuth' in name:
             # [0.1, 0.9] = OBSTACLE - [0.9, 0.1] = NO OBSTACLE
             if 'next_cycle' in name:
-                print("with Azimuth_next_cycle")
+                #print("with Azimuth_next_cycle")
                 if self.peepo.target_sector == 0:
                     return np.array([1, 0, 0, 0, 0, 0, 0])
                 if self.peepo.target_sector == 1:
@@ -463,7 +492,7 @@ class SensoryInputVirtualPeepo(SensoryInput):
 
 
         if 'Reward' in name:
-            print("with Reward_next_cycle")
+            #print("with Reward_next_cycle")
             # [0.1, 0.9] = OBSTACLE - [0.9, 0.1] = NO OBSTACLE
             if 'next_cycle' in name:
                 if self.peepo.Reward == 0:

@@ -1,3 +1,4 @@
+#15/11
 import logging
 import math
 import random
@@ -41,9 +42,14 @@ class GenerativeModel:
         Returns the total prediction error size observed (for informational purposes...)
         """
         total_pes = 0
+        next_azimuth = []
+        next_reward = []
         for node, prediction in self.predict(self.model).items():
             pred = prediction.values
-            #print("pred for node ", node , " = ", pred)
+            if  'Azimuth' in node:
+                next_azimuth = pred
+            if 'Reward' in node:
+                next_reward = pred
             obs = self.sensory_input.value(node)
             #print("obs for node ", node , " = ", obs)
             pes = self.error_size(pred, obs)
@@ -58,7 +64,7 @@ class GenerativeModel:
                 logging.debug("node[%s] PES: %s", node, pes)
                 self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)
 
-        return total_pes
+        return total_pes, next_azimuth, next_reward
 
     def predict(self, model):
         """
@@ -70,13 +76,10 @@ class GenerativeModel:
 
         :rtype: dict
         """
-        print("Model : ")
-        print("Leaves :")
-        print(model.get_leaves())
-        print("Evidence :")
-        print(self.get_hypotheses(model))
+
         infer = VariableElimination(model)
         return infer.query(variables=model.get_leaves(), evidence=self.get_hypotheses(model))
+        #return infer.query(variables=model.get_leaves(), evidence=model.get_roots())
 
     @staticmethod
     def error(pred, obs):
@@ -136,12 +139,10 @@ class GenerativeModel:
     @staticmethod
     def get_hypotheses(model):
         hypos = {}
-        print("HYPO's :")
         for root in model.get_roots():
-            M = {root: model.get_cpds(root).values}
-            print("M :")
-            print({root: model.get_cpds(root).values})
             hypos.update({root: np.argmax(model.get_cpds(root).values)})
+        print("Hypos : ", hypos)
+        print("-------------------------------------------------------------------------------------------------------")
         return hypos
 
     @staticmethod
