@@ -79,7 +79,6 @@ d3.json("force.json", function(error, json) {
 
           //MOUSEOVER
           .on("mouseover", function(d,i) {
-            if (i>0) {
               //CIRCLE
               d3.select(this).selectAll("circle")
               .transition()
@@ -97,20 +96,10 @@ d3.json("force.json", function(error, json) {
               .attr("font-size","1.5em")
               .attr("x", 15 )
               .attr("y", 5 )
-            } else {
-              //CIRCLE
-              d3.select(this).selectAll("circle")
-              .style("cursor", "none")
-
-              //TEXT
-              d3.select(this).select("text")
-              .style("cursor", "none")
-            }
           })
 
           //MOUSEOUT
           .on("mouseout", function(d,i) {
-            if (i>0) {
               //CIRCLE
               d3.select(this).selectAll("circle")
               .transition()
@@ -125,7 +114,6 @@ d3.json("force.json", function(error, json) {
               .attr("font-size","1em")
               .attr("x", 8 )
               .attr("y", 4 )
-            }
           })
           //DISABLE BACKGROUND PAN WHEN DRAGGING NODE
           .on('mousedown', function(){
@@ -139,17 +127,17 @@ d3.json("force.json", function(error, json) {
           .attr("cx", function(d) { return d.x; })
           .attr("cy", function(d) { return d.y; })
           .attr("r", circleWidth)
-          .attr("fill", function(d, i) { if (i>0) { return  palette.pink; } else { return palette.paleryellow } } )
+          .attr("fill", function(d, i) { return  palette.pink; } )
 
         //TEXT
         node.append("text")
           .text(function(d, i) { return d.name; })
         .attr("x",    function(d, i) { return circleWidth + 5; })
-          .attr("y",            function(d, i) { if (i>0) { return circleWidth + 0 }    else { return 8 } })
+          .attr("y",            function(d, i) { return circleWidth + 0 })
           .attr("font-family",  "Bree Serif")
           .attr("fill",         function(d, i) {  return  palette.paleryellow;  })
           .attr("font-size",    function(d, i) {  return  "1em"; })
-          .attr("text-anchor",  function(d, i) { if (i>0) { return  "beginning"; }      else { return "end" } })
+          .attr("text-anchor",  function(d, i) { return  "beginning"; })
 
 
 
