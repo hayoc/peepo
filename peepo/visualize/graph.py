@@ -19,7 +19,7 @@ def draw_network(network, block=False):
     G = nx.DiGraph()
 
     for node in network.nodes():
-        G.add_node(node)
+        G.add_node(node, name=node, cpd=str(network.get_cpds(node).values))
 
     G.add_edges_from(network.edges())
 
