@@ -5,9 +5,9 @@ import sys
 
 import pygame as pg
 
-from peepo.playground.models.wandering_obstacle_avoidance_model import PeepoModel
-from peepo.playground.models.wandering_obstacle_avoidance_peepo import Peepo
 from peepo.playground.util.vision import end_line
+from peepo.playground.wandering.wandering_obstacle_avoidance_model import PeepoModel
+from peepo.playground.wandering.wandering_obstacle_avoidance_peepo import Peepo
 
 vec = pg.math.Vector2
 
