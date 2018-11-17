@@ -188,7 +188,7 @@ def main():
     wall4 = Wall('wall_down', (0, 998), (3200, 5))
 
     obstacles = []
-    for x in range(0, 30):
+    for x in range(0, 60):
         obstacles.append(ObjectActor('obj_' + str(x), (random.randint(100, 1500), random.randint(100, 900))))
     obstacles.extend([wall1, wall2, wall3, wall4])
 

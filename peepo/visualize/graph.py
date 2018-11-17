@@ -7,7 +7,7 @@ from networkx.readwrite import json_graph
 path = os.path.dirname(os.path.realpath(__file__))
 
 
-def draw_network(network, block=False):
+def draw_network(network):
     """
     To view the results of the drawing, run this script separately: peepo/visualize/server.py
     and go to: http://localhost:8000/peepo.html

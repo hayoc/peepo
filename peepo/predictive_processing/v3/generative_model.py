@@ -18,19 +18,19 @@ class GenerativeModel:
     prediction, prediction error and prediction error minimization are defined for this model.
 
     :param sensory_input : Mutable dictionary containing the current sensory inputs
-    :param model : Bayesian Causal Network. Causes are hypothesis variables, effects are observational variables.
+    :param network : Bayesian Causal Network. Causes are hypothesis variables, effects are observational variables.
 
     :type sensory_input : SensoryInput
-    :type model : [BayesianModel]
+    :type network : [BayesianModel]
     """
 
     MAX_NODES = 10
 
-    def __init__(self, sensory_input, model):
+    def __init__(self, sensory_input, network):
         self.sensory_input = sensory_input
-        self.model = model
+        self.network = network
         self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters] #TODO: Add change_valency
-        draw_network(model)
+        draw_network(network)
 
     def process(self):
         """
@@ -41,7 +41,7 @@ class GenerativeModel:
         Returns the total prediction error size observed (for informational purposes...)
         """
         total_pes = 0
-        for node, prediction in self.predict(self.model).items():
+        for node, prediction in self.predict(self.network).items():
             pred = prediction.values
             obs = self.sensory_input.value(node)
             pes = self.error_size(pred, obs)
@@ -51,9 +51,11 @@ class GenerativeModel:
             precision = entropy(pred, base=2)
             pe = self.error(pred, obs)
             total_pes += pes
-            if pes > 0.5:
+
+            if pes > 0.1:  # Sometimes numpy entropy calculation returns extremely small numbers when there's no error
                 logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
                 logging.debug("node[%s] PES: %s", node, pes)
+
                 self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)
 
         return total_pes
@@ -69,7 +71,11 @@ class GenerativeModel:
         :rtype: dict
         """
         infer = VariableElimination(model)
-        return infer.query(variables=model.get_leaves(), evidence=self.get_hypotheses(model))
+        variables = model.get_leaves()
+        evidence = self.get_hypotheses(model)
+        evidence = {k: v for k, v in evidence.items() if k not in variables}
+
+        return infer.query(variables=variables, evidence=evidence)
 
     @staticmethod
     def error(pred, obs):
@@ -141,16 +147,18 @@ class GenerativeModel:
         # Currently in the implementation we make the difference explicit
         # TODO: Need to have custom implementation of bayesian network, so that prediction errors in proprioceptive
         # TODO: nodes (motor) are resolved by executing the motor action, and not performing hypo update
-        infer = VariableElimination(self.model)
+        infer = VariableElimination(self.network)
         if "motor" in node:
             self.sensory_input.action(node, prediction_error, prediction)
         else:
-            for hypo in self.model.get_roots():
-                result = infer.query(variables=[hypo],
-                                     evidence={node: np.argmax(prediction_error + prediction)})
-                before = self.model.get_cpds(hypo).values
-                self.model.get_cpds(hypo).values = result.get(hypo).values
-                logging.debug("node[%s] hypothesis-update from %s to %s", hypo, before, result.get(hypo).values)
+            for hypo in self.network.get_roots():
+                result = prediction_error + prediction if hypo == node else infer.query(
+                    variables=[hypo],
+                    evidence={node: np.argmax(prediction_error + prediction)}).get(hypo).values
+
+                before = self.network.get_cpds(hypo).values
+                self.network.get_cpds(hypo).values = result
+                logging.debug("node[%s] hypothesis-update from %s to %s", hypo, before, result)
             # Should we update hypothesis variables based on only prediction error node?
             # Or all observation nodes in the network???
 
@@ -170,11 +178,11 @@ class GenerativeModel:
         :rtype BayesianModel
         """
         lowest_error_size = self.error_size(prediction, prediction_error + prediction)
-        best_model = self.model
+        best_model = self.network
         best_update = 'none'
 
         for idx, val in enumerate(self.atomic_updates):
-            updated_model = val(self.model.copy(), node, prediction, prediction_error + prediction)
+            updated_model = val(self.network.copy(), node, prediction, prediction_error + prediction)
             updated_prediction = self.predict(updated_model)[node].values
             updated_error_size = self.error_size(updated_prediction, prediction_error + prediction)
             if updated_error_size < lowest_error_size:
@@ -183,10 +191,10 @@ class GenerativeModel:
                 best_model = updated_model
                 best_update = val.__name__
 
-        self.model = best_model
+        self.network = best_model
         logging.info('Best Update: ' + best_update)
-        draw_network(self.model)
-        return self.model
+        draw_network(self.network)
+        return self.network
 
     def add_node(self, model, node_in_error, original_prediction, observation):
         """
@@ -353,7 +361,7 @@ class GenerativeModel:
         :rtype BayesianModel
         """
         # TODO
-        return self.model
+        return self.network
 
     @staticmethod
     def get_hypotheses(model):

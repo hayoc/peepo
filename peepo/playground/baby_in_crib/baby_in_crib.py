@@ -15,6 +15,16 @@ the mobile, until it has sufficiently learned the causal model and can consisten
 is moved to the other limb - a large increase in prediction error should be witnessed, until this again lowers as the
 baby learns the new causal model.
 """
+import logging
+
+from peepo.playground.baby_in_crib.crib import Crib
+from peepo.playground.baby_in_crib.model import baby_model
+from peepo.playground.baby_in_crib.sensory_input import SensoryInputCribBaby
+from peepo.predictive_processing.v3.generative_model import GenerativeModel
+from peepo.visualize.graph import draw_network
+
+logging.basicConfig()
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 class Baby:
@@ -26,3 +36,18 @@ class Baby:
             'limb_left_foot': False,
             'limb_right_foot': False
         }
+
+
+baby = Baby()
+crib = Crib()
+network = baby_model()
+
+model = GenerativeModel(SensoryInputCribBaby(baby, crib), network)
+
+i = 0
+while True:
+    model.process()
+    i += 1
+    if i > 1000:
+        draw_network(model.network)
+        i = 0
