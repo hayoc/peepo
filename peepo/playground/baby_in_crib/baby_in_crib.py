@@ -15,3 +15,14 @@ the mobile, until it has sufficiently learned the causal model and can consisten
 is moved to the other limb - a large increase in prediction error should be witnessed, until this again lowers as the
 baby learns the new causal model.
 """
+
+
+class Baby:
+
+    def __init__(self):
+        self.limbs = {
+            'limb_left_arm': False,
+            'limb_right_arm': False,
+            'limb_left_foot': False,
+            'limb_right_foot': False
+        }
