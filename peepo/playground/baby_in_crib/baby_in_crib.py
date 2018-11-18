@@ -17,8 +17,8 @@ baby learns the new causal model.
 """
 import logging
 
+import peepo.playground.baby_in_crib.model as md
 from peepo.playground.baby_in_crib.crib import Crib
-from peepo.playground.baby_in_crib.model import baby_model
 from peepo.playground.baby_in_crib.sensory_input import SensoryInputCribBaby
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepo.visualize.graph import draw_network
@@ -31,16 +31,16 @@ class Baby:
 
     def __init__(self):
         self.limbs = {
-            'limb_left_arm': False,
-            'limb_right_arm': False,
-            'limb_left_foot': False,
-            'limb_right_foot': False
+            md.LEFT_ARM: False,
+            md.RIGHT_ARM: False,
+            md.LEFT_FOOT: False,
+            md.RIGHT_FOOT: False
         }
 
 
 baby = Baby()
 crib = Crib()
-network = baby_model()
+network = md.baby_model()
 
 model = GenerativeModel(SensoryInputCribBaby(baby, crib), network)
 

@@ -11,7 +11,7 @@ class SensoryInputCribBaby(SensoryInput):
         self.crib = crib
 
     def action(self, node, prediction_error, prediction):
-        if 'limb' in node:
+        if 'motor' in node:
             for limb in self.baby.limbs:
                 self.baby.limbs[limb] = False
             self.baby.limbs[node] = True
@@ -24,7 +24,7 @@ class SensoryInputCribBaby(SensoryInput):
         if 'mobile' in name:
             # [0.1, 0.9] = MOVING - [0.9, 0.1] = NO MOVING MOBILE
             return np.array([0.1, 0.9]) if self.crib.mobile else np.array([0.9, 0.1])
-        if 'limb' in name:
+        if 'motor' in name:
             # [0.1, 0.9] = MOVING - [0.9, 0.1] = NO MOVING LIMB
             return np.array([0.1, 0.9]) if self.baby.limbs[name] else np.array([0.9, 0.1])
         raise ValueError('Unexpected type of node')

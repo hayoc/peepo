@@ -29,7 +29,7 @@ class GenerativeModel:
     def __init__(self, sensory_input, network):
         self.sensory_input = sensory_input
         self.network = network
-        self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters] #TODO: Add change_valency
+        self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters]  # TODO: Add change_valency
         draw_network(network)
 
     def process(self):
@@ -53,9 +53,8 @@ class GenerativeModel:
             total_pes += pes
 
             if pes > 0.1:  # Sometimes numpy entropy calculation returns extremely small numbers when there's no error
-                logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
-                logging.debug("node[%s] PES: %s", node, pes)
-
+                logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed ||| PES %s ||| PRECISION %s",
+                              node, pred, obs, pes, precision)
                 self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)
 
         return total_pes
@@ -124,7 +123,10 @@ class GenerativeModel:
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        self.hypothesis_update(node, prediction_error, prediction)
+        if node in self.network.get_roots() or precision > 0.75:  # TODO: plus add precision
+            self.model_update(node, prediction_error, prediction)
+        else:
+            self.hypothesis_update(node, prediction_error, prediction)
         # TODO: make the choice more sophisticated, with precision, surprise, yada yada yada
         # if precision < 0.5:
         #     self.model_update(node, prediction_error, prediction)
@@ -152,7 +154,7 @@ class GenerativeModel:
             self.sensory_input.action(node, prediction_error, prediction)
         else:
             for hypo in self.network.get_roots():
-                result = prediction_error + prediction if hypo == node else infer.query(
+                result = infer.query(
                     variables=[hypo],
                     evidence={node: np.argmax(prediction_error + prediction)}).get(hypo).values
 
@@ -226,12 +228,18 @@ class GenerativeModel:
             new_node_cpd = TabularCPD(variable=new_node_name, variable_card=2, values=[[0.5, 0.5]])
             new_model.add_cpds(new_node_cpd)
 
-            old_cpd = new_model.get_cpds(active_node)
+            old_cpd = model.get_cpds(active_node)
             evidence = old_cpd.get_evidence()
             evidence.append(new_node_name)
             evidence_card = list(old_cpd.get_cardinality(old_cpd.get_evidence()).values())
             evidence_card.append(2)
+            poop = self.get_cpd_based_on_cardinality(self.get_two_dim(old_cpd.values), len(evidence_card))
+            if len(poop.shape) > 2:
+                print()
+
             values = self.get_cpd_based_on_cardinality(self.get_two_dim(old_cpd.values), len(evidence_card))
+            if len(evidence_card) > 2:
+                print("LOLK")
             new_cpd_for_active_node = TabularCPD(variable=active_node,
                                                  variable_card=old_cpd.variable_card,
                                                  values=values,
@@ -240,6 +248,9 @@ class GenerativeModel:
 
             new_model.add_cpds(new_cpd_for_active_node)
 
+            blah = self.predict(new_model)
+            if 'obs_mobile' not in blah:
+                print('kk')
             new_prediction = self.predict(new_model)[node_in_error].values
             new_error = self.error_size(new_prediction, observation)
             if new_error < lowest_error:
@@ -269,7 +280,7 @@ class GenerativeModel:
         best_model = model
 
         for node in model.nodes():
-            if node == node_in_error or (node, node_in_error) in model.edges():
+            if node == node_in_error or (node, node_in_error) in model.edges() or 'obs' in node or 'motor' in node:
                 continue
 
             new_model = model.copy()
@@ -292,7 +303,6 @@ class GenerativeModel:
             new_prediction = self.predict(new_model)[node_in_error].values
             new_error = self.error_size(new_prediction, observation)
             if new_error < lowest_error:
-                logging.info("Found better model by adding edge")
                 lowest_error = new_error
                 best_model = new_model
 
@@ -387,7 +397,7 @@ class GenerativeModel:
     def get_cpd_based_on_cardinality(var_values, evi_card):
         if evi_card == 1:
             evi_card = 2
-        cpd = np.repeat(var_values, evi_card, axis=1)
+        cpd = np.repeat(var_values, evi_card, axis=len(var_values.shape) - 1)
         for x in range(0, cpd.shape[1], evi_card):
             perturbation = random.uniform(-0.1, 0.1)
             cpd[0, x] = cpd[0, x] + perturbation  # TODO: Now it only works when variable has 2 values... fix this
