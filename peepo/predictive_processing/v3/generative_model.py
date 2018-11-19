@@ -229,28 +229,23 @@ class GenerativeModel:
             new_model.add_cpds(new_node_cpd)
 
             old_cpd = model.get_cpds(active_node)
+            variable_card = old_cpd.variable_card
             evidence = old_cpd.get_evidence()
             evidence.append(new_node_name)
             evidence_card = list(old_cpd.get_cardinality(old_cpd.get_evidence()).values())
+            old_evidence_card = list(evidence_card)
             evidence_card.append(2)
-            poop = self.get_cpd_based_on_cardinality(self.get_two_dim(old_cpd.values), len(evidence_card))
-            if len(poop.shape) > 2:
-                print()
 
-            values = self.get_cpd_based_on_cardinality(self.get_two_dim(old_cpd.values), len(evidence_card))
-            if len(evidence_card) > 2:
-                print("LOLK")
+            values = self.expand_cpd(self.reshape_cpd(old_cpd.values, variable_card, old_evidence_card), 2)
+
             new_cpd_for_active_node = TabularCPD(variable=active_node,
-                                                 variable_card=old_cpd.variable_card,
+                                                 variable_card=variable_card,
                                                  values=values,
                                                  evidence=evidence,
                                                  evidence_card=evidence_card)
 
             new_model.add_cpds(new_cpd_for_active_node)
 
-            blah = self.predict(new_model)
-            if 'obs_mobile' not in blah:
-                print('kk')
             new_prediction = self.predict(new_model)[node_in_error].values
             new_error = self.error_size(new_prediction, observation)
             if new_error < lowest_error:
@@ -287,11 +282,15 @@ class GenerativeModel:
             new_model.add_edge(node, node_in_error)
 
             old_cpd = new_model.get_cpds(node_in_error)
+            variable_card = old_cpd.variable_card
             evidence = old_cpd.get_evidence()
             evidence.append(node)
             evidence_card = list(old_cpd.get_cardinality(old_cpd.get_evidence()).values())
+            old_evidence_card = list(evidence_card)
             evidence_card.append(new_model.get_cpds(node).variable_card)
-            values = self.get_cpd_based_on_cardinality(self.get_two_dim(old_cpd.values), len(evidence_card))
+
+            values = self.expand_cpd(self.reshape_cpd(old_cpd.values, variable_card, old_evidence_card), 2)
+
             new_cpd = TabularCPD(variable=node_in_error,
                                  variable_card=old_cpd.variable_card,
                                  values=values,
@@ -328,7 +327,8 @@ class GenerativeModel:
         best_model = model
 
         for active_node in model.active_trail_nodes(node_in_error)[node_in_error] - set(model.get_roots()):
-            vals = model.get_cpds(active_node).values
+            cpd = model.get_cpds(active_node)
+            vals = self.reshape_cpd(cpd.values, cpd.variable_card, list(cpd.get_cardinality(cpd.get_evidence()).values()))
 
             for idx_col, col in enumerate(vals.T):
                 for idx_row, row in enumerate(col):
@@ -394,13 +394,18 @@ class GenerativeModel:
         return array.reshape(array.shape[0], -1)
 
     @staticmethod
-    def get_cpd_based_on_cardinality(var_values, evi_card):
-        if evi_card == 1:
-            evi_card = 2
-        cpd = np.repeat(var_values, evi_card, axis=len(var_values.shape) - 1)
-        for x in range(0, cpd.shape[1], evi_card):
+    def reshape_cpd(cpd, variable_card, evidence_card):
+        if len(cpd.shape) == 1:
+            return cpd.reshape([variable_card, 1])
+        return cpd.reshape([variable_card, np.prod(evidence_card)])
+
+    @staticmethod
+    def expand_cpd(cpd, evidence_card):
+        cpd = np.repeat(cpd, evidence_card, axis=1)
+        for x in range(0, cpd.shape[1]):
             perturbation = random.uniform(-0.1, 0.1)
             cpd[0, x] = cpd[0, x] + perturbation  # TODO: Now it only works when variable has 2 values... fix this
             cpd[1, x] = cpd[1, x] - perturbation
-
+        if len(cpd.shape) > 2:
+            print()
         return cpd

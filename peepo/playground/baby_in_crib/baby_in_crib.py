@@ -47,7 +47,3 @@ model = GenerativeModel(SensoryInputCribBaby(baby, crib), network)
 i = 0
 while True:
     model.process()
-    i += 1
-    if i > 1000:
-        draw_network(model.network)
-        i = 0
