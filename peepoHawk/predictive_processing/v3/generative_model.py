@@ -8,7 +8,7 @@ from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 from scipy.stats import entropy
 
-from peepo.visualize.graph import draw_network
+from peepoHawk.visualize.graph import draw_network
 
 
 class GenerativeModel:
@@ -31,7 +31,7 @@ class GenerativeModel:
         self.sensory_input = sensory_input
         self.model = model
         #self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters] #TODO: Add change_valency
-        #draw_network(model)
+        draw_network(model)
 
     def process(self):
         """
@@ -42,31 +42,13 @@ class GenerativeModel:
         Returns the total prediction error size observed (for informational purposes...)
         """
         total_pes = 0
-        next_azimuth = []
-        next_reward = next_reward = [0.1,0.1,0.8]
+        correction = [0.2,0.8]
         for node, prediction in self.predict(self.model).items():
             pred = prediction.values
-            if  'Azimuth' in node:
-                next_azimuth = pred
-            if 'Reward' in node:
-                next_reward = [0.1,0.1,0.8]
-            if 'Action' in node:
-                next_azimuth = pred
-        '''obs = self.sensory_input.value(node)
-            #print("obs for node ", node , " = ", obs)
-            pes = self.error_size(pred, obs)
-
-            # TODO: PEM should only happen if PES is higher than some value, this value
-            # TODO: should depend on whatever context the agent finds itself in, and the agent's goal
-            precision = entropy(pred, base=2)
-            pe = self.error(pred, obs)
-            total_pes += pes
-            if pes > 0.5:
-                logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed", node, pred, obs)
-                logging.debug("node[%s] PES: %s", node, pes)
-                self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)'''
-
-        return total_pes, next_azimuth, next_reward
+            if 'Correction' in node:
+                print("Correction case : ", pred )
+                correction = pred
+        return total_pes,correction
 
     def predict(self, model):
         """

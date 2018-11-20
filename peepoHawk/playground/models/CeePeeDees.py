@@ -50,17 +50,71 @@ class CPD:
             M[row, :] = R
         return M
 
-    def create_action_distribution(card_latent, card_parent, sigma):
+    def create_prediction_distribution(card_latent, card_parent, sigma):
         # CREATES : a CPD with a distribution depending on the "distance" of the latent variable index to the indexes of the parents
         # the distance is the inverse of an exponentional of the sum of the distances coorected with a factor sigma
         # cardinality of the latent must be the same as the cardinality of the parents
         C = np.prod(card_parent)
         matrix = np.zeros((card_latent, C))
         M = CPD.get_index_matrix(card_parent)
+        epsilon = 0.01
         for row in range(0, card_latent):
             for column in range(0, C):
-                distance =  sigma*abs(row - M[0][column]) + abs(2  - M[1][column])
-                matrix[row][column] = math.exp(-distance)
+                distance =  sigma*abs(row - M[0][column]) + abs(row  - M[1][column])
+                matrix[row][column] = epsilon + (2 - M[2])[column]*math.exp(-distance)
+        # Normalize distribution
+        for column in range(0, C):
+            factor = 0
+            for row in range(0, card_latent):
+                factor += matrix[row][column]
+            for row in range(0, card_latent):
+                matrix[row][column] /= factor
+        return matrix
+
+    def create_angle_correction_distribution(card_latent, card_parent, sigma):
+        # CREATES : a CPD with a distribution depending on the "distance" of the latent variable index to the indexes of the parents
+        # the distance is the inverse of an exponentional of the sum of the distances coorected with a factor sigma
+        # cardinality of the latent must be the same as the cardinality of the parents
+        C = np.prod(card_parent)
+        matrix = np.zeros((card_latent, C))
+        matrix[0][0] = 0.55
+        matrix[1][0] = 0.45
+        matrix[0][1] = 0.05
+        matrix[1][1] = 0.95
+        matrix[0][2] = 0.95
+        matrix[1][2] = 0.05
+        matrix[0][3] = 0.45
+        matrix[1][3] = 0.55
+
+        # Normalize distribution
+        for column in range(0, C):
+            factor = 0
+            for row in range(0, card_latent):
+                factor += matrix[row][column]
+            for row in range(0, card_latent):
+                matrix[row][column] /= factor
+        return matrix
+
+    def create_correction_distribution(card_latent, card_parent, sigma):
+        # CREATES : a CPD with a distribution depending on the "distance" of the latent variable index to the indexes of the parents
+        # the distance is the inverse of an exponentional of the sum of the distances coorected with a factor sigma
+        # cardinality of the latent must be the same as the cardinality of the parents
+        C = np.prod(card_parent)
+        matrix = np.zeros((card_latent, C))
+        M = CPD.get_index_matrix(card_parent)
+        epsilon = 0.99
+        nu = 1
+        for row in range(0, card_latent):
+            for column in range(0, C):
+                mu = 3 + nu*(M[0][column] - M[1][column])/2
+                distance =  sigma*abs(row - mu)
+                f_km = epsilon*math.exp(-distance)
+                mu = 3
+                distance = sigma * abs(row - mu)
+                g_km = epsilon * math.exp(-distance)
+                matrix[row][column] = 1#(2 - M[2][column])*g_km + M[2][column]*f_km
+                #print("Reward = " ,M[2][column], " and f[", row, ",", column, "] = ", f_km, " and g[", row, ",", column, "] = ", g_km, " giving : ",  matrix[row][column])
+                #print("f*correction = ", M[2][column]*f_km, " and g*correction = ", (2 - M[2][column])*g_km)
         # Normalize distribution
         for column in range(0, C):
             factor = 0
@@ -209,10 +263,14 @@ class CPD:
         table = []
         if (modus == 'fixed'):
             table = CPD.create_latent_distribution(card_latent, card_parent, gamma)
-        if (modus == 'action'):
-            table = CPD.create_action_distribution(card_latent, card_parent, gamma)
+        if (modus == 'prediction'):
+            table = CPD.create_prediction_distribution(card_latent, card_parent, gamma)
+        if (modus == 'correction'):
+            table = CPD.create_correction_distribution(card_latent, card_parent, gamma)
         if (modus == 'reward'):
             table = CPD.create_reward_distribution()
+        if (modus == 'angle_correction'):
+                table = CPD.create_angle_correction_distribution(card_latent, card_parent, gamma)
         if (modus == 'random'):
             cardinality = 1
             for n in range(0, len(card_parent)):
