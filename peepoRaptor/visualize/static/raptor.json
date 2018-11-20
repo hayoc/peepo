@@ -1,0 +1,1 @@
+{"directed": true, "multigraph": false, "graph": {}, "nodes": [{"name": "Delta_alfa_left", "cpd": "[7]", "id": "Delta_alfa_left"}, {"name": "Delta_alfa_right", "cpd": "[7]", "id": "Delta_alfa_right"}, {"name": "Correction", "cpd": "[7]", "id": "Correction"}], "links": [{"source": 0, "target": 2}, {"source": 1, "target": 2}]}
