@@ -72,14 +72,6 @@ class PeepoModel:
         cpd_10 = single_hypo_cpd('vision_4', 'obstacle_right')
         cpd_11 = single_hypo_cpd('vision_5', 'obstacle_right')
         cpd_12 = single_hypo_cpd('vision_6', 'obstacle_right')
-        print(cpd_1)
-        print(cpd_3)
-        print(cpd_5)
-        print(cpd_7)
-        print(cpd_8)
-        print(cpd_9)
-
-
 
         network.add_cpds(cpd_1, cpd_2, cpd_3, cpd_4, cpd_5, cpd_6, cpd_7,
                          cpd_8, cpd_9, cpd_10, cpd_11, cpd_12)

@@ -1,13 +1,12 @@
 import logging
 import random
 
+import matplotlib.pyplot as plt
+import numpy as np
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
-
-import matplotlib.pyplot as plt
-
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
 
 

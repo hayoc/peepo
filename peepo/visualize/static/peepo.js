@@ -1,5 +1,5 @@
 
-d3.json("force.json", function(error, json) {
+d3.json("peepo.json", function(error, json) {
     var w = 1200,
         h = 800;
 
@@ -14,6 +14,7 @@ d3.json("force.json", function(error, json) {
           "gray": "#708284",
           "mediumgray": "#536870",
           "darkgray": "#475B62",
+          "whitegrey": "#CCC",
 
           "darkblue": "#0A2933",
           "darkerblue": "#042029",
@@ -39,6 +40,20 @@ d3.json("force.json", function(error, json) {
           }))
         .append("g");
 
+    vis.append("defs").selectAll("marker")
+        .data(["arrow"])
+        .enter().append("marker")
+        .attr("id", function(d) { return d; })
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 15)
+        .attr("refY", 0)
+        .attr("markerWidth", 9)
+        .attr("markerHeight", 9)
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M0,-5L10,0L0,5")
+        .style("fill", palette.whitegrey);
+
     var force = d3.layout.force()
         .nodes(json.nodes)
         .links([])
@@ -48,16 +63,9 @@ d3.json("force.json", function(error, json) {
 
     var edges = [];
     json.links.forEach(function(e) {
-        var sourceNode = json.nodes.filter(function(n) {
-            return n.id === e.source;
-        })[0],
-        targetNode = json.nodes.filter(function(n) {
-            return n.id === e.target;
-        })[0];
         edges.push({
-            source: sourceNode,
-            target: targetNode,
-            value: 5
+            source: json.nodes[e.source],
+            target: json.nodes[e.target]
         });
     });
 
@@ -69,8 +77,9 @@ d3.json("force.json", function(error, json) {
             .data(edges)
             .enter().append("line")
               .attr("class", "link")
-              .attr("stroke", "#CCC")
-              .attr("fill", "none");
+              .attr("stroke", palette.whitegrey)
+              .attr("fill", "none")
+              .attr("marker-end", function(d) { return "url(#arrow)"; });
 
      var node = vis.selectAll("circle.node")
           .data(json.nodes)
@@ -139,7 +148,21 @@ d3.json("force.json", function(error, json) {
           .attr("font-size",    function(d, i) {  return  "1em"; })
           .attr("text-anchor",  function(d, i) { return  "beginning"; })
 
-
+        node.append("text")
+            .attr("x",    function(d, i) { return circleWidth + 5; })
+            .attr("y",            function(d, i) { return circleWidth + 5 })
+            .attr("font-family",  "Bree Serif")
+            .attr("fill",         function(d, i) {  return  palette.paleryellow;  })
+            .attr("font-size",    function(d, i) {  return  "0.5em"; })
+            .attr("text-anchor",  function(d, i) { return  "beginning"; })
+            .each(function (d) {
+                let lines = d.cpd.split("\n");
+                for (var i = 0; i < lines.length; i++) {
+                     d3.select(this).append("tspan")
+                         .attr("dy", 10)
+                         .attr("x", circleWidth + 5)
+                          .text(lines[i])
+                }});
 
     force.on("tick", function(e) {
       node.attr("transform", function(d, i) {

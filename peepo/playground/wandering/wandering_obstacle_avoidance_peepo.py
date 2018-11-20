@@ -15,7 +15,7 @@ class Peepo():
         self.wandering_right = False
 
     def update(self, model):
-        network = model.models['main'].model
+        network = model.models['main'].network
 
         if self.wandering_left:
             network.get_cpds('wandering_left').values = np.array([0.1, 0.9])

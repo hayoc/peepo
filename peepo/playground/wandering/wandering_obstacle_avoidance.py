@@ -5,9 +5,9 @@ import sys
 
 import pygame as pg
 
-from peepo.playground.models.wandering_obstacle_avoidance_model import PeepoModel
-from peepo.playground.models.wandering_obstacle_avoidance_peepo import Peepo
 from peepo.playground.util.vision import end_line
+from peepo.playground.wandering.wandering_obstacle_avoidance_model import PeepoModel
+from peepo.playground.wandering.wandering_obstacle_avoidance_peepo import Peepo
 
 vec = pg.math.Vector2
 
@@ -188,7 +188,7 @@ def main():
     wall4 = Wall('wall_down', (0, 998), (3200, 5))
 
     obstacles = []
-    for x in range(0, 30):
+    for x in range(0, 60):
         obstacles.append(ObjectActor('obj_' + str(x), (random.randint(100, 1500), random.randint(100, 900))))
     obstacles.extend([wall1, wall2, wall3, wall4])
 

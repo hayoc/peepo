@@ -61,49 +61,49 @@ class TestSensoryInput(SensoryInput):
 def test_add_node():
     gen_model = create_network()
 
-    prediction = gen_model.predict(gen_model.model)['B'].values
+    prediction = gen_model.predict(gen_model.network)['B'].values
     observation = gen_model.sensory_input.value('B')
     prediction_error = gen_model.error(prediction, observation)
 
     # time.sleep(20)
     logging.warning('Adding node now...')
 
-    new_model = gen_model.add_node(gen_model.model, 'B', prediction, observation)
+    new_model = gen_model.add_node(gen_model.network, 'B', prediction, observation)
     draw_network(new_model, True)
 
 
 def test_add_edge():
     gen_model = create_network_for_add_edge()
 
-    prediction = gen_model.predict(gen_model.model)['B'].values
+    prediction = gen_model.predict(gen_model.network)['B'].values
     observation = gen_model.sensory_input.value('B')
     prediction_error = gen_model.error(prediction, observation)
 
     # time.sleep(20)
     logging.warning('Adding edge now...')
 
-    new_model = gen_model.add_edge(gen_model.model, 'B', prediction, observation)
+    new_model = gen_model.add_edge(gen_model.network, 'B', prediction, observation)
     draw_network(new_model, True)
 
 
 def test_change_params():
     gen_model = create_network()
 
-    prediction = gen_model.predict(gen_model.model)['B'].values
+    prediction = gen_model.predict(gen_model.network)['B'].values
     observation = gen_model.sensory_input.value('B')
     prediction_error = gen_model.error(prediction, observation)
 
     # time.sleep(20)
     logging.warning('Changing params now...')
 
-    new_model = gen_model.change_parameters(gen_model.model, 'B', prediction, observation)
+    new_model = gen_model.change_parameters(gen_model.network, 'B', prediction, observation)
     draw_network(new_model, True)
 
 
 def test_add_all():
     gen_model = create_network_for_add_edge()
 
-    prediction = gen_model.predict(gen_model.model)['B'].values
+    prediction = gen_model.predict(gen_model.network)['B'].values
     observation = gen_model.sensory_input.value('B')
     prediction_error = gen_model.error(prediction, observation)
 
