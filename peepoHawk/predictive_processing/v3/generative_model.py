@@ -46,7 +46,7 @@ class GenerativeModel:
         for node, prediction in self.predict(self.model).items():
             pred = prediction.values
             if 'Correction' in node:
-                print("Correction case : ", pred )
+                #print("Correction case : ", pred )
                 correction = pred
         return total_pes,correction
 
@@ -125,7 +125,6 @@ class GenerativeModel:
         for root in model.get_roots():
             hypos.update({root: np.argmax(model.get_cpds(root).values)})
         print("Hypos : ", hypos)
-        print("-------------------------------------------------------------------------------------------------------")
         return hypos
 
     @staticmethod

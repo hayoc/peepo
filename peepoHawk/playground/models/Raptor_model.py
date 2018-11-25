@@ -16,45 +16,42 @@ from peepoHawk.visualize.graph import draw_network
 vec = pg.math.Vector2
 
 def normalize_angle(angle):
-    return angle
-    if angle < 0:
+    '''if angle < 0:
         angle = 2 * math.pi + angle
     if angle >= 2 * math.pi:
         angle -= 2 * math.pi
     if angle <= -2 * math.pi:
-        angle += 2 * math.pi
+        angle += 2 * math.pi'''
     return angle
+
+
 
 
 
 class RaptorModel:
     RADIUS = 100
-    ANGLE_INCREMENT = 10#degrees
 
     def __init__(self, raptor_actor, Pigeons, wall):
         self.raptor_actor = raptor_actor
         self.Pigeons = Pigeons
         self.wall = wall
         self.n_sectors = raptor_actor.n_sectors
-        print(self.Pigeons)
+        self.cardinality_vision = self.n_sectors
+        self.cardinality_delta_azimuth  = 2
+        self.cardinality_correction = 3
+        self.cardinality_direction = 2
         self.target = self.Pigeons.tensor_of_pigeons[0]
         self.R_previous = 0#raptor_actor.R_previous
         self.R_now = 0#raptor_actor.R_now
         self.motor_output = {pg.K_LEFT: False, pg.K_RIGHT: False}
-        self.target_sector = 3
-        self.distance_now = 10000
-        self.distance_previous = self.distance_now
-        self.Reward = 0
         self.network = BayesianModel()
         self.models = self.create_networks()#see generative_model.py
-        self.observed_left_angle = 0
         self.correction = 0
-        self.observed_right_angle = 0
-        self.previous_left_angle = 0
-        self.previous_correction = 0
-        self.previous_right_angle = 0
-        self.cpd_left = [0.5,0.5]
-        self.cpd_right = [0.5, 0.5]
+        self.cpd_left = CPD.create_fixed_parent((self.n_sectors), int(self.n_sectors/2))
+        self.cpd_right = CPD.create_fixed_parent((self.n_sectors), int(self.n_sectors/3))
+        self.cpd_left_previous = self.cpd_right.copy()
+        self.cpd_right_previous = self.cpd_left.copy()
+
 
 
     def create_networks(self):
@@ -62,22 +59,24 @@ class RaptorModel:
         sigma = 1 # this controls how steep the squeezing of the action will be
 
         ParentNodes = []
-        ParentNodes.append("Delta_alfa_left")
-        ParentNodes.append("Delta_alfa_right")
+        ParentNodes.append("Vision_left")
+        ParentNodes.append("Vision_right")
+        ParentNodes.append("Vision_left_previous")
+        ParentNodes.append("Vision_right_previous")
+
         #ParentNodes.append("Reward_Predicted")
         count = 0
         while count < len(ParentNodes):
             self.network.add_node(ParentNodes[count])
             count = count+1
 
-        #LatentNodes = []
-        #LatentNodes.append("Delta_Azimuth")
-        #LatentNodes.append("Delta_Reward")
-        #LatentNodes.append("Action")
-        count = 0
-        '''while count < len(LatentNodes):
+        LatentNodes = []
+        LatentNodes.append("Delta_alfa_left")
+        LatentNodes.append("Delta_alfa_right")
+        LatentNodes.append("Direction")
+        while count < len(LatentNodes):
             self.network.add_node(LatentNodes[count])
-            count = count + 1'''
+            count = count + 1
 
         LeafNodes = []
         LeafNodes.append("Correction")
@@ -85,141 +84,160 @@ class RaptorModel:
         while count < len(LeafNodes):
             self.network.add_node(LeafNodes[count])
             count = count + 1
-
-        self.network.add_edge(ParentNodes[0], LeafNodes[0])
-        self.network.add_edge(ParentNodes[1], LeafNodes[0])
-
-        '''self.network.add_edge(LatentNodes[0], LeafNodes[0])
-        self.network.add_edge(LatentNodes[0], LeafNodes[1])
+        self.network.add_edge(ParentNodes[0], LatentNodes[0])
+        self.network.add_edge(ParentNodes[1], LatentNodes[1])
+        self.network.add_edge(ParentNodes[2], LatentNodes[0])
+        self.network.add_edge(ParentNodes[3], LatentNodes[1])
+        self.network.add_edge(ParentNodes[0], LatentNodes[2])
+        self.network.add_edge(ParentNodes[1], LatentNodes[2])
+        self.network.add_edge(ParentNodes[2], LatentNodes[2])
+        self.network.add_edge(ParentNodes[3], LatentNodes[2])
+        self.network.add_edge(LatentNodes[0], LeafNodes[0])
         self.network.add_edge(LatentNodes[1], LeafNodes[0])
-        self.network.add_edge(LatentNodes[1], LeafNodes[1])
         self.network.add_edge(LatentNodes[2], LeafNodes[0])
-        self.network.add_edge(LatentNodes[2], LeafNodes[1])'''
 
-        cardinality_azimuth = self.n_sectors
-        cardinality_delta_azimuth  = 2
-        cardinality_correction = 2
+
 
         CPD_Parents = []
-        CPD_Parents.append(CPD.parent_cpd(ParentNodes[0],cardinality_delta_azimuth, int(random.uniform(0,cardinality_delta_azimuth+0.4)), sigma/2))
-        CPD_Parents.append(CPD.parent_cpd(ParentNodes[1],cardinality_delta_azimuth, int(random.uniform(0,cardinality_delta_azimuth+0.4)), sigma/2))
-
+        CPD_Parents.append(CPD.parent_cpd(ParentNodes[0],self.cardinality_vision, int(random.uniform(0,self.cardinality_vision-0.4)), sigma/2, "fixed"))
+        CPD_Parents.append(CPD.parent_cpd(ParentNodes[1],self.cardinality_vision, int(random.uniform(0,self.cardinality_vision-0.4)), sigma/2, "fixed"))
+        CPD_Parents.append(CPD.parent_cpd(ParentNodes[2],self.cardinality_vision, int(random.uniform(0,self.cardinality_vision-0.4)), sigma/2, "fixed"))
+        CPD_Parents.append(CPD.parent_cpd(ParentNodes[3],self.cardinality_vision, int(random.uniform(0,self.cardinality_vision-0.4)), sigma/2, "fixed"))
         for n in range(0, len(CPD_Parents)):
             self.network.add_cpds(CPD_Parents[n])
-        count = 0
-        '''CPD_Latents = []
-        CPD_Latents.append(CPD.latent_cpd(LatentNodes[0],cardinality_azimuth,[cardinality_azimuth,cardinality_azimuth],[ParentNodes[0],ParentNodes[1]], 'fixed', gamma))
+        CPD_Latents = []
+        CPD_Latents.append(CPD.latent_cpd(LatentNodes[0],self.cardinality_delta_azimuth,[self.cardinality_vision,self.cardinality_vision],[ParentNodes[0],ParentNodes[2]] ,'delta_alfa', gamma))
+        CPD_Latents.append(CPD.latent_cpd(LatentNodes[1],self.cardinality_delta_azimuth, [self.cardinality_vision,self.cardinality_vision], [ParentNodes[1],ParentNodes[3]],'delta_alfa', gamma))
+        CPD_Latents.append(CPD.latent_cpd(LatentNodes[2], self.cardinality_direction, [self.cardinality_vision,self.cardinality_vision,self.cardinality_vision,self.cardinality_vision], [ParentNodes[0], ParentNodes[2],ParentNodes[1], ParentNodes[3]], 'direction', gamma))
         for n in range(0,len(CPD_Latents)):
-            self.network.add_cpds(CPD_Latents[n])'''
+            self.network.add_cpds(CPD_Latents[n])
         CPD_Leafs = []
-        CPD_Leafs.append(CPD.latent_cpd(LeafNodes[0],cardinality_correction,[cardinality_delta_azimuth,cardinality_delta_azimuth],[ParentNodes[0], ParentNodes[1]], 'angle_correction', gamma))
+        CPD_Leafs.append(CPD.latent_cpd(LeafNodes[0],self.cardinality_correction,[self.cardinality_delta_azimuth,self.cardinality_delta_azimuth,self.cardinality_direction],[LatentNodes[0], LatentNodes[1], LatentNodes[2]], 'correction', gamma))
 
         for n in range(0,len(CPD_Leafs)):
             self.network.add_cpds(CPD_Leafs[n])
         self.network.check_model()
-        draw_network(self.network)
+        '''draw_network(self.network)
+        for n in range(0,len(CPD_Latents)):
+            print("Latents :")
+            print(CPD_Latents[n])
         for n in range(0,len(CPD_Leafs)):
             print("Leafs :")
-            print(CPD_Leafs[n])
+            print(CPD_Leafs[n])'''
         #wait = input("PRESS ENTER TO CONTINUE.")
         return {'main': GenerativeModel(SensoryInputVirtualPeepo(self), self.network)}
 
-    def Raptor_Correction(self, index_correction):
-        sigma = 1
-        x = (3 - index_correction)/sigma
-        correction = 1 - math.exp(x)
-        return correction
 
     def process(self):
         self.calculate_environment()
+        self.network.get_cpds('Vision_left').values = self.cpd_left
+        self.network.get_cpds('Vision_right').values = self.cpd_right
+        self.network.get_cpds('Vision_left_previous').values = self.cpd_left_previous
+        self.network.get_cpds('Vision_right_previous').values = self.cpd_right_previous
+        '''print("PARENT CPD's")
+        print("******************************************************************************************************************")
+        print("Previous left :", self.cpd_left_previous, " Previous right : ", self.cpd_right_previous)
+        print("New      left :", self.cpd_left, " New      right : ", self.cpd_right)'''
         for key in self.models:
+
             er,  self.correction = self.models[key].process()
             index_correction_angle  = np.argmax(self.correction)
-            sign_corr = 1
-            print("index correction :", index_correction_angle)
+            angle_increment = 1 + 1j
             if index_correction_angle == 0:
-                sign_corr  *= -1
-            angle_increment = sign_corr*RaptorModel.ANGLE_INCREMENT*math.pi/180
-            self.raptor_actor.angle = normalize_angle(self.raptor_actor.angle + angle_increment)
-            print("Peepo's new moving direction :  ", self.raptor_actor.angle*180/math.pi," degrees")
-            self.raptor_actor.update_sectors()
-            self.network.get_cpds('Delta_alfa_left').values = self.cpd_left
-            self.network.get_cpds('Delta_alfa_right').values = self.cpd_right
-            print("Parent nodes ")
+                angle_increment  = np.exp(-1j*self.raptor_actor.alfa_increment)
+                print("Turning right")
+            if index_correction_angle == 1:
+                angle_increment = np.exp(0*1j*self.raptor_actor.alfa_increment)
+                print("No Turning")
+            if index_correction_angle == 2:
+                angle_increment = np.exp(1j*self.raptor_actor.alfa_increment)
+                print("Turning left")
+            if index_correction_angle == 3:
+                angle_increment = np.exp(0*1j*self.raptor_actor.alfa_increment)
+                print("Undecided - > No Turning")
+            #print("Incrementing angle with ",angle_increment)
+            #print("Angle from  " ,self.raptor_actor.angle)
+            self.raptor_actor.angle *= angle_increment
+            #print ( "to : ", self.raptor_actor.angle)
+            #print("Peepo's new moving direction :  ", np.angle(self.raptor_actor.angle)*180/math.pi," degrees")
+            self.cpd_left_previous = self.cpd_left
+            self.cpd_right_previous = self.cpd_right
+            '''print("Parent nodes ")
             print(self.network.get_cpds('Delta_alfa_left').values)
             print(self.network.get_cpds('Delta_alfa_right').values)
             print("Leaf nodes ")
-            #print(self.network.get_cpds('Correction'))
-            print("Inference")
-            print(self.correction)
+            #print(self.network.get_cpds('Correction'))'''
+            #print("Inference ----> ",self.correction)
 
-    def calculate_environment(self):
-        raptor_vec = vec(self.raptor_actor.rect.center)
+    def get_sector_index(angle, sector, side):
+        index = 0
+        aim = angle.real/abs(angle.real)
+        #print( " Angle vector : ", angle," and aim = ", aim, " for angle of : ", 180/math.pi*np.angle(angle) )
 
-        #first check if no collision with the wall occurred
-        if raptor_vec[0] <= self.wall[0]:
-            if math.cos(self.raptor_actor.angle) == 0:
-                self.raptor_actor.angle = 0.009*math.pi/2
-            self.raptor_actor.angle = math.atan(math.sin(self.raptor_actor.angle)/math.cos(-self.raptor_actor.angle))
-        if raptor_vec[1] <= self.wall[1]:
-            if math.cos(self.raptor_actor.angle) == 0:
-                self.raptor_actor.angle = 0.009 * math.pi / 2
-            self.raptor_actor.angle = math.atan(math.sin(-self.raptor_actor.angle)/math.cos(self.raptor_actor.angle))
-        if raptor_vec[0] >= self.wall[2]:
-            if math.cos(self.raptor_actor.angle) == 0:
-                self.raptor_actor.angle = 0.009*math.pi/2
-            self.raptor_actor.angle = math.atan(math.sin(self.raptor_actor.angle)/math.cos(-self.raptor_actor.angle))
-        if raptor_vec[1] >= self.wall[3]:
-            if math.cos(self.raptor_actor.angle) == 0:
-                self.raptor_actor.angle = 0.009 * math.pi / 2
-            self.raptor_actor.angle = math.atan(math.sin(-self.raptor_actor.angle)/math.cos(self.raptor_actor.angle))
+        #print("In get_sector_index")
+        if side == 'Left':
+            for sec in range(0,len(sector)-1):
+                #print("Angle :" , 180/math.pi*angle, " for sectors ", sec , " to ", sec+1 ," (",180/math.pi*np.angle(sector[sec]),",", 180/math.pi*np.angle(sector[sec+1]),")")
+                if  (np.angle(angle) >= np.angle(sector[sec]) and np.angle(angle) < np.angle(sector[sec+1])) :
+                    index = sec
+            if (np.angle(angle) >= np.angle(sector[len(sector)-2]) and np.angle(angle) < np.angle(sector[len(sector)-1])):
+                index = len(sector)-2
+        if side == 'Right':
+            for sec in range(1,len(sector)-1):
+                #print("Angle :" , 180/math.pi*angle, " for sectors ", sec , " to ", sec+1 ," (",180/math.pi*np.angle(sector[sec]),",", 180/math.pi*np.angle(sector[sec+1]),")")
+                if  (np.angle(angle) >np.angle(sector[sec]) and np.angle(angle) <= np.angle(sector[sec+1])) :
+                    index = sec
+            if (np.angle(angle) >= np.angle(sector[0]) and np.angle(angle) <= np.angle(sector[1])):
+                index = len(sector)-2
+            '''if np.angle(angle) > np.angle(sector[len(sector)-1]):
+                index = len(sector) - 2'''
+        if side == 'Left':
+            if aim*angle.real <= aim*sector[0].real and aim*angle.real >= aim*sector[len(sector)-1].real:
+                index = int((len(sector) - 2)/2)
+        if side == 'Right':
+            if aim * angle.real >= aim * sector[0].real and aim * angle.real <= aim * sector[len(sector) - 1].real:
+                index = int((len(sector) - 2) / 2)
+            #index = 0
+            '''if side == 'Left':
+                index = len(sector)-2#int((len(sector)-1)/2)#0
+            if side == 'Right':
+                index = 0
+        if np.angle(angle) >= np.angle(sector[len(sector)-1]):
+            if side == 'Right':
+                index = len(sector)-2#int((len(sector)-1)/2)#0
+            if side == 'Left':
+                index = 0'''
 
-        #Calculate delta_angle left and right
-        self.previous_left_angle = self.observed_left_angle
-        self.previous_right_angle = self.observed_right_angle
-        pos_target = [self.target[0], self.target[1]]
-        pos_raptor = [self.raptor_actor.pos_x,self.raptor_actor.pos_y ]
-        pos_raptor_left_eye = [self.raptor_actor.left_eye[0], self.raptor_actor.left_eye[1]]
-        pos_raptor_right_eye = [self.raptor_actor.right_eye[0], self.raptor_actor.right_eye[1]]
-        tan_left = (pos_target[1] - pos_raptor_left_eye[1])/(pos_target[0] - pos_raptor_left_eye[0])
-        tan_right = (pos_target[1] - pos_raptor_right_eye[1]) / (pos_target[0] - pos_raptor_right_eye[0])
-        self.observed_left_angle = math.atan(tan_left)
-        self.observed_right_angle = math.atan(tan_right)
-        delta_alfa_left = self.observed_left_angle -  self.previous_left_angle
-        delta_alfa_right= self.observed_right_angle - self.previous_right_angle
-        self.cpd_left = [0.5, 0.5]
-        self.cpd_right = [0.5, 0.5]
-        if  delta_alfa_left < 0:
-            self.cpd_left = [0.9, 0.1]
-        if  delta_alfa_left > 0:
-            self.cpd_left = [0.1, 0.9]
-        if  delta_alfa_right < 0:
-            self.cpd_right = [0.9, 0.1]
-        if  delta_alfa_right > 0:
-            self.cpd_right = [0.1, 0.9]
-        #we suppose Peepo has the capability to assess the direction and the distance of the prey
-        for target in self.target:
-            #calculate in which sector the target is
-            absolute_angle_target = normalize_angle(math.atan((self.Pigeons.pos_y - raptor_vec[1])/(self.Pigeons.pos_x - raptor_vec[0])))
-            if absolute_angle_target < self.raptor_actor.sector[1] or absolute_angle_target <= self.raptor_actor.sector[0]:
-                self.target_sector = 0
-            if absolute_angle_target >= self.raptor_actor.sector[1]:
-                self.target_sector = 1
-                if absolute_angle_target >= self.raptor_actor.sector[2]:
-                    self.target_sector = 2
-                    if absolute_angle_target >= self.raptor_actor.sector[3]:
-                        self.target_sector = 3
-                        if absolute_angle_target >= self.raptor_actor.sector[4]:
-                            self.target_sector = 4
-                            if absolute_angle_target >= self.raptor_actor.sector[5]:
-                                self.target_sector = 5
-                                if absolute_angle_target >= self.raptor_actor.sector[6]:
-                                    self.target_sector = 6
-                                    if absolute_angle_target >= self.raptor_actor.sector[7]:
-                                        self.target_sector = 6
-            #print("Absolute angle of the target viewed from Peepo : ", absolute_angle_target*180/math.pi, " and choosen sector has index   : ",self.target_sector, " with an angle of ", self.raptor_actor.sector[self.target_sector ]*180/math.pi, " degrees.")
+        #print("Angle :", 180 / math.pi * angle, " for sectors ", len(sector)-2, " to ", len(sector)-2 + 1, " (",  180 / math.pi * sector[len(sector)-2], ",", 180 / math.pi * sector[len(sector)-2+ 1], ")")
+        #print("Index for angle ",angle , " and sector : ", sector, " : ", index)
+        #print(side , " sector Index for angle ", 180/math.pi*np.angle(angle), " ------> ",  index, "   for sectors angles(", 180/math.pi*np.angle(sector[index]),", ", 180/math.pi*np.angle(sector[index+1]),")")
+        return index
 
-            #self.observed_azimuth = self.target_sector
+    def normalize(s):
+        som = 0
+        for sec in range(0, len(s)):
+            som +=s[sec]
+        for sec in range(0, len(s)):
+            s[sec] /= som
+        return s
+
+    def calculate_environment(obj):
+        pos_target = [obj.target[0], obj.target[1]]
+        pos_raptor_left_eye = [obj.raptor_actor.left_eye[0], obj.raptor_actor.left_eye[1]]
+        pos_raptor_right_eye = [obj.raptor_actor.right_eye[0], obj.raptor_actor.right_eye[1]]
+        observed_left_angle  = (pos_target[0] - pos_raptor_left_eye[0] ) + 1j * (pos_target[1] - pos_raptor_left_eye[1])
+        observed_right_angle = (pos_target[0] - pos_raptor_right_eye[0]) + 1j * (pos_target[1] - pos_raptor_right_eye[1])
+        index_sector_left  = RaptorModel.get_sector_index(observed_left_angle, obj.raptor_actor.sector_L, 'Left')
+        obj.raptor_actor.choosen_sector_L = index_sector_left
+        index_sector_right = RaptorModel.get_sector_index(observed_right_angle, obj.raptor_actor.sector_R, 'Right')
+        obj.raptor_actor.choosen_sector_R = index_sector_right
+        obj.cpd_left_previous  = obj.cpd_left
+        obj.cpd_right_previous = obj.cpd_right
+        obj.cpd_left  = CPD.create_fixed_parent(obj.cardinality_vision,index_sector_left)
+        obj.cpd_right = CPD.create_fixed_parent(obj.cardinality_vision,index_sector_right)
+        #obj.cpd_left_previous  = obj.cpd_left
+        #obj.cpd_right_previous = obj.cpd_right
+
 
 
 class SensoryInputVirtualPeepo(SensoryInput):
