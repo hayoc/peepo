@@ -123,15 +123,14 @@ class GenerativeModel:
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        if node in self.network.get_roots() or precision > 0.75:  # TODO: plus add precision
-            self.model_update(node, prediction_error, prediction)
-        else:
-            self.hypothesis_update(node, prediction_error, prediction)
-        # TODO: make the choice more sophisticated, with precision, surprise, yada yada yada
-        # if precision < 0.5:
+
+    #        self.hypothesis_update(node, prediction_error, prediction)
+
+    # if precision > 0.75:
         #     self.model_update(node, prediction_error, prediction)
         # else:
         #     self.hypothesis_update(node, prediction_error, prediction)
+    # TODO: make the choice more sophisticated, with precision, surprise, yada yada yada
 
     def hypothesis_update(self, node, prediction_error, prediction):
         """

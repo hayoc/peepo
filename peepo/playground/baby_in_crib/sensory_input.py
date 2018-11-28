@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
@@ -16,9 +18,10 @@ class SensoryInputCribBaby(SensoryInput):
                 self.baby.limbs[limb] = False
             self.baby.limbs[node] = True
             self.crib.mobile = self.crib.ribbon == node
+            logging.info('Moving limb %s as a result mobile moving is %s', node, str(self.crib.mobile))
 
     def value(self, name):
-        if 'boredom' in name:
+        if 'desire' in name:
             # Always expects interesting view, e.g. moving mobile
             return np.array([0.1, 0.9])
         if 'mobile' in name:
