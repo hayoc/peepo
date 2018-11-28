@@ -1,4 +1,4 @@
-# 25/11/2018
+#28/11/2018
 import math
 import random
 import numpy as np
@@ -56,6 +56,7 @@ class CPD:
         for i in range(0,cardinality):
             ar[i] = 1/cardinality
         ar[index] = cardinality
+        #normalize
         som = 0
         for i in range(0,cardinality):
             som += ar[i]
@@ -64,7 +65,7 @@ class CPD:
         return ar
 
 
-    def create_Raptor_distribution(card_latent, card_parent, sigma, modus):
+    def create_Raptor_distribution(card_latent, card_parent, index_jump, modus):
         # CREATES : a CPD with a distribution depending on the "distance" of the latent variable index to the indexes of the parents
         # the distance is the inverse of an exponentional of the sum of the distances corrected with a factor sigma
         # cardinality of the latent must be the same as the cardinality of the parents
@@ -121,8 +122,74 @@ class CPD:
                 factor += matrix[row][column]
             for row in range(0, card_latent):
                 matrix[row][column] /= factor
+
+        if 'vision' in modus:
+            transition_matrix = []
+            if 'right' in modus:
+                transition_matrix.append([-index_jump, +0, +index_jump])
+                transition_matrix.append([-index_jump, +index_jump, +index_jump])
+                transition_matrix.append([+index_jump, +0, -index_jump])
+            if 'left' in modus:
+                transition_matrix.append([+index_jump, +0, -index_jump])
+                transition_matrix.append([+index_jump, -index_jump, -index_jump])
+                transition_matrix.append([+index_jump, +0, +index_jump])
+            M = CPD.get_index_matrix(card_parent)
+            print("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm")
+            print(M)
+            hi = 1000
+            lo = 5
+            R = card_latent
+            # 0 : Delta_R > Delta_L
+            # 1 : Delta_L > Delta_R
+            #
+            for column in range(0, C):
+                d_index = transition_matrix[int(M[1][column])][int(M[2][column])]
+                index = int(M[0][column] + d_index)
+                if index < 0:
+                    index = 0
+                if index >= card_latent:
+                    index = int(card_latent - 1)
+                matrix[index][column] = hi
+
+            '''for column in range(0, C):
+                for row in range(0, R):
+                    matrix[row][column] = lo
+                    if M[1][column]  == 1:
+                        matrix[int(M[0][column])][column] = hi
+                    if M[1][column]  == 0:
+                        if M[2][column]  == 0:
+                            r = int(M[0][column] - 1)
+                            if r >= 0:
+                                matrix[r][column] = hi
+                        if M[2][column]  == 1:
+                            r = int(M[0][column] + 1)
+                            if r < R:
+                                matrix[r][column] = hi
+                    if M[1][column]  == 2:
+                        if M[2][column]  == 0:
+                            r = int(M[0][column] + 1)
+                            if r < R:
+                                matrix[r][column] = hi
+                        if M[2][column]  == 1:
+                            r = int(M[0][column] - 1)
+                            if r >= 0:
+                                matrix[r][column] = hi'''
+
+        # Normalize distribution
+        matrix = CPD.normalize_distribution(matrix)
         return matrix
 
+    def normalize_distribution(matrix):
+        R = np.size(matrix,0)
+        C = np.size(matrix,1)
+        for column in range(0, C):
+            factor = 0
+            for row in range(0, R):
+                matrix[row][column] += random.uniform(-0.005, 0.005)#this to avoid an exact equidistant probabiliy
+                factor += matrix[row][column]
+            for row in range(0, R):
+                matrix[row][column] /= factor
+        return matrix
 
     def parent_cpd(var, cardinality, mu, sigma, mode):
         if mode == "random":
@@ -166,3 +233,29 @@ class CPD:
                           evidence_card=car_par)
 
 
+    def leaf_cpd(var, card_latent, card_parent, evid, modus, gamma):
+        table = []
+        if (modus == 'fixed'):
+            table = CPD.create_latent_distribution(card_latent, card_parent, gamma)
+        if 'vision' in modus :
+                table = CPD.create_Raptor_distribution(card_latent, card_parent, gamma, modus)
+        if (modus == 'random'):
+            cardinality = 1
+            for n in range(0, len(card_parent)):
+                cardinality = cardinality * card_parent[n]
+                n = n + 1
+                table = np.random.rand(card_latent, cardinality)
+            for c in range(0, len(table[0])):
+                factor = 0
+                for r in range(0, len(table)):
+                    factor += table[r][c]
+                for r in range(0, len(table)):
+                    table[r][c] /= factor
+        evidence = []
+        car_par = []
+        for n in range(0, len(evid)):
+            evidence.append(evid[n])
+            car_par.append(card_parent[n])
+        return TabularCPD(variable=var, variable_card=card_latent, values=table,
+                          evidence=evidence,
+                          evidence_card=car_par)

@@ -1,4 +1,4 @@
-#   25/11/2018
+#28/11/2018
 import math
 import os
 import random
@@ -8,8 +8,7 @@ import pygame as pg
 import numpy as np
 import matplotlib.pyplot as plt
 from peepoHawk.playground.models.Raptor_model import RaptorModel
-from peepoHawk.playground.models.Raptor_peepo import Raptor
-from peepoHawk.playground.models.Raptor_model import normalize_angle
+from peepoHawk.playground.Pigeon import PigeonActor
 vec = pg.math.Vector2
 
 CAPTION = "Raptor 's World"
@@ -33,106 +32,15 @@ GREY =  (225,220,225)
 
 
 
-class PigeonActor(object):
-    """ This class represents a Pigeon; the victim
-        More than 1 Pigeon can be present but this is for later maybe"""
-
-    SIZE = (40, 40)
-    MAXSPEED = 2#5  # the speed will be different for each run
-
-    def __init__(self, number_of_pigeons, wall):
-        np.random.seed(9001)
-        self.wall = wall
-        self.speed = random.randint(1, PigeonActor.MAXSPEED)  # a random speed between 1 and MAXSPEED
-        self.number_of_pigeons = number_of_pigeons
-        self.tensor_of_pigeons = np.zeros(shape=(number_of_pigeons, 4))
-        self.max_speed = PigeonActor.MAXSPEED
-        self.stop = False
-        self.first_tensor()
-        self.pos_x = self.tensor_of_pigeons[0][0]
-        self.pos_y = self.tensor_of_pigeons[0][1]
-        self.trajectory = []
-        self.trajectory.append((int(self.pos_x ), int(self.pos_y )))
-
-
-    def first_tensor(self):
-        direction = random.randint(-1,1)
-        if direction >= 0:
-            direction = 1
-        direction /= abs(direction)
-        start = 0*WALL_SIZE[1]
-        #direction = 1
-        if direction < 0:
-            start = 1*WALL_SIZE[1]
-        for row in range(0, self.number_of_pigeons):
-            self.tensor_of_pigeons[row][2] = direction*self.speed# the speed of the pigeons (uniform for all of them, for the moment being
-            self.tensor_of_pigeons[row][3] = random.uniform(0.05 * math.pi, 0.99 * math.pi)
-            # the Pigeon start at the upper side, somewhere in the second halve of the width
-            self.tensor_of_pigeons[row][0] = random.uniform(WALL_SIZE[0]/ 2, WALL_SIZE[0])
-            self.tensor_of_pigeons[row][1] = start
-            self.pos_x = self.tensor_of_pigeons[row][0]
-            self.pos_y = self.tensor_of_pigeons[row][1]
-
-    def get_pigeons(self):
-        return self.tensor_of_pigeons
-
-    def get_pigeons_obstacles(self):
-        obstacles = []
-        for row in range(0, self.number_of_pigeons):
-            obstacles.append(
-                PigeonObject('target_' + str(row), (self.tensor_of_pigeons[row][0], self.tensor_of_pigeons[row][1])))
-        return obstacles
-
-    def update(self):
-        for row in range(0, self.number_of_pigeons):
-            self.tensor_of_pigeons[row][0] += self.tensor_of_pigeons[row][2] * math.cos(self.tensor_of_pigeons[row][3])
-            self.tensor_of_pigeons[row][1] += self.tensor_of_pigeons[row][2] * math.sin(self.tensor_of_pigeons[row][3])
-            self.pos_x = self.tensor_of_pigeons[row][0]
-            self.pos_y = self.tensor_of_pigeons[row][1]
-            if self.pos_x >= self.wall[2]:
-                self.tensor_of_pigeons[row][3] = normalize_angle(math.pi / 2 + self.tensor_of_pigeons[row][3])
-            if self.pos_y >= self.wall[3]:
-                self.tensor_of_pigeons[row][3] = normalize_angle(math.pi / 2 + self.tensor_of_pigeons[row][3])
-            if self.pos_x < self.wall[0]:
-                self.tensor_of_pigeons[row][3] = normalize_angle(math.pi - self.tensor_of_pigeons[row][3])
-            if self.pos_y < self.wall[1]:
-                self.tensor_of_pigeons[row][3] = normalize_angle(math.pi / 2 + self.tensor_of_pigeons[row][3])
-            self.trajectory.append((int(self.pos_x), int(self.pos_y)))
-
-
-class PigeonObject(object):
-    SIZE = (20, 20)
-
-    def __init__(self, id, pos):
-        self.rect = pg.Rect((0, 0), PigeonObject.SIZE)
-        self.rect.center = pos
-        self.image = self.make_image()
-        self.id = id
-
-    def make_image(self):
-        image = pg.Surface(self.rect.size).convert_alpha()
-        image.fill(TRANSPARENT)
-        image_rect = image.get_rect()
-        pg.draw.rect(image, pg.Color("black"), image_rect)
-        pg.draw.rect(image, pg.Color("blue"), image_rect.inflate(-2, -2))
-        return image
-
-    def update(self):
-        pass
-
-    def draw(self, surface):
-        surface.blit(self.image, self.rect)
-
-
 class RaptorActor(object):
     """ This class represents raptor """
 
     SIZE = (40, 40)
     RESOLUTIONSLOPE = 45#dergrees
-    SPEED = 5#7#10
+    SPEED = 10#7#10
     EYES_DISTANCE =40
-    ANGLE_INCREMENT = 20# degrees
-    NUMBER_OF_SECTORS = 15#71#7#125 #!!! TO GET THE SYSTEM STABLE THE RESOLUTION OF THE SECTORS SHOULD BE GREATER THEN THE ANGLE_INCREMENT
+    ANGLE_INCREMENT = 10# degrees
+    NUMBER_OF_SECTORS = 16#15#71#7#125 #!!! TO GET THE SYSTEM STABLE THE RESOLUTION OF THE SECTORS SHOULD BE GREATER THEN THE ANGLE_INCREMENT
     MAXALFASECTOR = 130#degrees
     ALFAINNERSECTOR = 90#85#degrees
 
@@ -150,7 +58,7 @@ class RaptorActor(object):
         self.rect.center = pos
         self.pos_pigeon = pigeon.tensor_of_pigeons[0]
         self.eye_distance = RaptorActor.EYES_DISTANCE
-        self.angle =  np.exp(0*1j*math.pi/4+  1*1j*random.uniform(- math.pi*0.75, math.pi*0.75) + 0*1j)#
+        self.angle =  np.exp(1*1j*math.pi/4 +  0*1j*random.uniform(- math.pi*0.75, math.pi*0.75) + 0*1j)#
         self.speed = RaptorActor.SPEED
         self.trajectory = []
         self.trajectory.append((int(self.pos_x + RaptorActor.SIZE[0]/2), int(self.pos_y +  RaptorActor.SIZE[1]/2)))
@@ -162,7 +70,6 @@ class RaptorActor(object):
         self.update_sectors()
         self.image = self.make_image()
         self.image_original = self.image.copy()
-        self.raptor = Raptor()#see Raptor_peepo.py
         self.keys = pg.key.get_pressed()
         self.alpha_L = []
         self.alpha_R = []
@@ -229,9 +136,9 @@ class RaptorActor(object):
         #self.angle = np.exp(1j * 0)
         print("----------------------------------BEGIN  ITERATION ----------------------------------------------")
         #print(" ANGEL VECTOR : ", self.angle, " for an angle of : ", 180/math.pi*np.angle(self.angle))
-        self.update_sectors()
         self.pos_x += self.speed * self.angle.real
         self.pos_y += self.speed * self.angle.imag
+        self.update_sectors()
         self.rect.center = [self.pos_x, self.pos_y]
         #Check wether Raptor hits the wall
         RaptorActor.Check_Walls(self)
@@ -246,8 +153,9 @@ class RaptorActor(object):
         self.right_eye[1] = self.pos_y + self.eye_distance/2*self.angle.real
         X_L = [self.left_eye[0], self.left_eye[1]]
         X_R = [self.right_eye[0], self.right_eye[1]]
-        #X_L = [self.pos_x - self.eye_distance/2*self.angle.imag, self.pos_y + self.eye_distance/2*self.angle.real]
-        #X_R = [self.pos_x + self.eye_distance/2*self.angle.imag, self.pos_y - self.eye_distance/2*self.angle.real]
+        '''print("Angle : " , 180/math.pi*np.angle(self.angle))
+        print("Eye distance : ",self.eye_distance )
+        print(" **************************************** Distance of eyes :", math.sqrt((self.right_eye[1] - self.left_eye[1])**2 + (self.right_eye[0] - self.left_eye[0])**2))'''
         tg_alfa_L = (self.pos_pigeon[1] - X_L[1])/(self.pos_pigeon[0] - X_L[0])
         tg_alfa_R = (self.pos_pigeon[1] - X_R[1])/(self.pos_pigeon[0] - X_R[0])
         #print("EXACT ANGLE CALCULATION")
@@ -261,15 +169,8 @@ class RaptorActor(object):
         self.d_L.append(dis_L)
         self.d_R.append(dis_R)
         self.dist.append((dis_L+dis_R)/2)
-
         self.model.process()
         print("-----------------------------------------------------------------------------------------------")
-        #self.rect.clamp_ip(screen_rect)
-        '''if len(self.trajectory) > 100:
-            pause = 0
-            while pause == 0:
-                pause = 0'''
-        #self.raptor.update(self.model)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
@@ -283,9 +184,9 @@ class RaptorActor(object):
         pg.draw.line(surface, pg.Color("GREEN"), self.left_eye,[self.left_eye[0] + 700*self.sector_L[self.choosen_sector_L].real, self.left_eye[1] + 700*self.sector_L[self.choosen_sector_L].imag], 2)
         pg.draw.line(surface, pg.Color("RED")  , self.right_eye,[self.right_eye[0] + 700*self.sector_R[self.choosen_sector_R].real, self.right_eye[1] + 700*self.sector_R[self.choosen_sector_R].imag], 2)
         #pg.draw.line(surface, pg.Color("GREY"), self.left_eye,[self.left_eye[0] + 50*self.sector_L[self.n_sectors].real,self.left_eye[1] + 50*self.sector_L[self.n_sectors].imag], 2)
-        pg.draw.line(surface, pg.Color("GREY"), self.left_eye,[self.left_eye[0] + 30*self.sector_L[0].real,self.left_eye[1] + 30* self.sector_L[0].imag], 2)
+        pg.draw.line(surface, pg.Color("GREY"), self.left_eye,[self.left_eye[0] + 60*self.sector_L[0].real,self.left_eye[1] + 60* self.sector_L[0].imag], 2)
         #pg.draw.line(surface, pg.Color("GREY"), self.right_eye,[self.right_eye[0] + 50*self.sector_R[0].real, self.right_eye[1] + 50*self.sector_R[0].imag], 2)
-        pg.draw.line(surface, pg.Color("GREY"), self.right_eye,[self.right_eye[0] + 30*self.sector_R[self.n_sectors].real, self.right_eye[1] + 30*self.sector_R[self.n_sectors].imag], 2)
+        pg.draw.line(surface, pg.Color("GREY"), self.right_eye,[self.right_eye[0] + 60*self.sector_R[self.n_sectors].real, self.right_eye[1] + 60*self.sector_R[self.n_sectors].imag], 2)
         #pg.draw.circle(surface, GREY, [int(self.pos_x), int(self.pos_y)], 20)
         #pg.draw.line(surface, pg.Color("blue"), self.rect.center, self.edge_direction, 1)'''
         myfont = pg.font.SysFont('Arial', 30)
