@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='Peepo',
-    version='0.1.0',
+    version='0.1.1',
     author='Hayo Carrette',
     author_email='hayo.ce@gmail.com',
     packages=['peepo', 'peepo.bot', 'peepo.predictive_processing', 'peepo.predictive_processing.v3', 'peepo.playground'],
