@@ -124,7 +124,7 @@ class GenerativeModel:
         :type prediction: np.array
         """
 
-    #        self.hypothesis_update(node, prediction_error, prediction)
+        self.hypothesis_update(node, prediction_error, prediction)
 
     # if precision > 0.75:
         #     self.model_update(node, prediction_error, prediction)
