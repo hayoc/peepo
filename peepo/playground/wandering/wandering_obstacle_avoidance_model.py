@@ -150,7 +150,7 @@ class SensoryInputVirtualPeepo(SensoryInput):
         super().__init__()
         self.peepo = peepo
 
-    def action(self, node, prediction_error, prediction):
+    def action(self, node, prediction):
         # if prediction = [0.9, 0.1] (= moving) then move else stop
         if np.argmax(prediction) > 0:  # predicted stopping
             if 'left' in node:

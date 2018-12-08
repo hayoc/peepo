@@ -12,7 +12,7 @@ class SensoryInputCribBaby(SensoryInput):
         self.baby = baby
         self.crib = crib
 
-    def action(self, node, prediction_error, prediction):
+    def action(self, node, prediction):
         if 'motor' in node:
             for limb in self.baby.limbs:
                 self.baby.limbs[limb] = False

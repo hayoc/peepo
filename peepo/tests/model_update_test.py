@@ -51,7 +51,7 @@ def create_network_for_add_edge():
 
 class TestSensoryInput(SensoryInput):
 
-    def action(self, node, prediction_error, prediction):
+    def action(self, node, prediction):
         pass
 
     def value(self, name):

@@ -22,6 +22,13 @@ class GenerativeModel:
 
     :type sensory_input : SensoryInput
     :type network : [BayesianModel]
+
+    TODO: Model Update, e.g. through: self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters]
+    TODO: Integrate PRECISION BASED WEIGHTING on prediction errors. E.g. prediction error minimization should only
+    happen if the prediction errors have enough weight assigned to them. This can depend on context, the organism's
+    goal, or other ways.
+    TODO: Implement a custom BayesianNetwork so we can distinguish between action and perception nodes. Instead of
+    distinguishing them by checking for 'motor' in the name.
     """
 
     MAX_NODES = 10
@@ -29,7 +36,6 @@ class GenerativeModel:
     def __init__(self, sensory_input, network):
         self.sensory_input = sensory_input
         self.network = network
-        self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters]  # TODO: Add change_valency
         draw_network(network)
 
     def process(self):
@@ -37,41 +43,40 @@ class GenerativeModel:
         Processes one flow in the predictive processing algorithm:
             1) prediction
             2) prediction error
-            3) prediction error minimization
+            3) prediction error minimization (hypothesis or model update)
         Returns the total prediction error size observed (for informational purposes...)
         """
-        total_pes = 0
-        for node, prediction in self.predict(self.network).items():
-            pred = prediction.values
-            obs = self.sensory_input.value(node)
-            pes = self.error_size(pred, obs)
+        total_prediction_error_size = 0
+        for node, pred in self.predict(self.network).items():
+            prediction = pred.values
+            observation = self.sensory_input.value(node)
+            prediction_error_size = self.error_size(prediction, observation)
+            prediction_error = self.error(prediction, observation)
+            precision = entropy(prediction, base=2)
+            total_prediction_error_size += prediction_error_size
 
-            # TODO: PEM should only happen if PES is higher than some value, this value
-            # TODO: should depend on whatever context the agent finds itself in, and the agent's goal
-            precision = entropy(pred, base=2)
-            pe = self.error(pred, obs)
-            total_pes += pes
-
-            if pes > 0.1:  # Sometimes numpy entropy calculation returns extremely small numbers when there's no error
+            # Sometimes numpy entropy calculation returns extremely small numbers when there's no error
+            if prediction_error_size > 0.1:
                 logging.debug("node[%s] prediction-error ||| predicted %s -vs- %s observed ||| PES %s ||| PRECISION %s",
-                              node, pred, obs, pes, precision)
-                self.error_minimization(node=node, precision=precision, prediction_error=pe, prediction=pred)
+                              node, prediction, observation, prediction_error_size, precision)
+                self.error_minimization(node=node,
+                                        precision=precision,
+                                        prediction_error=prediction_error,
+                                        prediction=prediction)
 
-        return total_pes
+        return total_prediction_error_size
 
-    def predict(self, model):
+    def predict(self, network):
         """
-        Predicts the leaf nodes (i.e. the observational nodes) based on the parent nodes (i.e. the hypothesis nodes)
-        The predicted values of the observations are the maximum a posteriori (MAP) distributions over the
-        hypotheses
+        Predicts the leaf nodes (i.e. the observational nodes) based on the root nodes (i.e. the belief nodes)
 
-        :return: predictions for all observation variables
+        :return: predictions for all observation variables, a prediction is a probability distribution
 
         :rtype: dict
         """
-        infer = VariableElimination(model)
-        variables = model.get_leaves()
-        evidence = self.get_hypotheses(model)
+        infer = VariableElimination(network)
+        variables = network.get_leaves()
+        evidence = self.get_root_nodes(network)
         evidence = {k: v for k, v in evidence.items() if k not in variables}
 
         return infer.query(variables=variables, evidence=evidence)
@@ -114,7 +119,7 @@ class GenerativeModel:
             2) Model Update
 
         :param node: name of the node causing the prediction error
-        :param precision: precision of the prediction error
+        :param precision: precision of the prediction
         :param prediction_error: the prediction error itself
         :param prediction: prediction causing the prediction error
 
@@ -123,45 +128,32 @@ class GenerativeModel:
         :type prediction_error: np.array
         :type prediction: np.array
         """
-
         self.hypothesis_update(node, prediction_error, prediction)
 
-    # if precision > 0.75:
-        #     self.model_update(node, prediction_error, prediction)
-        # else:
-        #     self.hypothesis_update(node, prediction_error, prediction)
-    # TODO: make the choice more sophisticated, with precision, surprise, yada yada yada
-
-    def hypothesis_update(self, node, prediction_error, prediction):
+    def hypothesis_update(self, leaf_node, prediction_error, prediction):
         """
         Updates the hypotheses of the generative model to minimize prediction error
 
-        :param node: name of the node causing the prediction error
+        :param leaf_node: name of the node causing the prediction error
         :param prediction_error: the prediction error itself
         :param prediction: prediction causing the prediction error
 
-        :type node : str
+        :type leaf_node : str
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        # Theoretically speaking a hypothesis update should achieve both perceptual and motor update
-        # Currently in the implementation we make the difference explicit
-        # TODO: Need to have custom implementation of bayesian network, so that prediction errors in proprioceptive
-        # TODO: nodes (motor) are resolved by executing the motor action, and not performing hypo update
         infer = VariableElimination(self.network)
-        if "motor" in node:
-            self.sensory_input.action(node, prediction_error, prediction)
+        if "motor" in leaf_node:
+            self.sensory_input.action(leaf_node, prediction)
         else:
-            for hypo in self.network.get_roots():
-                result = infer.query(
-                    variables=[hypo],
-                    evidence={node: np.argmax(prediction_error + prediction)}).get(hypo).values
+            result = infer.query(
+                variables=self.network.get_roots(),
+                evidence={leaf_node: np.argmax(prediction_error + prediction)})
 
-                before = self.network.get_cpds(hypo).values
-                self.network.get_cpds(hypo).values = result
-                logging.debug("node[%s] hypothesis-update from %s to %s", hypo, before, result)
-            # Should we update hypothesis variables based on only prediction error node?
-            # Or all observation nodes in the network???
+            for root_node, root_cpd in result.items():
+                before = self.network.get_cpds(root_node).values
+                self.network.get_cpds(root_node).values = root_cpd.values
+                logging.debug("node[%s] hypothesis-update from %s to %s", root_node, before, result)
 
     def model_update(self, node, prediction_error, prediction):
         """
@@ -179,7 +171,7 @@ class GenerativeModel:
         :rtype BayesianModel
         """
         lowest_error_size = self.error_size(prediction, prediction_error + prediction)
-        best_model = self.network
+        best_network = self.network
         best_update = 'none'
 
         for idx, val in enumerate(self.atomic_updates):
@@ -189,10 +181,10 @@ class GenerativeModel:
             if updated_error_size < lowest_error_size:
                 logging.info('Better update from: ' + val.__name__)
                 lowest_error_size = updated_error_size
-                best_model = updated_model
+                best_network = updated_model
                 best_update = val.__name__
 
-        self.network = best_model
+        self.network = best_network
         logging.info('Best Update: ' + best_update)
         draw_network(self.network)
         return self.network
@@ -373,11 +365,20 @@ class GenerativeModel:
         return self.network
 
     @staticmethod
-    def get_hypotheses(model):
-        hypos = {}
-        for root in model.get_roots():
-            hypos.update({root: np.argmax(model.get_cpds(root).values)})
-        return hypos
+    def get_root_nodes(network):
+        """
+        Returns status of all root nodes.
+
+        :param network: Bayesian Network representing the generative model
+        :return: Dictionary containing all root nodes as keys and status as values
+
+        :type network: BayesianModel
+        :rtype dict
+        """
+        roots = {}
+        for root in network.get_roots():
+            roots.update({root: np.argmax(network.get_cpds(root).values)})
+        return roots
 
     @staticmethod
     def get_observations(model):

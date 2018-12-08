@@ -17,7 +17,7 @@ class SensoryInputCoin(SensoryInput):
         self.coin_set = coin_set
         self.index = 0
 
-    def action(self, node, prediction_error, prediction):
+    def action(self, node, prediction):
         pass
 
     def value(self, name):

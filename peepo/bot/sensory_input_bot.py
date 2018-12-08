@@ -9,7 +9,7 @@ class SensoryInputBot(SensoryInput):
         super().__init__()
         self.bot = bot
 
-    def action(self, node, prediction_error, prediction):
+    def action(self, node, prediction):
         # if prediction = [0.1, 0.9] (= moving) then move else stop
         if np.argmax(prediction) > 0:  # predicted moving
             self.bot.backward()
