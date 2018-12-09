@@ -51,6 +51,17 @@ class PeepoModel:
                                '6': False}
 
     def create_networks(self):
+        # network = BayesianModel([('brol_left', 'motor_left'),
+        #                          ('brol_right', 'motor_right')])
+        #
+        # cpd_1 = single_hypo_cpd('motor_left', 'brol_left')
+        # cpd_2 = single_hypo_cpd('motor_right', 'brol_right')
+        # cpd_5 = obstacle_hypo_cpd('brol_left')
+        # cpd_6 = obstacle_hypo_cpd('brol_right')
+        # network.add_cpds(cpd_1, cpd_2, cpd_5, cpd_6)
+
+        ################################
+
         network = BayesianModel([('wandering_left', 'motor_left'), ('wandering_right', 'motor_right'),
                                  ('obstacle_left', 'motor_left'), ('obstacle_right', 'motor_right'),
                                  ('obstacle_left', 'vision_1'), ('obstacle_left', 'vision_2'),
