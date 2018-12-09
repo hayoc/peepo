@@ -133,14 +133,12 @@ class RaptorModel:
 
         for key in self.models:
             err = self.models[key].process()
-            self.correction = self.network.get_cpds('LEN_motor_Correction').values
-            self.direction = self.network.get_cpds('LEN_motor_Direction').values
+            self.correction = self.network.get_cpds('BEN_Correction').values
+            self.direction = self.network.get_cpds('BEN_Direction').values
             self.cpd_action = self.correction
             self.cpd_direction = self.direction
             index_direction_angle = np.argmax(self.direction)
             index_correction_angle  = np.argmax(self.correction)
-            #print("Corrected parents : ")
-            #print(self.correction, "  ", self.direction)
             angle_increment =  1j
             if  index_direction_angle >=0:
                 if index_correction_angle == 0:

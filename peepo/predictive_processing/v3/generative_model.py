@@ -49,11 +49,7 @@ class GenerativeModel:
         total_prediction_error_size = 0
         for node, pred in self.predict(self.network).items():
             prediction = pred.values
-            print("Prediction for node ", node, " in generative model :")
-            print(prediction)
             observation = self.sensory_input.value(node)
-            print("Observation for node ", node, " in generative model :")
-            print(observation)
             prediction_error_size = self.error_size(prediction, observation)
             prediction_error = self.error(prediction, observation)
             precision = entropy(prediction, base=2)
