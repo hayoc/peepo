@@ -8,8 +8,9 @@ from numpy import array
 import pygame as pg
 from pgmpy.models import BayesianModel
 
-from peepoHawk.predictive_processing.v3.generative_model import GenerativeModel
+from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepoHawk.playground.models.CeePeeDees import CPD
+from peepo.predictive_processing.v3.sensory_input import SensoryInput
 from peepoHawk.visualize.graph import draw_network
 
 vec = pg.math.Vector2
@@ -57,10 +58,10 @@ class RaptorModel:
         index_jump = 2
         #         print("Index gamma ", index_gamma)
         ParentNodes = []
-        ParentNodes.append("Vision_left_previous")
-        ParentNodes.append("Vision_right_previous")
-        ParentNodes.append("Correction")
-        ParentNodes.append("Direction")
+        ParentNodes.append("MEM_vision_left")
+        ParentNodes.append("MEM_vision_right")
+        ParentNodes.append("BEN_Correction")
+        ParentNodes.append("BEN_Direction")
 
 
         #ParentNodes.append("Reward_Predicted")
@@ -69,16 +70,12 @@ class RaptorModel:
             self.network.add_node(ParentNodes[count])
             count = count+1
 
-        '''LatentNodes = []
-        LatentNodes.append("Delta_alfa_left")
-        LatentNodes.append("Delta_alfa_right")
-        while count < len(LatentNodes):
-            self.network.add_node(LatentNodes[count])
-            count = count + 1'''
 
         LeafNodes = []
-        LeafNodes.append("Vision_left")
-        LeafNodes.append("Vision_right")
+        LeafNodes.append("LEN_vision_left")
+        LeafNodes.append("LEN_vision_right")
+        LeafNodes.append("LEN_motor_Correction")
+        LeafNodes.append("LEN_motor_Direction")
 
         count = 0
         while count < len(LeafNodes):
@@ -90,6 +87,8 @@ class RaptorModel:
         self.network.add_edge(ParentNodes[1], LeafNodes[1])
         self.network.add_edge(ParentNodes[2], LeafNodes[1])
         self.network.add_edge(ParentNodes[3], LeafNodes[1])
+        self.network.add_edge(ParentNodes[2], LeafNodes[2])
+        self.network.add_edge(ParentNodes[3], LeafNodes[3])
 
         CPD_Parents = []
         CPD_Parents.append(CPD.parent_cpd(ParentNodes[0],self.cardinality_vision, int(random.uniform(0,self.cardinality_vision-0.4)), sigma/2, "fixed"))
@@ -103,6 +102,8 @@ class RaptorModel:
         CPD_Leafs = []
         CPD_Leafs.append(CPD.leaf_cpd(LeafNodes[0],self.cardinality_vision,[self.cardinality_vision,self.cardinality_correction,self.cardinality_direction],[ParentNodes[0],ParentNodes[2],ParentNodes[3]],'left_vision',index_jump))
         CPD_Leafs.append(CPD.leaf_cpd(LeafNodes[1],self.cardinality_vision,[self.cardinality_vision,self.cardinality_correction,self.cardinality_direction],[ParentNodes[1],ParentNodes[2],ParentNodes[3]],'right_vision',index_jump))
+        CPD_Leafs.append(CPD.leaf_cpd(LeafNodes[2],self.cardinality_correction,[self.cardinality_correction],[ParentNodes[2]],'one_2_one',index_jump))
+        CPD_Leafs.append(CPD.leaf_cpd(LeafNodes[3], self.cardinality_direction, [self.cardinality_direction], [ParentNodes[3]],'one_2_one', index_jump))
         for n in range(0,len(CPD_Leafs)):
             self.network.add_cpds(CPD_Leafs[n])
         self.network.check_model()
@@ -116,22 +117,24 @@ class RaptorModel:
         #wait = input("PRESS ENTER TO CONTINUE.")
         relevant_parent_nodes = [2,3]
 
-        return {'main': GenerativeModel(self, ParentNodes,relevant_parent_nodes )}
+        return {'main': GenerativeModel(SensoryInputVirtualPeepo(self), self.network)}
 
 
     def process(self):
         self.calculate_environment()
-        self.network.get_cpds('Correction').values = self.cpd_action
-        self.network.get_cpds('Direction').values = self.cpd_direction
-        self.network.get_cpds('Vision_left_previous').values = self.cpd_left_previous
-        self.network.get_cpds('Vision_right_previous').values = self.cpd_right_previous
+        self.network.get_cpds('BEN_Correction').values = self.cpd_action
+        self.network.get_cpds('BEN_Direction').values = self.cpd_direction
+        self.network.get_cpds('MEM_vision_left').values = self.cpd_left_previous
+        self.network.get_cpds('MEM_vision_right').values = self.cpd_right_previous
         '''print("PARENT CPD's")
         print("******************************************************************************************************************")
         print("Previous left :", self.cpd_left_previous, " Previous right : ", self.cpd_right_previous)
         print("New  correction :", self.action, " New   direction : ", self.direction)'''
 
         for key in self.models:
-            self.correction, self.direction =  self.models[key].process()
+            err = self.models[key].process()
+            self.correction = self.network.get_cpds('LEN_motor_Correction').values
+            self.direction = self.network.get_cpds('LEN_motor_Direction').values
             self.cpd_action = self.correction
             self.cpd_direction = self.direction
             index_direction_angle = np.argmax(self.direction)
@@ -235,3 +238,25 @@ class RaptorModel:
         for sec in range(0, len(s)):
             s[sec] /= som
         return s
+
+
+class SensoryInputVirtualPeepo(SensoryInput):
+    def __init__(self, obj):
+        super().__init__()
+        self.peepo = obj
+    def action(self, node, prediction):
+        # if prediction = [0.9, 0.1] (= moving) then move else stop
+        if 'Correction' in node:
+            return self.peepo.cpd_action
+        if 'Direction' in node:
+            return self.peepo.cpd_direction
+
+    def value(self, name):
+        if 'vision_left' in name:
+            return self.peepo.cpd_left_observed
+        if 'vision_right' in name:
+            return self.peepo.cpd_right_observed
+        if 'Correction' in name:
+            return self.peepo.cpd_action
+        if 'Direction' in name:
+            return self.peepo.cpd_direction
