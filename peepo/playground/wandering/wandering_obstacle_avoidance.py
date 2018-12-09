@@ -2,6 +2,7 @@ import math
 import os
 import random
 import sys
+import json
 
 import pygame as pg
 
@@ -45,11 +46,11 @@ class PeepoActor(object):
         self.rect.y += PeepoActor.SPEED * math.sin(math.radians(self.rotation))
 
         if self.model.motor_output[pg.K_LEFT]:
-            self.rotation -= random.randint(10, 30)
+            self.rotation -= 10
             if self.rotation < 0:
                 self.rotation = 360
         if self.model.motor_output[pg.K_RIGHT]:
-            self.rotation += random.randint(10, 30)
+            self.rotation += 10
             if self.rotation > 360:
                 self.rotation = 0
 
@@ -60,7 +61,7 @@ class PeepoActor(object):
         self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
 
         self.rect.clamp_ip(screen_rect)
-        self.peepo.update(self.model)
+        # self.peepo.update(self.model)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
@@ -135,6 +136,7 @@ class PeeposWorld(object):
         self.keys = pg.key.get_pressed()
         self.peepo = peepo
         self.objects = objects
+        self.score = 0
 
     def event_loop(self):
         """
@@ -170,6 +172,28 @@ class PeeposWorld(object):
             self.render()
             self.clock.tick(self.fps)
 
+            for obj in self.objects:
+                if self.peepo.rect.colliderect(obj.rect):
+                    self.score += 0.1
+            if self.peepo.rect.x > 1450:
+                print(self.score)
+                self.done = True
+
+
+
+
+
+def generate_obstacles():
+    objects = []
+    for x in range(0, 60):
+        objects.append({
+            'id': 'obj_' + str(x),
+            'x': random.randint(100, 1500),
+            'y': random.randint(100, 900)
+        })
+    with open('obstacles.json', 'w') as outfile:
+        json.dump(objects, outfile)
+
 
 def main():
     """
@@ -188,11 +212,12 @@ def main():
     wall4 = Wall('wall_down', (0, 998), (3200, 5))
 
     obstacles = []
-    for x in range(0, 60):
-        obstacles.append(ObjectActor('obj_' + str(x), (random.randint(100, 1500), random.randint(100, 900))))
+    with open('obstacles.json') as json_data:
+        for obs in json.load(json_data):
+            obstacles.append(ObjectActor(obs['id'], (obs['x'], obs['y'])))
     obstacles.extend([wall1, wall2, wall3, wall4])
 
-    peepo = PeepoActor((0, 500), obstacles)
+    peepo = PeepoActor((50, 500), obstacles)
 
     world = PeeposWorld(peepo, obstacles)
 
@@ -200,6 +225,10 @@ def main():
 
     pg.quit()
     sys.exit()
+
+
+
+
 
 
 """
