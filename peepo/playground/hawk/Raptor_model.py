@@ -1,17 +1,15 @@
 #version 28/11/2018
 
 
-import math
 import random
+
 import numpy as np
-from numpy import array
 import pygame as pg
+from peepo.playground.hawk.CeePeeDees import CPD
 from pgmpy.models import BayesianModel
 
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
-from peepoHawk.playground.models.CeePeeDees import CPD
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
-from peepoHawk.visualize.graph import draw_network
 
 vec = pg.math.Vector2
 
