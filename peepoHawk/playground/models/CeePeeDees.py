@@ -64,6 +64,14 @@ class CPD:
             ar[i] /= som
         return ar
 
+    def create_one2one_distribution(card_leaf, card_parent):
+        ar = np.identity(card_parent[0])
+        if card_leaf != card_parent[0]:
+            print("Passing wrong dimension in one 2 one distribution")
+            ar = np.zeros(card_parent)
+            return
+        return ar
+
 
     def create_Raptor_distribution(card_latent, card_parent, index_jump, modus):
         # CREATES : a CPD with a distribution depending on the "distance" of the latent variable index to the indexes of the parents
@@ -71,21 +79,7 @@ class CPD:
         # cardinality of the latent must be the same as the cardinality of the parents
         C = np.prod(card_parent)
         matrix = np.full((card_latent, C), 1./card_latent)
-        if modus ==  'delta_alfa':
-            M = CPD.get_index_matrix(card_parent)
-            hi = 100
-            lo = 5
-            for column in range(0, C):
-
-                if M[0][column] - M[1][column] <= 0:
-                    matrix[0][column] = hi
-                    matrix[1][column] = lo
-
-                if M[0][column] - M[1][column] > 0:
-                    matrix[0][column] = lo
-                    matrix[1][column] = hi
-
-        if modus ==  'direction':
+        if modus ==  'MEM_direction':
             M = CPD.get_index_matrix(card_parent)
             print("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm")
             print(M)
@@ -101,7 +95,7 @@ class CPD:
                     matrix[0][column] = hi
                     matrix[1][column] = lo
 
-        if modus ==  'correction':
+        if modus ==  'MEM_correction':
             M = CPD.get_index_matrix(card_parent)
             hi = 100
             lo = 5
@@ -150,31 +144,6 @@ class CPD:
                 if index >= card_latent:
                     index = int(card_latent - 1)
                 matrix[index][column] = hi
-
-            '''for column in range(0, C):
-                for row in range(0, R):
-                    matrix[row][column] = lo
-                    if M[1][column]  == 1:
-                        matrix[int(M[0][column])][column] = hi
-                    if M[1][column]  == 0:
-                        if M[2][column]  == 0:
-                            r = int(M[0][column] - 1)
-                            if r >= 0:
-                                matrix[r][column] = hi
-                        if M[2][column]  == 1:
-                            r = int(M[0][column] + 1)
-                            if r < R:
-                                matrix[r][column] = hi
-                    if M[1][column]  == 2:
-                        if M[2][column]  == 0:
-                            r = int(M[0][column] + 1)
-                            if r < R:
-                                matrix[r][column] = hi
-                        if M[2][column]  == 1:
-                            r = int(M[0][column] - 1)
-                            if r >= 0:
-                                matrix[r][column] = hi'''
-
         # Normalize distribution
         matrix = CPD.normalize_distribution(matrix)
         return matrix
@@ -239,6 +208,8 @@ class CPD:
             table = CPD.create_latent_distribution(card_latent, card_parent, gamma)
         if 'vision' in modus :
                 table = CPD.create_Raptor_distribution(card_latent, card_parent, gamma, modus)
+        if 'one_2_one' in modus :
+                table = CPD.create_one2one_distribution(card_latent, card_parent)
         if (modus == 'random'):
             cardinality = 1
             for n in range(0, len(card_parent)):
