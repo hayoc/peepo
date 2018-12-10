@@ -8,7 +8,6 @@ class Utilities(object):
         pass
 
     def check_dir(directory):
-        print("Checking directoy : ", directory)
         if not os.path.exists(directory + '\project_repository\\'):
             os.makedirs(directory + '\project_repository\\')
 
@@ -21,13 +20,14 @@ class Utilities(object):
             if  'peepo\peepo' not in common:
                 break
         Utilities.check_dir(common)
-        return common + '\project_repository\\'+filename+'.js'
+        return common + '\project_repository\\'+filename+'.json'
 
     def create_json_file(case_name, identification_ = None, description_ = None, frozen_ = None, nodes_ = None, edges_ = None, cpds_ = None, train_from_ = None):
 
         Case_name = Utilities.get_json_path(case_name)  # creates the right path in which case_name will be saved
+
         '''     data is a dictionary which will be saved in json format
-                    - initialize the dictoionary
+                    - initialize the dictionary
                     '''
 
         data = {'Identificaton': '', 'Date': '', 'Description': '', 'Frozen': '', 'Nodes': [], 'Edges': [], 'CPDs': [],
@@ -38,7 +38,7 @@ class Utilities(object):
         data['Identificaton'] = case_name
         data['Date'] = datetime.datetime.now().strftime("%c")
         data['Description'] = 'Blablabla'
-        '''       - the next items gives a file containing possible training data (OPTIONAL)'''
+        '''       - the next item gives a file containing possible training data (OPTIONAL)'''
         data['Train_from'] = 'a_filename_without_extension'
 
         '''      Frozen tells whether or not the model can be considered as final i.e. is there still "training" needed'''
@@ -55,7 +55,7 @@ class Utilities(object):
         world = ['wor1d1', 'world2', 'world3', 'world4']
 
         '''     - the next items describe the edges as a dictionary
-                 -> the dictionary entry is always one of parents, the array following can only contain LANs or LENs'''
+                 -> the dictionary entry is always one of the parents, the array following can only contain LANs or LENs'''
 
         edges = []
 
@@ -77,7 +77,7 @@ class Utilities(object):
         data['Edges'].append(edges)
         data['CPDs'].append(cpds)
 
-        ''' dumping to CASENAME file in jason format'''
+        ''' dumping to Case_name file in jason format'''
         with open(Case_name, 'w') as f:
             json.dump(data, f, indent=3)
 
