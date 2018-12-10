@@ -1,8 +1,8 @@
+import json
 import math
 import os
 import random
 import sys
-import json
 
 import pygame as pg
 
@@ -61,7 +61,7 @@ class PeepoActor(object):
         self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
 
         self.rect.clamp_ip(screen_rect)
-        # self.peepo.update(self.model)
+        self.peepo.update(self.model)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
@@ -172,12 +172,12 @@ class PeeposWorld(object):
             self.render()
             self.clock.tick(self.fps)
 
-            for obj in self.objects:
-                if self.peepo.rect.colliderect(obj.rect):
-                    self.score += 0.1
-            if self.peepo.rect.x > 1450:
-                print(self.score)
-                self.done = True
+            # for obj in self.objects:
+            #     if self.peepo.rect.colliderect(obj.rect):
+            #         self.score += 0.1
+            # if self.peepo.rect.x > 1450:
+            #     print(self.score)
+            #     self.done = True
 
 
 
@@ -185,11 +185,11 @@ class PeeposWorld(object):
 
 def generate_obstacles():
     objects = []
-    for x in range(0, 60):
+    for x in range(0, 150):
         objects.append({
             'id': 'obj_' + str(x),
-            'x': random.randint(100, 1500),
-            'y': random.randint(100, 900)
+            'x': random.randint(20, 1580),
+            'y': random.randint(20, 980)
         })
     with open('obstacles.json', 'w') as outfile:
         json.dump(objects, outfile)
@@ -211,6 +211,7 @@ def main():
     wall3 = Wall('wall_right', (1598, 0), (5, 2000))
     wall4 = Wall('wall_down', (0, 998), (3200, 5))
 
+    # generate_obstacles()
     obstacles = []
     with open('obstacles.json') as json_data:
         for obs in json.load(json_data):
