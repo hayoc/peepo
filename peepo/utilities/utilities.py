@@ -55,7 +55,7 @@ class Utilities(object):
         world = ['wor1d1', 'world2', 'world3', 'world4']
 
         '''     - the next items describe the edges as a dictionary
-                 -> the dictionary entry is always one of the parents, the array following can only contain LANs or LENs'''
+                 -> the dictionary entry is always one of the rootnodes, the array following can only contain LANs or LENs'''
 
         edges = []
 
@@ -73,7 +73,7 @@ class Utilities(object):
 
         '''       - feeding the data'''
         data['Nodes'].append(
-            {'PARS': {'BENS': bens, 'MEMS': mems}, 'LANS': lans, 'LENS': {'MOTOR': motors, 'WORLD': world}})
+            {'RONS': {'BENS': bens, 'MEMS': mems}, 'LANS': lans, 'LENS': {'MOTOR': motors, 'WORLD': world}})
         data['Edges'].append(edges)
         data['CPDs'].append(cpds)
 
@@ -116,7 +116,7 @@ class Utilities(object):
         world = []
 
         '''     - the next items describe the edges as a dictionary
-                 -> the dictionary entry is always one of parents, the array following can only contain LANs or LENs'''
+                 -> the dictionary entry is always one of the rootnodes, the array following can only contain LANs or LENs'''
 
         edges = []
 
@@ -131,7 +131,7 @@ class Utilities(object):
 
         '''       - feeding the data'''
         data['Nodes'].append(
-            {'PARS': {'BENS': bens, 'MEMS': mems}, 'LANS': lans, 'LENS': {'MOTOR': motors, 'WORLD': world}})
+            {'RONS': {'BENS': bens, 'MEMS': mems}, 'LANS': lans, 'LENS': {'MOTOR': motors, 'WORLD': world}})
         data['Edges'].append(edges)
         data['CPDs'].append(cpds)
 
