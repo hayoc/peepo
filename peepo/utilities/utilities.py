@@ -60,7 +60,7 @@ class Utilities(object):
 
     def get_pgmpy_network(file, pgmpy_object):
         """
-        Reads the passed json file and translate it's content to the passed pgmy class object
+        Reads the passed json file and translates it's content to the passed pgmpy class object
         - uses the get_network(file) to read the json file in a networkx format and translate this to pgmpy
         - Creates a dictionary for the nodes in the form of an array of tuples : [(names defines by user, standard name)]
 
@@ -77,6 +77,28 @@ class Utilities(object):
         """  TO DO """
 
         return node_dictionary
+
+    def save_pgmpy_network(file, pgmpy_object):
+        """
+        Saves the passed pgmpy class object in a json file
+
+        """
+        a = 1
+
+        """  TO DO """
+
+        return
+
+    def save_network(file,networkx_object):
+        """
+        Saves the passed networkx class object in a json file
+
+        """
+        a = 1
+
+        """  TO DO """
+
+        return
 
 
 
@@ -164,7 +186,7 @@ class Utilities(object):
                     the names can be any valid python string'''
         bens = ['pooping', 'peeing', 'constipated']
         mems = ['havenotoiletpaper']
-        lans = ['diarhea', 'happyppoop']
+        lans = ['diarhea', 'happypoop']
         motors = ['asshole1', 'asshole2']
         world = ['toilet1', 'toilet2', 'garden1', 'garden2','doctor']
 
@@ -173,12 +195,12 @@ class Utilities(object):
         edges = []
 
         '''       !! in case we start from scratch and we rely on peepo to find the best BN -> leave this array empty'''
-        edges.append({'pooping': ['toilet1', 'diarhea','happyppoop']})
+        edges.append({'pooping': ['toilet1', 'diarhea','happypoop']})
         edges.append({'peeing': ['toilet2', 'garden1', 'garden2']})
         edges.append({'constipated': ['doctor']})
         edges.append({'havenotoiletpaper': ['garden1', 'garden2']})
         edges.append({'diarhea': ['toilet1', 'doctor']})
-        edges.append({'happyppoop': ['garden1', 'garden2']})
+        edges.append({'happypoop': ['garden1', 'garden2']})
 
 
         '''       - the next items describe the CPD's  as a dictionary
@@ -188,7 +210,7 @@ class Utilities(object):
         cpds.append({'peeing': [0.2,0.8]})
         cpds.append({'constipated': [0.9,0.1]})
         cpds.append({'havenotoiletpaper': [0.6,0.4]})
-        cpds.append({'happyppoop': [[0.3,0.8],[0.7,0.2]]})
+        cpds.append({'happypoop': [[0.3,0.8],[0.7,0.2]]})
         cpds.append({'diarhea': [[0.5, 0.8], [0.5, 0.2]]})
         cpds.append({'toilet1': [[0.5, 0.9], [0.5, 0.1]]})
         cpds.append({'toilet2': [0.5, 0.5],})
@@ -215,7 +237,7 @@ class Utilities(object):
 
     def create_json_template():
         """
-        A helping method if the teh jason template in the project_repository ditectory has been deletes or corrupted
+        A helping method if the  jason template in the project_repository ditectory has been deleted or corrupted
 
         :param : void
         :return: void
