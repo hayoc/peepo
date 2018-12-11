@@ -3,6 +3,10 @@ import datetime
 import json
 import networkx as nx
 import numpy as np
+from pgmpy.factors.discrete import TabularCPD
+from pgmpy.models import BayesianModel
+from peepo.visualize.graph import draw_network
+
 
 class Utilities(object):
     def __init__(self):
@@ -58,25 +62,6 @@ class Utilities(object):
         Utilities.check_json_path(common)
         return common + '\project_repository\\'+filename+'.json'
 
-    def get_pgmpy_network(file, pgmpy_object):
-        """
-        Reads the passed json file and translates it's content to the passed pgmpy class object
-        - uses the get_network(file) to read the json file in a networkx format and translate this to pgmpy
-        - Creates a dictionary for the nodes in the form of an array of tuples : [(names defines by user, standard name)]
-
-        :param file: : filename without path or extension
-        :pgmp_object : the pgmpy object which will be completed
-        :return: a dictionary as an array of tuples
-
-        :type file : string
-        :type pgmp_object : pgmpy class object
-        :rtype : array of tuples
-        """
-        node_dictionary =  Utilities.get_network(file)
-
-        """  TO DO """
-
-        return node_dictionary
 
     def save_pgmpy_network(file, pgmpy_object):
         """
@@ -100,6 +85,52 @@ class Utilities(object):
 
         return
 
+    def get_pgmpy_network(file, pgmpy_object):
+        """
+        Reads the passed json file and translates it's content to the passed pgmpy class object
+        - uses the get_network(file) to read the json file in a networkx format and translate this to pgmpy
+        - Creates a dictionary for the nodes in the form of an array of tuples : [(names defines by user, standard name)]
+
+        :param file: : filename without path or extension
+        :pgmp_object : the pgmpy object which will be completed
+        :return: a dictionary as an array of tuples
+
+        :type file : string
+        :type pgmp_object : pgmpy class object
+        :rtype : array of tuples
+        """
+        network, node_dictionary =  Utilities.get_network(file)
+        """Iterating through the rootnodes (get's only a 1-dimensional arry"""
+        nw_nodes = network.nodes(data = True)
+
+        for i, node in enumerate(nw_nodes):
+            parent_nodes = network.predecessors(node[0])
+            child_nodes = network.successors(node[0])
+            """Add edges"""
+            if len(child_nodes) != 0:
+                for child in child_nodes:
+                    pgmpy_object.add_edge(node[0], child)
+            cpd = node[1]['cpd']
+            cardinality_parents = []
+            for i,nod in enumerate(parent_nodes):
+                cpd_nod = network.node[nod]
+                cardinality_parents.append(len(cpd_nod['cpd']))
+            cardinality_node  = len(cpd)
+            if len(cardinality_parents) == 0:
+                pgmpy_object.add_cpds(TabularCPD(variable=node[0], variable_card= cardinality_node, values=[cpd]))
+                continue
+            if len(parent_nodes) == 1:
+                cpd_par = network.node[parent_nodes[0]]
+                cardinality_parents = [len(cpd_par['cpd'])]
+            table = TabularCPD(variable=node[0], variable_card= cardinality_node, values=cpd, \
+                              evidence=parent_nodes,\
+                              evidence_card=cardinality_parents)
+            pgmpy_object.add_cpds(table)
+
+        # pgmpy_object.check_model()
+        # draw_network(pgmpy_object)
+
+        return node_dictionary
 
 
     def get_network(file):
@@ -201,6 +232,8 @@ class Utilities(object):
         edges.append({'havenotoiletpaper': ['garden1', 'garden2']})
         edges.append({'diarhea': ['toilet1', 'doctor']})
         edges.append({'happypoop': ['garden1', 'garden2']})
+        edges.append({'diarhea': ['asshole1', 'asshole2']})
+        edges.append({'happypoop': ['asshole1', 'asshole2']})
 
 
         '''       - the next items describe the CPD's  as a dictionary
@@ -211,12 +244,14 @@ class Utilities(object):
         cpds.append({'constipated': [0.9,0.1]})
         cpds.append({'havenotoiletpaper': [0.6,0.4]})
         cpds.append({'happypoop': [[0.3,0.8],[0.7,0.2]]})
-        cpds.append({'diarhea': [[0.5, 0.8], [0.5, 0.2]]})
-        cpds.append({'toilet1': [[0.5, 0.9], [0.5, 0.1]]})
-        cpds.append({'toilet2': [0.5, 0.5],})
-        cpds.append({'doctor': [[0.5, 0.5],[0.5,0.5]]})
-        cpds.append({'garden1': [[0.2, 0.4],  [0.2, 0.2],[0.6, 0.4]]})
-        cpds.append({'garden2': [[0.4, 0.4], [0.2, 0.2], [0.4, 0.4]]})
+        cpds.append({'diarhea': [[0.8,0.3],[0.2,0.7]]})
+        cpds.append({'toilet1': [[0.3,0.8,0.8,0.7],[0.7,0.2,0.2,0.3]]})
+        cpds.append({'asshole1': [[0.3,0.8,0.8,0.7],[0.7,0.2,0.2,0.3]]})
+        cpds.append({'asshole2': [[0.3,0.8,0.8,0.7],[0.7,0.2,0.2,0.3]]})
+        cpds.append({'toilet2': [[0.5, 0.5],[0.5, 0.5]]})
+        cpds.append({'doctor': [[0.3,0.8,0.8,0.7],[0.7,0.2,0.2,0.3]]})
+        cpds.append({'garden1': [[0.3,0.8,0.8,0.7, 0.8,0.2,0.5,0.5],[0.7,0.2,0.2,0.3,0.2,0.8,0.5,0.5]]})
+        cpds.append({'garden2': [[0.3,0.8,0.8,0.7, 0.8,0.2,0.5,0.5],[0.7,0.2,0.2,0.3,0.2,0.8,0.5,0.5]]})
 
 
         '''       - feeding the data'''
@@ -266,16 +301,6 @@ class Utilities(object):
         data = {'Identificaton': '', 'Date': '', 'Description': '', 'Frozen': '', 'Nodes': [], 'Edges': [], 'CPDs': [],
                 'Train_from': ''}
 
-        '''       - the 3 next items are for tracking purpose only, not fundamentally necessary'''
-        data['Identificaton'] = ''
-        data['Date'] = ''
-        data['Description'] = ''
-        '''       - the next items gives a file containing possible training data (OPTIONAL)'''
-        data['Train_from'] = ''
-
-        '''      Frozen tells whether or not the model can be considered as final i.e. is there still "training" needed'''
-        data['Frozen'] = False
-
         '''       - the 5 next lines tells how much nodes  and their names the model will start with
                     the names can be any valid python string'''
         bens = []
@@ -292,7 +317,7 @@ class Utilities(object):
 
         '''       - the next items describe the CPD's  as a dictionary
                   -> the dictionary entry is the corresponding node'''
-        cpds = []  # ?? how to format the CPD ??
+        cpds = []
 
         '''       - feeding the data'''
         data['Nodes']= {'RONS': {'BENS': bens, 'MEMS': mems}, 'LANS':{'LANS': lans}, 'LENS': {'MOTOR': motors, 'WORLD': world}}
@@ -313,6 +338,7 @@ def main():
             Utilities.create_json_template()
         else:
             Utilities.create_json_file(str(var))
-    print(Utilities.get_network(var))
+    network = BayesianModel()
+    dic = Utilities.get_pgmpy_network(var, network)
 if __name__ == "__main__":
     main()
