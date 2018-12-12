@@ -10,6 +10,7 @@ from config import ROOT_DIR
 from peepo.playground.util.vision import end_line
 from peepo.playground.wandering.wandering_obstacle_avoidance_model import PeepoModel
 from peepo.playground.wandering.wandering_obstacle_avoidance_peepo import Peepo
+from peepo.utilities.bayesian_network import json_to_bayesian_network, random_mutation, bayesian_network_to_json
 
 vec = pg.math.Vector2
 
@@ -27,10 +28,10 @@ class PeepoActor(object):
     """ This class represents peepo """
 
     SIZE = (40, 40)
-    SPEED = 3
+    SPEED = 4
 
-    def __init__(self, pos, actors, model_id):
-        self.model = PeepoModel(self, actors, model_id)
+    def __init__(self, pos, actors, generation, individual):
+        self.model = PeepoModel(self, actors, generation, individual)
         self.rect = pg.Rect((0, 0), PeepoActor.SIZE)
         self.rect.center = pos
         self.image = self.make_image()
@@ -79,7 +80,6 @@ class PeepoActor(object):
 
 
 class ObjectActor(object):
-
     SIZE = (20, 20)
 
     def __init__(self, id, pos):
@@ -123,6 +123,18 @@ class Wall(object):
         surface.blit(self.image, self.rect)
 
 
+def generate_obstacles():
+    objects = []
+    for x in range(0, 50):
+        objects.append({
+            'id': 'obj_' + str(x),
+            'x': random.randint(20, 1580),
+            'y': random.randint(20, 980)
+        })
+    with open('obstacles.json', 'w') as outfile:
+        json.dump(objects, outfile)
+
+
 class PeeposWorld(object):
     """
     A class to manage our event, game loop, and overall program flow.
@@ -137,16 +149,56 @@ class PeeposWorld(object):
         self.keys = pg.key.get_pressed()
         self.objects = objects
         self.current_score = 0
-        self.scores = {}
-        self.current_model = 0
-        self.peepo = self.new_peepo()
-        self.num_models = len([name for name in os.listdir(ROOT_DIR + '/resources/bn')
-                               if os.path.isfile(os.path.join(ROOT_DIR + '/resources/bn', name))])
+        self.current_distance = 0
+        self.current_individual = 0
+        self.current_generation = 0
+        self.peepo = PeepoActor((50, 500), self.objects,
+                                'gen' + str(self.current_generation), 'id' + str(self.current_individual))
 
     def new_peepo(self):
-        peepo = PeepoActor((50, 500), self.objects, self.current_model)
-        self.current_model += 1
+        self.write_score()
+
+        peepo = PeepoActor((50, 500), self.objects,
+                           'gen' + str(self.current_generation), 'id' + str(self.current_individual))
+
+        if self.current_individual >= 4:
+            self.new_generation()
+            self.current_generation += 1
+            self.current_individual = 0
+            print('New generation: ' + str(self.current_generation))
+        else:
+            self.current_individual += 1
+
         return peepo
+
+    def new_generation(self):
+        best_score = 1000000
+        best_individual = 0
+
+        gen_dir = ROOT_DIR + '/resources/bn/' + 'gen' + str(self.current_generation)
+        for individual in range(0, 5):
+            with open(gen_dir + '/' + 'id' + str(individual) + '.json', 'r') as f:
+                score = json.load(f)['score']
+                if score < best_score:
+                    best_score = score
+                    best_individual = individual
+
+        parent = json_to_bayesian_network('gen' + str(self.current_generation), 'id' + str(best_individual))
+        for x in range(0, 5):
+            child = random_mutation(parent)
+            bayesian_network_to_json(child, 'gen' + str(self.current_generation + 1), 'id' + str(x))
+
+    def write_score(self):
+        with open(ROOT_DIR + '/resources/bn/' + 'gen' + str(self.current_generation)
+                  + '/' + 'id' + str(self.current_individual) + '.json') as f:
+            json_object = json.load(f)
+
+        json_object['score'] = self.current_score
+        json_object['distance'] = self.current_distance
+
+        with open(ROOT_DIR + '/resources/bn/' + 'gen' + str(self.current_generation)
+                  + '/' + 'id' + str(self.current_individual) + '.json', 'w') as f:
+            json.dump(json_object, f)
 
     def event_loop(self):
         """
@@ -176,6 +228,8 @@ class PeeposWorld(object):
         """
         Game loop
         """
+
+        start = pg.time.get_ticks()
         while not self.done:
             self.event_loop()
             self.peepo.update(self.screen_rect)
@@ -185,27 +239,13 @@ class PeeposWorld(object):
             for obj in self.objects:
                 if self.peepo.rect.colliderect(obj.rect):
                     self.current_score += 0.1
-            if self.peepo.rect.x > 1450:
-                if self.current_model >= self.num_models:
-                    self.done = True
-                    self.scores['bn' + str(self.current_model - 1)] = self.current_score
-                    print(self.scores)
-                else:
-                    self.scores['bn' + str(self.current_model - 1)] = self.current_score
-                    self.current_score = 0
-                    self.peepo = self.new_peepo()
 
-
-def generate_obstacles():
-    objects = []
-    for x in range(0, 50):
-        objects.append({
-            'id': 'obj_' + str(x),
-            'x': random.randint(20, 1580),
-            'y': random.randint(20, 980)
-        })
-    with open('obstacles.json', 'w') as outfile:
-        json.dump(objects, outfile)
+            seconds = (pg.time.get_ticks() - start) / 1000
+            if self.peepo.rect.x > 1450 or seconds > 20:
+                start = pg.time.get_ticks()
+                self.current_distance = self.peepo.rect.x
+                self.peepo = self.new_peepo()
+                self.current_score = 0
 
 
 def main():

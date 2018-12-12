@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import random
 
 import numpy as np
@@ -9,7 +10,7 @@ from pgmpy.models import BayesianModel
 from config import ROOT_DIR
 
 
-def bayesian_network_to_json(bayesian_network, bn_id):
+def bayesian_network_to_json(bayesian_network, folder_id, bn_id):
     cpds = []
     for cpd in bayesian_network.get_cpds():
         cpds.append({
@@ -26,12 +27,16 @@ def bayesian_network_to_json(bayesian_network, bn_id):
         'cpds': cpds
     }
 
-    with open(ROOT_DIR + '/resources/bn/bn' + str(bn_id) + '.json', 'w') as outfile:
+    directory = ROOT_DIR + '/resources/bn/' + str(folder_id)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    with open(directory + '/' + str(bn_id) + '.json', 'w') as outfile:
         json.dump(to_json, outfile)
 
 
-def json_to_bayesian_network(bn_id):
-    with open(ROOT_DIR + '/resources/bn/bn' + str(bn_id) + '.json') as json_data:
+def json_to_bayesian_network(folder_id, bn_id):
+    with open(ROOT_DIR + '/resources/bn/' + str(folder_id) + '/' + str(bn_id) + '.json') as json_data:
         json_object = json.load(json_data)
 
         bayesian_network = BayesianModel()
@@ -48,6 +53,7 @@ def json_to_bayesian_network(bn_id):
 
 
 def add_node(model):
+    model = model.copy()
     new_node_name = str(len(model))
     node_to_add_to = random.choice(model.nodes())
 
@@ -79,13 +85,14 @@ def add_node(model):
 
 
 def add_edge(model):
+    model = model.copy()
     parent_node = random.choice(model.nodes())
-    child_node = random.choice([x for x in model.nodes()
-                                if x not in [parent_node]
-                                for edge in model.edges(parent_node)
-                                if x not in edge])
+    child_node = random.choice(filter_for_edge(model, parent_node))
 
-    model.add_edge(parent_node, child_node)
+    try:
+        model.add_edge(parent_node, child_node)
+    except ValueError:
+        return add_edge(model)
     old_cpd = model.get_cpds(child_node)
     variable_card = old_cpd.variable_card
     evidence = old_cpd.get_evidence()
@@ -109,6 +116,7 @@ def add_edge(model):
 
 
 def change_parameters(model):
+    model = model.copy()
     node = random.choice(model.nodes())
 
     cpd = model.get_cpds(node)
@@ -128,6 +136,21 @@ def change_parameters(model):
     model.check_model()
 
     return model
+
+
+def filter_for_edge(model, parent_node):
+    filtered1 = [x for x in model.nodes() if x not in [parent_node]]
+
+    filtered2 = []
+    for x in filtered1:
+        remove = False
+        for edge in model.edges(parent_node):
+            if x in edge:
+                remove = True
+
+        if not remove:
+            filtered2.append(x)
+    return filtered2
 
 
 def random_distribution(size):
@@ -156,3 +179,10 @@ def expand_cpd(cpd, evidence_card):
     if len(cpd.shape) > 2:
         print()
     return cpd
+
+
+MUTATIONS = [add_node, add_edge, change_parameters]
+
+
+def random_mutation(model):
+    return random.choice(MUTATIONS)(model)

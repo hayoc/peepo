@@ -37,10 +37,11 @@ def double_hypo_cpd(var, evi_1, evi_2):
 class PeepoModel:
     RADIUS = 100
 
-    def __init__(self, peepo_actor, actors, model_id):
+    def __init__(self, peepo_actor, actors, generation, individual):
         self.peepo_actor = peepo_actor
         self.actors = actors
-        self.model_id = model_id
+        self.generation = generation
+        self.individual = individual
         self.models = self.create_networks()
         self.motor_output = {pg.K_LEFT: False,
                              pg.K_RIGHT: False}
@@ -52,32 +53,7 @@ class PeepoModel:
                                '6': False}
 
     def create_networks(self):
-        # network = BayesianModel([('wandering_left', 'motor_left'), ('wandering_right', 'motor_right'),
-        #                          ('obstacle_left', 'motor_left'), ('obstacle_right', 'motor_right'),
-        #                          ('obstacle_left', 'vision_1'), ('obstacle_left', 'vision_2'),
-        #                          ('obstacle_left', 'vision_3'),
-        #                          ('obstacle_right', 'vision_4'), ('obstacle_right', 'vision_5'),
-        #                          ('obstacle_right', 'vision_6')])
-        #
-        # cpd_1 = double_hypo_cpd('motor_left', 'wandering_left', 'obstacle_left')
-        # cpd_2 = double_hypo_cpd('motor_right', 'wandering_right', 'obstacle_right')
-        #
-        # cpd_3 = wandering_hypo_cpd('wandering_left')
-        # cpd_4 = wandering_hypo_cpd('wandering_right')
-        # cpd_5 = obstacle_hypo_cpd('obstacle_left')
-        # cpd_6 = obstacle_hypo_cpd('obstacle_right')
-        #
-        # cpd_7 = single_hypo_cpd('vision_1', 'obstacle_left')
-        # cpd_8 = single_hypo_cpd('vision_2', 'obstacle_left')
-        # cpd_9 = single_hypo_cpd('vision_3', 'obstacle_left')
-        # cpd_10 = single_hypo_cpd('vision_4', 'obstacle_right')
-        # cpd_11 = single_hypo_cpd('vision_5', 'obstacle_right')
-        # cpd_12 = single_hypo_cpd('vision_6', 'obstacle_right')
-        #
-        # network.add_cpds(cpd_1, cpd_2, cpd_3, cpd_4, cpd_5, cpd_6, cpd_7,
-        #                  cpd_8, cpd_9, cpd_10, cpd_11, cpd_12)
-        # network.check_model()
-        network = json_to_bayesian_network(self.model_id)
+        network = json_to_bayesian_network(self.generation, self.individual)
         return {'main': GenerativeModel(SensoryInputVirtualPeepo(self), network)}
 
     def process(self):

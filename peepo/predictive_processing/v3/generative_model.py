@@ -147,7 +147,8 @@ class GenerativeModel:
             self.sensory_input.action(leaf_node, prediction)
         else:
             result = infer.query(
-                variables=self.network.get_roots(),
+                variables=[x for x in self.network.get_roots()
+                           if x not in [leaf_node]],
                 evidence={leaf_node: np.argmax(prediction_error + prediction)})
 
             for root_node, root_cpd in result.items():
@@ -319,7 +320,8 @@ class GenerativeModel:
 
         for active_node in model.active_trail_nodes(node_in_error)[node_in_error] - set(model.get_roots()):
             cpd = model.get_cpds(active_node)
-            vals = self.reshape_cpd(cpd.values, cpd.variable_card, list(cpd.get_cardinality(cpd.get_evidence()).values()))
+            vals = self.reshape_cpd(cpd.values, cpd.variable_card,
+                                    list(cpd.get_cardinality(cpd.get_evidence()).values()))
 
             for idx_col, col in enumerate(vals.T):
                 for idx_row, row in enumerate(col):
