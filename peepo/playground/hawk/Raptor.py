@@ -7,8 +7,8 @@ import sys
 import pygame as pg
 import numpy as np
 import matplotlib.pyplot as plt
-from peepoHawk.playground.models.Raptor_model import RaptorModel
-from peepoHawk.playground.Pigeon import PigeonActor
+from peepo.playground.hawk.Raptor_model import RaptorModel
+from peepo.playground.hawk.Pigeon import PigeonActor
 vec = pg.math.Vector2
 
 CAPTION = "Raptor 's World"
