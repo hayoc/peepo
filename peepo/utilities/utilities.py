@@ -135,7 +135,7 @@ class Utilities(object):
             print("edges from node ", node_name, " = ", edge)
             cardinality = int(pgmpy_object.get_cardinality(node_name))
             cpd = pgmpy_object.get_cpds(node_name).values
-            cpd = cpd.astype(int)
+            cpd = cpd.astype(float)
             print('done')
             placeholder = ''
             edge_ = []
