@@ -6,17 +6,25 @@ import numpy as np
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 import re
-from peepo.visualize.graph import draw_network
-import matplotlib.pyplot as plt
-
-import difflib
+#from peepo.visualize.graph import draw_network
+#import matplotlib.pyplot as plt
 
 class Utilities(object):
     def __init__(self):
+        ''' no object creation -> opportune  ?'''
         pass
 
     def  get_keywords():
         return  ['BENS','MEMS','LANS','MOTOR','WORLD']
+
+    def clean_edge_list(edge_array, parent):
+        '''the get functions for the edges, both in networx as pgmpy contain the parent name
+            this function removes it from the list'''
+        cleaned_list = []
+        for a in edge_array:
+            if a!= parent:
+                cleaned_list.append(a)
+        return cleaned_list
 
     def save_json(file, astring):
         """
@@ -132,12 +140,9 @@ class Utilities(object):
             for k, n in enumerate(edge_):
                 if n != node_name:
                     edge.append(n)
-            print("edges from node ", node_name, " = ", edge)
             cardinality = int(pgmpy_object.get_cardinality(node_name))
             cpd = pgmpy_object.get_cpds(node_name).values
             cpd = cpd.astype(float)
-            print('done')
-            placeholder = ''
             edge_ = []
             for e, ed in enumerate(edge):
                 for pseudonym in keywords:
@@ -145,16 +150,16 @@ class Utilities(object):
                         edge_.append(Utilities.translation(dictionary, ed, 1))
             for pseudonym in keywords:
                 if pseudonym in node_name:
-                    placeholder = pseudonym
                     node_name = Utilities.translation(dictionary, node_name, 1)
-                    if placeholder == 'BENS' or placeholder == 'MEMS':
-                        nodes['RONS'][placeholder].append([node_name, cardinality])
-                    if placeholder == 'LANS':
-                        nodes['LANS'][placeholder].append([node_name, cardinality])
-                    if placeholder == 'MOTOR' or placeholder == 'WORLD':
-                        nodes['LENS'][placeholder].append([node_name, cardinality])
+                    if pseudonym == 'BENS' or pseudonym == 'MEMS':
+                        nodes['RONS'][pseudonym].append([node_name, cardinality])
+                    if pseudonym == 'LANS':
+                        nodes['LANS'][pseudonym].append([node_name, cardinality])
+                    if pseudonym == 'MOTOR' or pseudonym == 'WORLD':
+                        nodes['LENS'][pseudonym].append([node_name, cardinality])
             if len(edge_) != 0:
                 edges.append({node_name: edge_})
+            '''TO DO -> find a more elegant way to code this'''
             mat = np.asarray(cpd .ndim)
             cpd_ = []
             if mat == 1:
@@ -187,10 +192,9 @@ class Utilities(object):
         for i, node in enumerate(nw_nodes):
             node_name = node[0]
             edge = np.ravel(networkx_object.edges(node_name))
-            edge = edge[edge != node_name]
+            edge = Utilities.clean_edge_list(edge,node_name)
             cardinality = node[1]['cardinality']
             cpd = node[1]['cpd']
-            placeholder =''
             edge_ = []
             for e, ed in enumerate(edge):
                 for pseudonym  in keywords:
@@ -198,14 +202,13 @@ class Utilities(object):
                         edge_.append(Utilities.translation(dictionary, ed,1))
             for pseudonym  in keywords:
                 if pseudonym in node_name:
-                    placeholder = pseudonym
                     node_name = Utilities.translation(dictionary, node_name,1)
-                    if placeholder == 'BENS' or placeholder == 'MEMS':
-                        nodes['RONS'][placeholder].append([node_name, cardinality])
-                    if placeholder == 'LANS':
-                        nodes['LANS'][placeholder].append([node_name, cardinality])
-                    if placeholder == 'MOTOR' or placeholder == 'WORLD':
-                        nodes['LENS'][placeholder].append([node_name, cardinality])
+                    if pseudonym == 'BENS' or pseudonym == 'MEMS':
+                        nodes['RONS'][pseudonym].append([node_name, cardinality])
+                    if pseudonym == 'LANS':
+                        nodes['LANS'][pseudonym].append([node_name, cardinality])
+                    if pseudonym == 'MOTOR' or pseudonym == 'WORLD':
+                        nodes['LENS'][pseudonym].append([node_name, cardinality])
             if len(edge_) != 0:
                 edges.append({node_name: edge_})
             cpds.append({node_name:cpd})
@@ -229,39 +232,36 @@ class Utilities(object):
         :type file : string
         :type pgmp_object : pgmpy class object
         :rtype : array of tuples, dictionary
+
+        CAUTION : the method does not perform a check() on the constructed DAG ! -> has to be done in the calling module
         """
         network, node_dictionary, header =  Utilities.get_network(file)
-        """Iterating through the rootnodes (get's only a 1-dimensional arry"""
         nw_nodes = network.nodes(data = True)
-
+        '''add nodes'''
         for i, node in enumerate(nw_nodes):
             pgmpy_object.add_node(node[0])
-
+        '''add edges and cpd's'''
         for i, node in enumerate(nw_nodes):
             parent_nodes = network.predecessors(node[0])
             child_nodes = network.successors(node[0])
-            print('childenodes for node ', node[0], ' =' , child_nodes)
-            """Add nodes and edges in one loop"""
+            """Add  edges to childrens"""
             if len(child_nodes) != 0:
                 for child in child_nodes:
                     pgmpy_object.add_edge(node[0], child)
-            # if len(child_nodes) != 0:
-            #     pgmpy_object.add_edge(node[0], np.asarray(child_nodes))
-            """ add cpd's"""
+            """ add cpd's """
             cpd = node[1]['cpd']
-            ''' find the cardinality of the node and it's parents'''
+            ''' find the cardinality of the node '''
             cardinality_node = node[1]['cardinality']
+            """  cardinality card of parents has to be determined"""
             cardinality_parents = []
             for i,nod in enumerate(parent_nodes):
-                attribute = network.node[nod]
-                cardinality_parents.append(attribute['cardinality'])
-            ''' Depending on the place in the BN and/or the number of parents  the CPD have another call'''
+                cardinality_parents.append(network.node[nod]['cardinality'])
+            ''' Depending on the place in the BN and/or the number of parents  the PGMPY CPD methods have another call'''
             if len(cardinality_parents) == 0:
                 pgmpy_object.add_cpds(TabularCPD(variable=node[0], variable_card= cardinality_node, values=[cpd]))
                 continue
             if len(parent_nodes) == 1:#this is necessary so the TabularCPD function accepts only one parent (evidence_card must be reshaped)
-                attribute = network.node[parent_nodes[0]]
-                cardinality_parents = [attribute['cardinality']]
+                cardinality_parents = [network.node[parent_nodes[0]]['cardinality']]
             table = TabularCPD(variable=node[0], variable_card= cardinality_node, values=cpd, \
                               evidence=parent_nodes,\
                               evidence_card=cardinality_parents)
@@ -288,6 +288,7 @@ class Utilities(object):
         """
         with open(Utilities.get_json_path(file)) as f:
             data = f.read()
+        '''Remove possible non informative characterss'''
         data = re.sub('\n', '', data)
         data = re.sub('\t', '', data)
         data = json.loads(data)
@@ -324,8 +325,8 @@ class Utilities(object):
         for j, node in enumerate(data['CPDs']):
             for parent, cpd in node.items():
                 node_ = Utilities.translation(node_dictionary, parent, 0)
-                addendum = {'cardinality': cardinality[node_], 'cpd': cpd}
-                G.add_node(node_ ,addendum)
+                attribute = {'cardinality': cardinality[node_], 'cpd': cpd}
+                G.add_node(node_ ,attribute)
 
         '''TO REMOVE LATER'''
         # plt.figure(figsize=(10, 5))
@@ -337,13 +338,25 @@ class Utilities(object):
         return G, node_dictionary, header
 
 
-    def create_json_file(Case_name, identification_ = None, description_ = None, frozen_ = None, nodes_ = None, edges_ = None, cpds_ = None, train_from_ = None):
+    def create_json_file(Case_name, **kwargs):
 
         """
+        EWAMPLE :
+
         A helping method if the user prefers to create the BN within the code
 
         :param case_name: the file name without path or extension where the json file will be saved
-        :param :
+        :param : **kwargs takes the following variables:
+                                                            description = kwargs.get('description', '')
+                                                            train_from = kwargs.get('train_from', '')
+                                                            cpds = kwargs.get('CPDs', [])
+                                                            bens = kwargs.get('BENS',[])
+                                                            mems = kwargs.get('MEMS', [])
+                                                            lans = kwargs.get('LANS', [])
+                                                            motors = kwargs.get('MOTORS', [])
+                                                            world = kwargs.get('WORLD', [])
+                                                            edges = kwargs.get('Edges', [])
+                                                            frozen = kwargs.get('frozen',False)
         .
         .
         .
@@ -356,6 +369,17 @@ class Utilities(object):
         .
         :rtype : void
         """
+        description = kwargs.get('description', '')
+        train_from = kwargs.get('train_from', '')
+        cpds = kwargs.get('CPDs', [])
+        bens = kwargs.get('BENS',[])
+        mems = kwargs.get('MEMS', [])
+        lans = kwargs.get('LANS', [])
+        motors = kwargs.get('MOTORS', [])
+        world = kwargs.get('WORLD', [])
+        edges = kwargs.get('Edges', [])
+        frozen = kwargs.get('frozen',False)
+
         case_name = Utilities.get_json_path(Case_name)  # creates the right path in which case_name will be saved
         #json_tab_file_write = JSONTabIndentFileWriter( Case_name,5a)
         data = Utilities.get_empty_canvas()
@@ -363,12 +387,12 @@ class Utilities(object):
         '''       - the 3 next items are for tracking purpose only, not fundamentally necessary'''
         data["header"]['Identification'] = case_name
         data["header"]['Date'] = datetime.datetime.now().strftime("%c")
-        data["header"]['Description'] = 'Blablabla'
+        data["header"]['Description'] = description
         '''       - the next item gives a file containing possible training data (OPTIONAL)'''
-        data["header"]['Train_from'] = 'None'
+        data["header"]['Train_from'] = train_from
 
         '''      Frozen tells whether or not the model can be considered as final i.e. is there still "training" needed'''
-        data["header"]['Frozen'] = False
+        data["header"]['Frozen'] = frozen
 
         '''       - the 5 next lines tells how much nodes  and their names + cardinality the model will start with
                     the names can be any valid python string'''
@@ -409,7 +433,6 @@ class Utilities(object):
         cpds.append({'garden1': [[0.3,0.8,0.8,0.7, 0.8,0.2,0.5,0.5],[0.7,0.2,0.2,0.3,0.2,0.8,0.5,0.5]]})
         cpds.append({'garden2': [[0.3,0.8,0.8,0.7, 0.8,0.2,0.5,0.5],[0.7,0.2,0.2,0.3,0.2,0.8,0.5,0.5]]})
 
-
         '''       - feeding the data'''
         data["Nodes"]['RONS']['BENS']  = bens
         data["Nodes"]['RONS']['MEMS']  = mems
@@ -419,12 +442,7 @@ class Utilities(object):
         data["Edges"] = edges
         data["CPDs"] = cpds
 
-        # json.dump(data,json_tab_file_write, indent=5, separators=('}', ': '), sort_keys=False)
-        # # close file writer
-        # json_tab_file_write.close()
         ''' dumping to CASENAME file in jason format'''
-        # with open(case_name, 'w') as f:
-        #     json.dump(data, f, separators = (",",":"))
         Utilities.save_json(case_name,json.dumps(data))
 
         print("Json file for  - ", case_name, "  - created")
@@ -507,7 +525,8 @@ class Utilities(object):
         return data
 
 def main():
-    '''TEMPORARY : for testing purpose'''
+    '''TEMPORARY : for testing purpose  -> will be removed after thourough pratical testing'''
+
     print("Please enter a valid name for the peepo case i.e. a valid filename without any extension or path.")
     print("If you just want to recreate a slate template, just leave this blank and press ENTER")
     var = input()
@@ -515,27 +534,24 @@ def main():
         var = "Template"
     print("You entered :" + str(var), " OK (Y/N) ?")
     confirm = input()
-
     if confirm == "Y" or confirm ==  "y":
         if  var == "Template":
             Utilities.create_json_template()
         else:
-            Utilities.create_json_file(str(var))
+            Utilities.create_json_file(str(var), description = 'testing')
+    ''' going back and forward to test if the get and save methods keep the data integrity'''
     networkx, dic, header = Utilities.get_network(var)
-    # print("Dictionary  ", dic)
-    # print("header ",  header)
     network = BayesianModel()
     dic, header = Utilities.get_pgmpy_network(var, network)
     Utilities.save_network(var, header,dic,networkx)
     # ''' backward'''
     networkx, dic, header = Utilities.get_network(var)
-
-
     Utilities.save_pgmpy_network(var, header, dic, network)
     ''' backward'''
     network = BayesianModel()
     dic, header = Utilities.get_pgmpy_network(var, network)
-
+    print("Dictionary  ", dic)
+    print("header ",  header)
 
 if __name__ == "__main__":
     main()
