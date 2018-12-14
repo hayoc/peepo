@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 import os
 import random
@@ -40,30 +41,32 @@ class PeepoActor(object):
         self.rotation = 0
         self.edge_right = end_line(PeepoModel.RADIUS, self.rotation + 30, self.rect.center)
         self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
+        self.run = True
 
     def update(self, screen_rect):
-        self.model.process()
+        if self.run:
+            self.model.process()
 
-        self.rect.x += PeepoActor.SPEED * math.cos(math.radians(self.rotation))
-        self.rect.y += PeepoActor.SPEED * math.sin(math.radians(self.rotation))
+            self.rect.x += PeepoActor.SPEED * math.cos(math.radians(self.rotation))
+            self.rect.y += PeepoActor.SPEED * math.sin(math.radians(self.rotation))
 
-        if self.model.motor_output[pg.K_LEFT]:
-            self.rotation -= 10
-            if self.rotation < 0:
-                self.rotation = 360
-        if self.model.motor_output[pg.K_RIGHT]:
-            self.rotation += 10
-            if self.rotation > 360:
-                self.rotation = 0
+            if self.model.motor_output[pg.K_LEFT]:
+                self.rotation -= 10
+                if self.rotation < 0:
+                    self.rotation = 360
+            if self.model.motor_output[pg.K_RIGHT]:
+                self.rotation += 10
+                if self.rotation > 360:
+                    self.rotation = 0
 
-        self.image = pg.transform.rotate(self.image_original, -self.rotation)
-        self.rect = self.image.get_rect(center=self.rect.center)
+            self.image = pg.transform.rotate(self.image_original, -self.rotation)
+            self.rect = self.image.get_rect(center=self.rect.center)
 
-        self.edge_right = end_line(PeepoModel.RADIUS, self.rotation + 30, self.rect.center)
-        self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
+            self.edge_right = end_line(PeepoModel.RADIUS, self.rotation + 30, self.rect.center)
+            self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
 
-        self.rect.clamp_ip(screen_rect)
-        # self.peepo.update(self.model)
+            self.rect.clamp_ip(screen_rect)
+            # self.peepo.update(self.model)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
@@ -148,28 +151,51 @@ class PeeposWorld(object):
         self.done = False
         self.keys = pg.key.get_pressed()
         self.objects = objects
-        self.current_score = 0
-        self.current_distance = 0
-        self.current_individual = 0
         self.current_generation = 0
-        self.peepo = PeepoActor((50, 500), self.objects,
-                                'gen' + str(self.current_generation), 'id' + str(self.current_individual))
+        logging.info('New generation ' + str(self.current_generation))
+
+        self.score0 = 0
+        self.score1 = 0
+        self.score2 = 0
+        self.score3 = 0
+        self.score4 = 0
+        self.peepo0 = PeepoActor((50, 500), self.objects,
+                                 'gen' + str(self.current_generation), 'id0')
+        self.peepo1 = PeepoActor((50, 500), self.objects,
+                                 'gen' + str(self.current_generation), 'id1')
+        self.peepo2 = PeepoActor((50, 500), self.objects,
+                                 'gen' + str(self.current_generation), 'id2')
+        self.peepo3 = PeepoActor((50, 500), self.objects,
+                                 'gen' + str(self.current_generation), 'id3')
+        self.peepo4 = PeepoActor((50, 500), self.objects,
+                                 'gen' + str(self.current_generation), 'id4')
 
     def new_peepo(self):
-        self.write_score()
+        self.write_score(0, self.score0)
+        self.write_score(1, self.score1)
+        self.write_score(2, self.score2)
+        self.write_score(3, self.score3)
+        self.write_score(4, self.score4)
+        self.score0 = 0
+        self.score1 = 0
+        self.score2 = 0
+        self.score3 = 0
+        self.score4 = 0
 
-        peepo = PeepoActor((50, 500), self.objects,
-                           'gen' + str(self.current_generation), 'id' + str(self.current_individual))
+        self.peepo0 = PeepoActor((50, 500), self.objects,
+                                 'gen' + str(self.current_generation), 'id0')
+        self.peepo1 = PeepoActor((50, 500), self.objects,
+                                 'gen' + str(self.current_generation), 'id1')
+        self.peepo2 = PeepoActor((50, 500), self.objects,
+                                 'gen' + str(self.current_generation), 'id2')
+        self.peepo3 = PeepoActor((50, 500), self.objects,
+                                 'gen' + str(self.current_generation), 'id3')
+        self.peepo4 = PeepoActor((50, 500), self.objects,
+                                 'gen' + str(self.current_generation), 'id4')
 
-        if self.current_individual >= 4:
-            self.new_generation()
-            self.current_generation += 1
-            self.current_individual = 0
-            print('New generation: ' + str(self.current_generation))
-        else:
-            self.current_individual += 1
-
-        return peepo
+        self.new_generation()
+        self.current_generation += 1
+        logging.info('New generation ' + str(self.current_generation))
 
     def new_generation(self):
         best_score = 1000000
@@ -188,16 +214,15 @@ class PeeposWorld(object):
             child = random_mutation(parent)
             bayesian_network_to_json(child, 'gen' + str(self.current_generation + 1), 'id' + str(x))
 
-    def write_score(self):
+    def write_score(self, individual, score):
         with open(ROOT_DIR + '/resources/bn/' + 'gen' + str(self.current_generation)
-                  + '/' + 'id' + str(self.current_individual) + '.json') as f:
+                  + '/' + 'id' + str(individual) + '.json') as f:
             json_object = json.load(f)
 
-        json_object['score'] = self.current_score
-        json_object['distance'] = self.current_distance
+        json_object['score'] = score
 
         with open(ROOT_DIR + '/resources/bn/' + 'gen' + str(self.current_generation)
-                  + '/' + 'id' + str(self.current_individual) + '.json', 'w') as f:
+                  + '/' + 'id' + str(individual) + '.json', 'w') as f:
             json.dump(json_object, f)
 
     def event_loop(self):
@@ -220,7 +245,11 @@ class PeeposWorld(object):
         self.screen.fill(pg.Color("white"))
         for obj in self.objects:
             obj.draw(self.screen)
-        self.peepo.draw(self.screen)
+        self.peepo0.draw(self.screen)
+        self.peepo1.draw(self.screen)
+        self.peepo2.draw(self.screen)
+        self.peepo3.draw(self.screen)
+        self.peepo4.draw(self.screen)
 
         pg.display.update()
 
@@ -228,24 +257,46 @@ class PeeposWorld(object):
         """
         Game loop
         """
-
+        loop = 0
         start = pg.time.get_ticks()
         while not self.done:
             self.event_loop()
-            self.peepo.update(self.screen_rect)
+            self.peepo0.update(self.screen_rect)
+            self.peepo1.update(self.screen_rect)
+            self.peepo2.update(self.screen_rect)
+            self.peepo3.update(self.screen_rect)
+            self.peepo4.update(self.screen_rect)
             self.render()
             self.clock.tick(self.fps)
 
             for obj in self.objects:
-                if self.peepo.rect.colliderect(obj.rect):
-                    self.current_score += 0.1
+                if self.peepo0.rect.colliderect(obj.rect):
+                    self.score0 += 0.1
+                if self.peepo1.rect.colliderect(obj.rect):
+                    self.score1 += 0.1
+                if self.peepo2.rect.colliderect(obj.rect):
+                    self.score2 += 0.1
+                if self.peepo3.rect.colliderect(obj.rect):
+                    self.score3 += 0.1
+                if self.peepo4.rect.colliderect(obj.rect):
+                    self.score4 += 0.1
 
-            seconds = (pg.time.get_ticks() - start) / 1000
-            if self.peepo.rect.x > 1450 or seconds > 20:
-                start = pg.time.get_ticks()
-                self.current_distance = self.peepo.rect.x
-                self.peepo = self.new_peepo()
-                self.current_score = 0
+            if self.peepo0.rect.x > 1450:
+                self.peepo0.run = False
+            if self.peepo1.rect.x > 1450:
+                self.peepo1.run = False
+            if self.peepo2.rect.x > 1450:
+                self.peepo2.run = False
+            if self.peepo3.rect.x > 1450:
+                self.peepo3.run = False
+            if self.peepo4.rect.x > 1450:
+                self.peepo4.run = False
+
+            loop += 1
+            print(loop)
+            if loop > 280:
+                loop = 0
+                self.new_peepo()
 
 
 def main():
@@ -285,6 +336,6 @@ def main():
 ####################################################################################
 """
 if __name__ == "__main__":
-    # logging.basicConfig()
-    # logging.getLogger().setLevel(logging.INFO)
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
     main()

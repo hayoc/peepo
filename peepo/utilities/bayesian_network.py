@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 import os
 import random
@@ -56,6 +57,7 @@ def add_node(model):
     model = model.copy()
     new_node_name = str(len(model))
     node_to_add_to = random.choice(model.nodes())
+    logging.info('Adding new node with edge to: %s to %s', new_node_name, node_to_add_to)
 
     model.add_node(new_node_name)
     model.add_edge(new_node_name, node_to_add_to)
@@ -78,7 +80,10 @@ def add_node(model):
                                       values=values,
                                       evidence=evidence,
                                       evidence_card=evidence_card)
+
+    model.remove_cpds(old_cpd)
     model.add_cpds(cpd_for_changed_node)
+
     model.check_model()
 
     return model
@@ -88,6 +93,7 @@ def add_edge(model):
     model = model.copy()
     parent_node = random.choice(model.nodes())
     child_node = random.choice(filter_for_edge(model, parent_node))
+    logging.info('Adding edge from %s to %s', parent_node, child_node)
 
     try:
         model.add_edge(parent_node, child_node)
@@ -109,7 +115,79 @@ def add_edge(model):
                          evidence=evidence,
                          evidence_card=evidence_card)
 
+    model.remove_cpds(old_cpd)
     model.add_cpds(new_cpd)
+
+    model.check_model()
+
+    return model
+
+
+def remove_node(model):
+    model = model.copy()
+    options = filter_observed_nodes([x for x in model.nodes() if x not in model.get_leaves()])
+    if not options:
+        logging.warning('Model contains no valid nodes to remove... Choosing new mutation')
+        return random_mutation(model)
+
+    node_to_remove = random.choice(options)
+    model.remove_node(node_to_remove)
+
+    logging.info('Removed %s', node_to_remove)
+    model.check_model()
+
+    return model
+
+
+OBSERVABLES = ['motor', 'vision', 'obs']
+
+
+def filter_observed_nodes(nodes):
+    result = []
+    for node in nodes:
+        if not any(obs in node for obs in OBSERVABLES):
+            result.append(node)
+    return result
+
+
+def remove_edge(model):
+    model = model.copy()
+    options = model.edges()
+    if not options:
+        logging.warning('Model contains no valid edges to remove... Choosing new mutation')
+        return random_mutation(model)
+
+    edge_to_remove = random.choice(options)
+    logging.info('Removing edge %s', str(edge_to_remove))
+    parent_node = edge_to_remove[0]
+    child_node = edge_to_remove[1]
+
+    model.remove_edge(parent_node, child_node)
+
+    old_cpd = model.get_cpds(child_node)
+
+    evidence = old_cpd.get_evidence()
+    evidence.remove(parent_node)
+
+    if len(evidence) is not 0:
+        values = old_cpd.get_values()[:, 0::2]  # TODO: Make it work for non-binary CPDs
+        evidence_card = old_cpd.cardinality[len(old_cpd.get_evidence()):]  # TODO: Idem
+
+        new_cpd = TabularCPD(variable=child_node,
+                             variable_card=old_cpd.variable_card,
+                             values=values,
+                             evidence=evidence,
+                             evidence_card=evidence_card)
+    else:
+        values = [old_cpd.get_values()[:, 0]]
+
+        new_cpd = TabularCPD(variable=child_node,
+                             variable_card=old_cpd.variable_card,
+                             values=values)
+
+    model.remove_cpds(old_cpd)
+    model.add_cpds(new_cpd)
+
     model.check_model()
 
     return model
@@ -118,6 +196,7 @@ def add_edge(model):
 def change_parameters(model):
     model = model.copy()
     node = random.choice(model.nodes())
+    logging.info('Changing parameters of %s', node)
 
     cpd = model.get_cpds(node)
     values = reshape_cpd(cpd.values, cpd.variable_card, list(cpd.cardinality[1:]))
@@ -181,8 +260,12 @@ def expand_cpd(cpd, evidence_card):
     return cpd
 
 
-MUTATIONS = [add_node, add_edge, change_parameters]
+MUTATIONS = [add_node, add_edge, change_parameters, remove_node, remove_edge]
 
 
 def random_mutation(model):
     return random.choice(MUTATIONS)(model)
+
+# network = createone()
+# for _ in range(0, 1000):
+#     pop = random_mutation(network)

@@ -50,6 +50,9 @@ class GenerativeModel:
         for node, pred in self.predict(self.network).items():
             prediction = pred.values
             observation = self.sensory_input.value(node)
+            if np.isnan(prediction).any() or np.isnan(observation).any():
+                print('ERROR ERROR: ' + str(node) + ' ---- ' + str(pred) + ' ---- ' + str(prediction))
+
             prediction_error_size = self.error_size(prediction, observation)
             prediction_error = self.error(prediction, observation)
             precision = entropy(prediction, base=2)
