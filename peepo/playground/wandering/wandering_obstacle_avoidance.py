@@ -293,7 +293,6 @@ class PeeposWorld(object):
                 self.peepo4.run = False
 
             loop += 1
-            print(loop)
             if loop > 280:
                 loop = 0
                 self.new_peepo()
