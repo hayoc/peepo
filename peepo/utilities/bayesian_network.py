@@ -81,6 +81,8 @@ def add_node(model):
                                       evidence=evidence,
                                       evidence_card=evidence_card)
 
+    check_for_nan(node_to_add_to, values)
+
     model.remove_cpds(old_cpd)
     model.add_cpds(cpd_for_changed_node)
 
@@ -115,6 +117,8 @@ def add_edge(model):
                          evidence=evidence,
                          evidence_card=evidence_card)
 
+    check_for_nan(child_node, values)
+
     model.remove_cpds(old_cpd)
     model.add_cpds(new_cpd)
 
@@ -146,6 +150,14 @@ def filter_observed_nodes(nodes):
     result = []
     for node in nodes:
         if not any(obs in node for obs in OBSERVABLES):
+            result.append(node)
+    return result
+
+
+def filter_non_observed_nodes(nodes):
+    result = []
+    for node in nodes:
+        if any(obs in node for obs in OBSERVABLES):
             result.append(node)
     return result
 
@@ -185,6 +197,8 @@ def remove_edge(model):
                              variable_card=old_cpd.variable_card,
                              values=values)
 
+    check_for_nan(child_node, values)
+
     model.remove_cpds(old_cpd)
     model.add_cpds(new_cpd)
 
@@ -211,6 +225,7 @@ def change_parameters(model):
                 if idx_row_copy is not idx_row:
                     values[idx_row_copy, idx_col] = values[idx_row_copy, idx_col] - to_subtract
 
+    check_for_nan(node, values)
     cpd.values = values
     model.check_model()
 
@@ -258,6 +273,11 @@ def expand_cpd(cpd, evidence_card):
     if len(cpd.shape) > 2:
         print()
     return cpd
+
+
+def check_for_nan(node, array):
+    if np.isnan(array).any():
+        raise ValueError('New CPD has NaNs for node: ' + node)
 
 
 MUTATIONS = [add_node, add_edge, change_parameters, remove_node, remove_edge]
