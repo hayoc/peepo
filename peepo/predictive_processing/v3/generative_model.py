@@ -7,6 +7,7 @@ from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 from scipy.stats import entropy
 
+from peepo.utilities.bayesian_network import filter_non_observed_nodes
 from peepo.visualize.graph import draw_network
 
 
@@ -47,10 +48,20 @@ class GenerativeModel:
         Returns the total prediction error size observed (for informational purposes...)
         """
         total_prediction_error_size = 0
+        # predictions =
         for node, pred in self.predict(self.network).items():
             prediction = pred.values
             observation = self.sensory_input.value(node)
-            prediction_error_size = self.error_size(prediction, observation)
+
+            try:
+                prediction_error_size = self.error_size(prediction, observation)
+            except:
+                print(self.network.edges())
+
+                print('FUCK: ' + node)
+                print('FUCK: ' + str(pred))
+                print(prediction)
+                print(observation)
             prediction_error = self.error(prediction, observation)
             precision = entropy(prediction, base=2)
             total_prediction_error_size += prediction_error_size
@@ -75,7 +86,8 @@ class GenerativeModel:
         :rtype: dict
         """
         infer = VariableElimination(network)
-        variables = network.get_leaves()
+        variables = self.get_observed_nodes(network)
+        # variables = network.get_leaves()
         evidence = self.get_root_nodes(network)
         evidence = {k: v for k, v in evidence.items() if k not in variables}
 
@@ -147,7 +159,8 @@ class GenerativeModel:
             self.sensory_input.action(leaf_node, prediction)
         else:
             result = infer.query(
-                variables=self.network.get_roots(),
+                variables=[x for x in self.network.get_roots()
+                           if x not in [leaf_node]],
                 evidence={leaf_node: np.argmax(prediction_error + prediction)})
 
             for root_node, root_cpd in result.items():
@@ -319,7 +332,8 @@ class GenerativeModel:
 
         for active_node in model.active_trail_nodes(node_in_error)[node_in_error] - set(model.get_roots()):
             cpd = model.get_cpds(active_node)
-            vals = self.reshape_cpd(cpd.values, cpd.variable_card, list(cpd.get_cardinality(cpd.get_evidence()).values()))
+            vals = self.reshape_cpd(cpd.values, cpd.variable_card,
+                                    list(cpd.get_cardinality(cpd.get_evidence()).values()))
 
             for idx_col, col in enumerate(vals.T):
                 for idx_row, row in enumerate(col):
@@ -363,6 +377,16 @@ class GenerativeModel:
         """
         # TODO
         return self.network
+
+    @staticmethod
+    def get_observed_nodes(network):
+        """
+        Returns names of all observed nodes, i.e. nodes containing motor, vision, obs, etc.
+
+        :param network: BayesianModel
+        :return: list of observed nodes
+        """
+        return filter_non_observed_nodes(network.get_leaves())
 
     @staticmethod
     def get_root_nodes(network):
