@@ -6,8 +6,10 @@ import numpy as np
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 import re
+import matplotlib.pyplot as plt
 #from peepo.visualize.graph import draw_network
 #import matplotlib.pyplot as plt
+
 
 class Utilities(object):
     def __init__(self):
@@ -24,6 +26,15 @@ class Utilities(object):
         for a in edge_array:
             if a!= parent:
                 cleaned_list.append(a)
+        return cleaned_list
+
+    def clean_parent_list(parent_array, child):
+        '''the get functions for the edges, both in networx as pgmpy contain the parent name
+            this function removes it from the list'''
+        cleaned_list = []
+        for i,a in enumerate(parent_array):
+            if a[0]!= child:
+                cleaned_list.append(a[0])
         return cleaned_list
 
     def save_json(file, astring):
@@ -120,62 +131,74 @@ class Utilities(object):
         return common + '\project_repository\\'+filename+'.json'
 
 
+    def get_edges(pgmpy_object):
+        """
+        Creates a dictionary with a node as a key and an array with its child as value
+        (the methods get_child give generally a list of tuples (parent,child)
+
+        :param  pgmpy_object: the pgmpy network
+        :return: a dictionary with the edges of all the node
+
+        :type fpgmpy_object:adress
+        :rtype :dictionary
+                """
+        edg = pgmpy_object.edges()
+        edges = dict()
+        [edges[str(t[0])].append(str(t[1])) if t[0] in list(edges.keys()) else edges.update({str(t[0]): [str(t[1])]}) for t in edg]
+        return edges
+
+    def get_nodes_and_attributes(pgmpy_object):
+        """
+        Creates an  array  of tuple with a node as element 0 and a dictionary with cardinalities and cpd as key's and
+         the key cardinality returns an int
+         the key cpd a 2 dimensional matrix
+
+        :param  pgmpy_object: the pgmpy network
+        :return: array  of tuple with a node as element 0 and a dictionary with cardinalities and cpd as key's
+
+        :type  :pgmpy_object:adress
+        :rtype :array of tuples
+        """
+        nodes = pgmpy_object.nodes()
+        nod_and_attributes = []
+        [nod_and_attributes.append((str(node),{'cardinality':int(pgmpy_object.get_cardinality(node)), 'cpd': pgmpy_object.get_cpds(node).values.astype(float)}))  for i,node in enumerate(nodes)]
+        #need to reshape the cpds when mored than 1 parent
+        for i,node in enumerate(nod_and_attributes):
+            shape = nod_and_attributes[i][1]['cpd'].shape
+            dimension = nod_and_attributes[i][1]['cpd'].ndim
+            if dimension  > 2:
+                col = int(np.prod(shape)/shape[0])
+                nod_and_attributes[i][1]['cpd'] = nod_and_attributes[i][1]['cpd'].reshape(shape[0], col)
+            nod_and_attributes[i][1]['cpd'] = nod_and_attributes[i][1]['cpd'].tolist()
+        return nod_and_attributes
+
+    def translate_pgmpy_to_digraph(pgmpy_object):
+        """
+        Converts a pgmpy network into a networkx network
+
+        :param  pgmpy_object: the pgmpy network
+        :return networkx : networkx network
+
+        :type  :pgmpy_object:adress
+        :rtype :networkx:adress
+        """
+        networkx_object = nx.DiGraph()
+        edges = pgmpy_object.edges()
+        nodes_and_attributes =  Utilities.get_nodes_and_attributes(pgmpy_object)
+        networkx_object.add_nodes_from(nodes_and_attributes)
+        networkx_object.add_edges_from(edges)
+        return networkx_object
+
+
     def save_pgmpy_network(file, header, dictionary, pgmpy_object):
         """
                 Saves the passed pgmpy_object class object in a json file
 
                 """
-        data = Utilities.get_empty_canvas()
-        data["header"] = header
-        keywords = Utilities.get_keywords()
-
-        nw_nodes = pgmpy_object.nodes(data=True)
-        nodes = {'RONS':{'BENS':[],'MEMS':[]},'LANS':{'LANS':[]},'LENS':{'MOTOR':[],'WORLD':[]}}
-        edges = []
-        cpds = []
-        for i, node in enumerate(nw_nodes):
-            node_name = node[0]
-            edge_ = np.ravel(pgmpy_object.edges(node_name))
-            edge = []
-            for k, n in enumerate(edge_):
-                if n != node_name:
-                    edge.append(n)
-            cardinality = int(pgmpy_object.get_cardinality(node_name))
-            cpd = pgmpy_object.get_cpds(node_name).values
-            cpd = cpd.astype(float)
-            edge_ = []
-            for e, ed in enumerate(edge):
-                for pseudonym in keywords:
-                    if pseudonym in ed:
-                        edge_.append(Utilities.translation(dictionary, ed, 1))
-            for pseudonym in keywords:
-                if pseudonym in node_name:
-                    node_name = Utilities.translation(dictionary, node_name, 1)
-                    if pseudonym == 'BENS' or pseudonym == 'MEMS':
-                        nodes['RONS'][pseudonym].append([node_name, cardinality])
-                    if pseudonym == 'LANS':
-                        nodes['LANS'][pseudonym].append([node_name, cardinality])
-                    if pseudonym == 'MOTOR' or pseudonym == 'WORLD':
-                        nodes['LENS'][pseudonym].append([node_name, cardinality])
-            if len(edge_) != 0:
-                edges.append({node_name: edge_})
-            '''TO DO -> find a more elegant way to code this'''
-            mat = np.asarray(cpd .ndim)
-            cpd_ = []
-            if mat == 1:
-                cpd_ = cpd.tolist()
-            if mat != 1:
-                mat = np.shape(cpd)
-                for row in range(0, mat[0]):
-                    new_row = cpd[row,:].ravel()
-                    cpd_.append(new_row.tolist())
-            cpds.append({node_name: cpd_})
-        data['Nodes'] = nodes
-        data['Edges'] = edges
-        data['CPDs'] = cpds
-        data['header']['Date'] = datetime.datetime.now().strftime("%c")
-        Utilities.save_json(Utilities.get_json_path(file), json.dumps(data))
+        networkx = Utilities.translate_pgmpy_to_digraph(pgmpy_object)
+        Utilities.save_network(file,header,dictionary,networkx)
         return
+
 
     def save_network(file,header, dictionary,networkx_object):
         """
@@ -186,20 +209,24 @@ class Utilities(object):
         data["header"] = header
         keywords = Utilities.get_keywords()
         nw_nodes = networkx_object.nodes(data = True)
+        nw_edges = networkx_object.edges()
         nodes = {'RONS': {'BENS': [], 'MEMS': []}, 'LANS': {'LANS': []}, 'LENS': {'MOTOR': [], 'WORLD': []}}
         edges = []
         cpds = []
+        '''adding edges'''
         for i, node in enumerate(nw_nodes):
             node_name = node[0]
-            edge = np.ravel(networkx_object.edges(node_name))
-            edge = Utilities.clean_edge_list(edge,node_name)
+            childs =[]
+            for k, edge in enumerate(nw_edges):
+                if edge[0] == node_name:
+                    childs.append(Utilities.translation(dictionary, edge[1],1))
+            if len(childs) != 0:
+                edges.append({Utilities.translation(dictionary, node_name,1):childs})
+
+        for i, node in enumerate(nw_nodes):
+            node_name = node[0]
             cardinality = node[1]['cardinality']
             cpd = node[1]['cpd']
-            edge_ = []
-            for e, ed in enumerate(edge):
-                for pseudonym  in keywords:
-                    if pseudonym in ed:
-                        edge_.append(Utilities.translation(dictionary, ed,1))
             for pseudonym  in keywords:
                 if pseudonym in node_name:
                     node_name = Utilities.translation(dictionary, node_name,1)
@@ -209,8 +236,6 @@ class Utilities(object):
                         nodes['LANS'][pseudonym].append([node_name, cardinality])
                     if pseudonym == 'MOTOR' or pseudonym == 'WORLD':
                         nodes['LENS'][pseudonym].append([node_name, cardinality])
-            if len(edge_) != 0:
-                edges.append({node_name: edge_})
             cpds.append({node_name:cpd})
         data['Nodes'] = nodes
         data['Edges'] = edges
@@ -237,18 +262,18 @@ class Utilities(object):
         """
         network, node_dictionary, header =  Utilities.get_network(file)
         nw_nodes = network.nodes(data = True)
-        '''add nodes'''
+        nw_edges = network.edges()
+        '''adding nnodes and edges'''
         for i, node in enumerate(nw_nodes):
-            pgmpy_object.add_node(node[0])
-        '''add edges and cpd's'''
+            node_name = node[0]
+            pgmpy_object.add_node(node_name)
+            for k, edge in enumerate(nw_edges):
+                if edge[0] == node_name:
+                    pgmpy_object.add_edge(node_name, edge[1])
+        '''add  cpd's'''
         for i, node in enumerate(nw_nodes):
-            parent_nodes = network.predecessors(node[0])
-            child_nodes = network.successors(node[0])
-            """Add  edges to childrens"""
-            if len(child_nodes) != 0:
-                for child in child_nodes:
-                    pgmpy_object.add_edge(node[0], child)
-            """ add cpd's """
+            parent_nodes = network.in_edges(node[0])
+            parent_nodes = Utilities.clean_parent_list(parent_nodes,node[0])
             cpd = node[1]['cpd']
             ''' find the cardinality of the node '''
             cardinality_node = node[1]['cardinality']
@@ -260,11 +285,9 @@ class Utilities(object):
             if len(cardinality_parents) == 0:
                 pgmpy_object.add_cpds(TabularCPD(variable=node[0], variable_card= cardinality_node, values=[cpd]))
                 continue
-            if len(parent_nodes) == 1:#this is necessary so the TabularCPD function accepts only one parent (evidence_card must be reshaped)
-                cardinality_parents = [network.node[parent_nodes[0]]['cardinality']]
             table = TabularCPD(variable=node[0], variable_card= cardinality_node, values=cpd, \
                               evidence=parent_nodes,\
-                              evidence_card=cardinality_parents)
+                              evidence_card=np.asarray(cardinality_parents))
             pgmpy_object.add_cpds(table)
 
         '''------TO DELETE-------------'''
@@ -292,23 +315,19 @@ class Utilities(object):
         data = re.sub('\n', '', data)
         data = re.sub('\t', '', data)
         data = json.loads(data)
-
         header = data['header']
         G = nx.DiGraph()
 
         '''Feeding G with the nodes'''
-        nodes = []
         node_dictionary = []
         cardinality = {}
         for key in data['Nodes'].keys():
             for  secondkey in data['Nodes'][key].keys():
                 for c, n  in enumerate(data['Nodes'][key][secondkey]):
                     node = secondkey + "_" + str(c)
-                    nodes.append(node)
+                    G.add_node(node, {'cardinality':n[1], 'cpd':[]})
                     node_dictionary.append((n[0],node))
                     cardinality.update({node:n[1]})#this contains the cardinality of each node with the node name as dictionary entry
-        np.ravel(nodes)
-        G.add_nodes_from(nodes)
 
         '''Feeding G with the edges'''
         edges = []
@@ -320,13 +339,11 @@ class Utilities(object):
                     edges.append((parent_,child_))
         np.ravel(edges)
         G.add_edges_from(edges)
-
-        '''Feeding G with the cardinality and CPD's as nodes attributes'''
+        '''Feeding G with the  CPD's as nodes attributes'''
         for j, node in enumerate(data['CPDs']):
             for parent, cpd in node.items():
                 node_ = Utilities.translation(node_dictionary, parent, 0)
-                attribute = {'cardinality': cardinality[node_], 'cpd': cpd}
-                G.add_node(node_ ,attribute)
+                G.node[node_]['cpd'] = cpd
 
         '''TO REMOVE LATER'''
         # plt.figure(figsize=(10, 5))
@@ -541,13 +558,14 @@ def main():
             Utilities.create_json_file(str(var), description = 'testing')
     ''' going back and forward to test if the get and save methods keep the data integrity'''
     networkx, dic, header = Utilities.get_network(var)
+    Utilities.save_network(var, header, dic, networkx)
     network = BayesianModel()
     dic, header = Utilities.get_pgmpy_network(var, network)
-    Utilities.save_network(var, header,dic,networkx)
+
     # ''' backward'''
     networkx, dic, header = Utilities.get_network(var)
     Utilities.save_pgmpy_network(var, header, dic, network)
-    ''' backward'''
+    # ''' backward'''
     network = BayesianModel()
     dic, header = Utilities.get_pgmpy_network(var, network)
     print("Dictionary  ", dic)
