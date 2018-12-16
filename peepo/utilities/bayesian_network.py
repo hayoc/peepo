@@ -3,6 +3,7 @@ import logging
 import math
 import os
 import random
+import uuid
 
 import numpy as np
 from pgmpy.factors.discrete import TabularCPD
@@ -55,7 +56,7 @@ def json_to_bayesian_network(folder_id, bn_id):
 
 def add_node(model):
     model = model.copy()
-    new_node_name = str(len(model))
+    new_node_name = str(uuid.uuid4())[:8]
     node_to_add_to = random.choice(model.nodes())
     logging.info('Adding new node with edge to: %s to %s', new_node_name, node_to_add_to)
 
@@ -183,13 +184,16 @@ def remove_edge(model):
 
     if len(evidence) is not 0:
         values = old_cpd.get_values()[:, 0::2]  # TODO: Make it work for non-binary CPDs
-        evidence_card = old_cpd.cardinality[len(old_cpd.get_evidence()):]  # TODO: Idem
+        evidence_card = old_cpd.cardinality[2:]  # TODO: Idem
 
-        new_cpd = TabularCPD(variable=child_node,
-                             variable_card=old_cpd.variable_card,
-                             values=values,
-                             evidence=evidence,
-                             evidence_card=evidence_card)
+        try:
+            new_cpd = TabularCPD(variable=child_node,
+                                 variable_card=old_cpd.variable_card,
+                                 values=values,
+                                 evidence=evidence,
+                                 evidence_card=evidence_card)
+        except:
+            print('')
     else:
         values = [old_cpd.get_values()[:, 0]]
 
@@ -217,7 +221,7 @@ def change_parameters(model):
 
     for idx_col, col in enumerate(values.T):
         for idx_row, row in enumerate(col):
-            to_add = abs(math.log(row, 100))
+            to_add = abs(math.log(row if row > 0 else 1, 100))
             to_subtract = to_add / (len(col) - 1)
 
             values[idx_row, idx_col] = values[idx_row, idx_col] + to_add
