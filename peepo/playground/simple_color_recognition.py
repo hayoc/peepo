@@ -46,7 +46,6 @@ class MyClass(object):
             parent = ''
             child = ''
             for column, ben  in enumerate(skelet[1]):
-                print('ben = ', ben)
                 if ben == 1:
                     parent = 'BENS_'+str(column)
                     print('parent : ', parent)
@@ -87,8 +86,8 @@ class MyClass(object):
         ''' if a best model has ben found, save it -> first update the Utility class object and save it'''
         # self._util.update_networkx(self.networx, self.dictionary, self.header)
         # self._util.save_network()
-        self._util.update_pgmpy(self.pgmpy, self.dictionary, self.header)
-        self._util.save_pgmpy_network()
+        # self._util.update_pgmpy(self.pgmpy, self.dictionary, self.header)
+        # self._util.save_pgmpy_network()
         self.draw()
         return self.results
 
