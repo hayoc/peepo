@@ -3,43 +3,78 @@ import datetime
 import json
 import networkx as nx
 import numpy as np
+import copy
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 import re
+import itertools
+from peepo.utilities.lattices import  Lattices
 import matplotlib.pyplot as plt
 #from peepo.visualize.graph import draw_network
 #import matplotlib.pyplot as plt
 
 
 class Utilities(object):
-    def __init__(self):
+    def __init__(self, file):
         ''' no object creation -> opportune  ?'''
-        pass
+        self.keywords = ['BENS','MEMS','LANS','MOTOR','WORLD']
+        self.standard_nodes = {'RONS': {'BENS': [], 'MEMS': []}, 'LANS': {'LANS': []},
+                               'LENS': {'MOTOR': [], 'WORLD': []}}
+        self.file = file
+        self.get_json_path(file)
+        self.pgmpy_object = BayesianModel()
+        self.networkx_object = nx.DiGraph()
+        self.header =''
+        self.dictionary =[]
 
-    def  get_keywords():
-        return  ['BENS','MEMS','LANS','MOTOR','WORLD']
+    def get_nodes_in_family(self, family, attributes=False):
+        nw_nodes = self.networkx_object.nodes()
+        nw_dim = np.asarray(nw_nodes).ndim
+        nodes = []
+        for i, node in enumerate(nw_nodes):
+            if nw_dim > 1:
+                node = node[0]
+            if family in node:
+                nodes.append(node)
+        return nodes
 
-    def clean_edge_list(edge_array, parent):
-        '''the get functions for the edges, both in networx as pgmpy contain the parent name
-            this function removes it from the list'''
-        cleaned_list = []
-        for a in edge_array:
-            if a!= parent:
-                cleaned_list.append(a)
-        return cleaned_list
-
-    def clean_parent_list(parent_array, child):
-        '''the get functions for the edges, both in networx as pgmpy contain the parent name
-            this function removes it from the list'''
-        cleaned_list = []
-        for i,a in enumerate(parent_array):
-            if a[0]!= child:
-                cleaned_list.append(a[0])
-        return cleaned_list
-
-    def save_json(file, astring):
+    def check_json_path(directory):
         """
-        This helping function is only needed to have the json file be formatted in a user friendly way
+        Checks whether the necessary project_repository directory exists.
+        If not, creates it
+
+        :param directory: the mother directory to search from downwards
+
+        :type directory: string
+        :rtype : none
+        """
+        if not os.path.exists(directory + '\project_repository\\'):
+            os.makedirs(directory + '\project_repository\\')
+
+    def get_json_path(self, file):
+        """
+        Creates a string containing the full path for the filename passed
+        so it will be saved in the project_repository directory
+
+        :param filename: filename without path or extension
+        :return: a full path for the file
+
+        :type filename :string
+        :rtype : string
+        """
+        levels = 5
+        common = os.path.dirname(os.path.realpath(__file__))
+        for i in range(levels + 1):
+            common = os.path.dirname(common)
+            if 'peepo\peepo' not in common:
+                break
+        Utilities.check_json_path(common)
+        self.file = str(common + '\project_repository\\'+ file +'.json')
+        print('in get_json_path :' , self.file)
+
+    def save_json(self, astring):
+        """
+        This helping function is only needed to have the json file  formatted in a user friendly way
         as the "dump" method does not provide a lot of possibilities to get it "pretty"
 
         :param file :the ull path of the json file
@@ -49,7 +84,7 @@ class Utilities(object):
         :type astring : string
         :rtype : void
         """
-        text_file = open(file, "w")
+        text_file = open(str(self.file), "w")
         '''remove all LF written by the dump method'''
         astring = re.sub('\n', '', astring)
         '''For keywords -> insert LF and tabs'''
@@ -73,7 +108,7 @@ class Utilities(object):
         text_file.write('\n')
         text_file.close()
 
-    def translation(dictionary, astring, from_man_to_machine):
+    def translation(self, astring, from_man_to_machine):
         """
         Given an array of tuples (a,b) in dictionary, returns the second element of the tuple where astring was found
         Is used to not loose the users node names as peepo generates standardized names for the corresponding node
@@ -92,46 +127,30 @@ class Utilities(object):
             source = 1
             target = 0
 
-        for index, item in enumerate(dictionary):
+        for index, item in enumerate(self.dictionary):
             if item[source] == astring :
                 break
         return  item[target]
 
-    def check_json_path(directory):
-        """
-        Checks whether the necessary project_repository directory exists.
-        If not, creates it
+    def clean_edge_list(self, edge_array, parent):
+        '''the get functions for the edges, both in networx as pgmpy contain the parent name
+            this function removes it from the list'''
+        cleaned_list = []
+        for a in edge_array:
+            if a!= parent:
+                cleaned_list.append(a)
+        return cleaned_list
 
-        :param directory: the mother directory to search from downwards
+    def clean_parent_list(self, parent_array, child):
+        '''the get functions for the edges, both in networx as pgmpy contain the parent name
+            this function removes it from the list'''
+        cleaned_list = []
+        for i,a in enumerate(parent_array):
+            if a[0]!= child:
+                cleaned_list.append(a[0])
+        return cleaned_list
 
-        :type directory: string
-        :rtype : none
-        """
-        if not os.path.exists(directory + '\project_repository\\'):
-            os.makedirs(directory + '\project_repository\\')
-
-    def get_json_path(filename):
-        """
-        Creates a string containing the full path for the filename passed
-        so it will be saved in the project_repository directory
-
-        :param filename: filename without path or extension
-        :return: a full path for the file
-
-        :type filename :string
-        :rtype : string
-        """
-        levels = 5
-        common = os.path.dirname(os.path.realpath(__file__))
-        for i in range(levels + 1):
-            common = os.path.dirname(common)
-            if  'peepo\peepo' not in common:
-                break
-        Utilities.check_json_path(common)
-        return common + '\project_repository\\'+filename+'.json'
-
-
-    def get_edges(pgmpy_object):
+    def get_edges(self):
         """
         Creates a dictionary with a node as a key and an array with its child as value
         (the methods get_child give generally a list of tuples (parent,child)
@@ -142,12 +161,13 @@ class Utilities(object):
         :type fpgmpy_object:adress
         :rtype :dictionary
                 """
-        edg = pgmpy_object.edges()
+        edg = self.pgmpy_object.edges()
         edges = dict()
         [edges[str(t[0])].append(str(t[1])) if t[0] in list(edges.keys()) else edges.update({str(t[0]): [str(t[1])]}) for t in edg]
         return edges
 
-    def get_nodes_and_attributes(pgmpy_object):
+
+    def get_nodes_and_attributes(self):
         """
         Creates an  array  of tuple with a node as element 0 and a dictionary with cardinalities and cpd as key's and
          the key cardinality returns an int
@@ -159,10 +179,10 @@ class Utilities(object):
         :type  :pgmpy_object:adress
         :rtype :array of tuples
         """
-        nodes = pgmpy_object.nodes()
+        nodes = self.pgmpy_object.nodes()
         nod_and_attributes = []
-        [nod_and_attributes.append((str(node),{'cardinality':int(pgmpy_object.get_cardinality(node)), 'cpd': pgmpy_object.get_cpds(node).values.astype(float)}))  for i,node in enumerate(nodes)]
-        #need to reshape the cpds when mored than 1 parent
+        [nod_and_attributes.append((str(node),{'cardinality':int(self.pgmpy_object.get_cardinality(node)), 'cpd': self.pgmpy_object.get_cpds(node).values.astype(float)}))  for i,node in enumerate(nodes)]
+        #need to reshape the cpds when more than 1 parent
         for i,node in enumerate(nod_and_attributes):
             shape = nod_and_attributes[i][1]['cpd'].shape
             dimension = nod_and_attributes[i][1]['cpd'].ndim
@@ -172,7 +192,7 @@ class Utilities(object):
             nod_and_attributes[i][1]['cpd'] = nod_and_attributes[i][1]['cpd'].tolist()
         return nod_and_attributes
 
-    def translate_pgmpy_to_digraph(pgmpy_object):
+    def translate_pgmpy_to_digraph(self):
         """
         Converts a pgmpy network into a networkx network
 
@@ -182,35 +202,43 @@ class Utilities(object):
         :type  :pgmpy_object:adress
         :rtype :networkx:adress
         """
-        networkx_object = nx.DiGraph()
-        edges = pgmpy_object.edges()
-        nodes_and_attributes =  Utilities.get_nodes_and_attributes(pgmpy_object)
-        networkx_object.add_nodes_from(nodes_and_attributes)
-        networkx_object.add_edges_from(edges)
-        return networkx_object
+        self.networkx_object = nx.DiGraph()
+        edges = self.pgmpy_object.edges()
+        nodes_and_attributes =  self.get_nodes_and_attributes()
+        self.networkx_object.add_nodes_from(nodes_and_attributes)
+        self.networkx_object.add_edges_from(edges)
+        return
 
+    def update_networkx(self, networkx, dic, header):
+        self.header = header
+        self.dictionary = dic
+        self.networkx_object = networkx
 
-    def save_pgmpy_network(file, header, dictionary, pgmpy_object):
+    def update_pgmpy(self, pgmpy, dic, header):
+        self.header = header
+        self.dictionary = dic
+        self.pgmpy_object = pgmpy
+
+    def save_pgmpy_network(self):
         """
                 Saves the passed pgmpy_object class object in a json file
-
-                """
-        networkx = Utilities.translate_pgmpy_to_digraph(pgmpy_object)
-        Utilities.save_network(file,header,dictionary,networkx)
+        """
+        self.translate_pgmpy_to_digraph()
+        self.save_network()
         return
 
 
-    def save_network(file,header, dictionary,networkx_object):
+    def save_network(self):
         """
         Saves the passed networkx class object in a json file
 
         """
-        data = Utilities.get_empty_canvas()
-        data["header"] = header
-        keywords = Utilities.get_keywords()
-        nw_nodes = networkx_object.nodes(data = True)
-        nw_edges = networkx_object.edges()
-        nodes = {'RONS': {'BENS': [], 'MEMS': []}, 'LANS': {'LANS': []}, 'LENS': {'MOTOR': [], 'WORLD': []}}
+        data = self.get_empty_canvas()
+        data["header"] = self.header
+        nw_nodes = self.networkx_object.nodes(data = True)
+        nw_edges = self.networkx_object.edges()
+        keywords = self.keywords
+        nodes = copy.deepcopy(self.standard_nodes)#{'RONS': {'BENS': [], 'MEMS': []}, 'LANS': {'LANS': []}, 'LENS': {'MOTOR': [], 'WORLD': []}}
         edges = []
         cpds = []
         '''adding edges'''
@@ -219,9 +247,9 @@ class Utilities(object):
             childs =[]
             for k, edge in enumerate(nw_edges):
                 if edge[0] == node_name:
-                    childs.append(Utilities.translation(dictionary, edge[1],1))
+                    childs.append(self.translation(edge[1],1))
             if len(childs) != 0:
-                edges.append({Utilities.translation(dictionary, node_name,1):childs})
+                edges.append({self.translation(node_name,1):childs})
 
         for i, node in enumerate(nw_nodes):
             node_name = node[0]
@@ -229,22 +257,22 @@ class Utilities(object):
             cpd = node[1]['cpd']
             for pseudonym  in keywords:
                 if pseudonym in node_name:
-                    node_name = Utilities.translation(dictionary, node_name,1)
+                    node_name_ = self.translation(node_name,1)
                     if pseudonym == 'BENS' or pseudonym == 'MEMS':
-                        nodes['RONS'][pseudonym].append([node_name, cardinality])
+                        nodes['RONS'][pseudonym].append([node_name_, cardinality])
                     if pseudonym == 'LANS':
-                        nodes['LANS'][pseudonym].append([node_name, cardinality])
+                        nodes['LANS'][pseudonym].append([node_name_, cardinality])
                     if pseudonym == 'MOTOR' or pseudonym == 'WORLD':
-                        nodes['LENS'][pseudonym].append([node_name, cardinality])
-            cpds.append({node_name:cpd})
+                        nodes['LENS'][pseudonym].append([node_name_, cardinality])
+            cpds.append({self.translation(node_name,1):cpd})
         data['Nodes'] = nodes
         data['Edges'] = edges
         data['CPDs']  = cpds
         data['header']['Date'] = datetime.datetime.now().strftime("%c")
-        Utilities.save_json(Utilities.get_json_path(file) , json.dumps(data))
+        self.save_json(json.dumps(data))
         return
 
-    def get_pgmpy_network(file, pgmpy_object):
+    def get_pgmpy_network(self):
         """
         Reads the passed json file and translates it's content to the passed pgmpy class object
         - uses the get_network(file) to read the json file in a networkx format and translate this to pgmpy
@@ -260,20 +288,21 @@ class Utilities(object):
 
         CAUTION : the method does not perform a check() on the constructed DAG ! -> has to be done in the calling module
         """
-        network, node_dictionary, header =  Utilities.get_network(file)
+        self.pgmpy_object = BayesianModel()
+        network, dictionary, header =  self.get_network()
         nw_nodes = network.nodes(data = True)
         nw_edges = network.edges()
         '''adding nnodes and edges'''
         for i, node in enumerate(nw_nodes):
             node_name = node[0]
-            pgmpy_object.add_node(node_name)
+            self.pgmpy_object.add_node(node_name)
             for k, edge in enumerate(nw_edges):
                 if edge[0] == node_name:
-                    pgmpy_object.add_edge(node_name, edge[1])
+                    self.pgmpy_object.add_edge(node_name, edge[1])
         '''add  cpd's'''
         for i, node in enumerate(nw_nodes):
             parent_nodes = network.in_edges(node[0])
-            parent_nodes = Utilities.clean_parent_list(parent_nodes,node[0])
+            parent_nodes = self.clean_parent_list(parent_nodes,node[0])
             cpd = node[1]['cpd']
             ''' find the cardinality of the node '''
             cardinality_node = node[1]['cardinality']
@@ -283,21 +312,20 @@ class Utilities(object):
                 cardinality_parents.append(network.node[nod]['cardinality'])
             ''' Depending on the place in the BN and/or the number of parents  the PGMPY CPD methods have another call'''
             if len(cardinality_parents) == 0:
-                pgmpy_object.add_cpds(TabularCPD(variable=node[0], variable_card= cardinality_node, values=[cpd]))
+                self.pgmpy_object.add_cpds(TabularCPD(variable=node[0], variable_card= cardinality_node, values=[cpd]))
                 continue
             table = TabularCPD(variable=node[0], variable_card= cardinality_node, values=cpd, \
                               evidence=parent_nodes,\
                               evidence_card=np.asarray(cardinality_parents))
-            pgmpy_object.add_cpds(table)
-
+            self.pgmpy_object.add_cpds(table)
         '''------TO DELETE-------------'''
         # pgmpy_object.check_model()
         # draw_network(pgmpy_object)
         '''-----------------------------'''
-        return node_dictionary, header
+        return self.pgmpy_object,self.dictionary, self.header
 
 
-    def get_network(file):
+    def get_network(self):
         """
         Reads the passed json file and translate it's content in a networkx class object
         - The nodes in the object are renamed so they have a standardized signature
@@ -309,24 +337,23 @@ class Utilities(object):
         :type file : string
         :rtype : networkx class object, array of tuples, dictionary
         """
-        with open(Utilities.get_json_path(file)) as f:
+        self.dictionary = []
+        self.networkx_object = nx.DiGraph()
+        with open(self.file) as f:
             data = f.read()
-        '''Remove possible non informative characterss'''
+        '''Remove possible non informative characters'''
         data = re.sub('\n', '', data)
         data = re.sub('\t', '', data)
         data = json.loads(data)
-        header = data['header']
-        G = nx.DiGraph()
-
+        self.header = data['header']
         '''Feeding G with the nodes'''
-        node_dictionary = []
         cardinality = {}
         for key in data['Nodes'].keys():
             for  secondkey in data['Nodes'][key].keys():
                 for c, n  in enumerate(data['Nodes'][key][secondkey]):
                     node = secondkey + "_" + str(c)
-                    G.add_node(node, {'cardinality':n[1], 'cpd':[]})
-                    node_dictionary.append((n[0],node))
+                    self.networkx_object.add_node(node, {'cardinality':n[1], 'cpd':[]})
+                    self.dictionary.append((n[0],node))
                     cardinality.update({node:n[1]})#this contains the cardinality of each node with the node name as dictionary entry
 
         '''Feeding G with the edges'''
@@ -334,16 +361,16 @@ class Utilities(object):
         for j, pair in enumerate(data['Edges']):
             for parent in pair.keys():
                 for child in data['Edges'][j][parent]:
-                    parent_ = Utilities.translation(node_dictionary,parent, 0)
-                    child_  = Utilities.translation(node_dictionary,child, 0)
+                    parent_ = self.translation(parent, 0)
+                    child_  = self.translation(child, 0)
                     edges.append((parent_,child_))
         np.ravel(edges)
-        G.add_edges_from(edges)
+        self.networkx_object.add_edges_from(edges)
         '''Feeding G with the  CPD's as nodes attributes'''
         for j, node in enumerate(data['CPDs']):
             for parent, cpd in node.items():
-                node_ = Utilities.translation(node_dictionary, parent, 0)
-                G.node[node_]['cpd'] = cpd
+                node_ = self.translation( parent, 0)
+                self.networkx_object.node[node_]['cpd'] = cpd
 
         '''TO REMOVE LATER'''
         # plt.figure(figsize=(10, 5))
@@ -352,10 +379,10 @@ class Utilities(object):
         # nx.draw(G, pos, node_size=1200, node_color='lightblue',
         #         linewidths=0.25,  font_size=10, font_weight='bold', with_labels=True)
         # plt.show()
-        return G, node_dictionary, header
+        return self.networkx_object, self.dictionary, self.header
 
 
-    def create_json_file(Case_name, **kwargs):
+    def create_json_file(self, **kwargs):
 
         """
         EWAMPLE :
@@ -397,12 +424,11 @@ class Utilities(object):
         edges = kwargs.get('Edges', [])
         frozen = kwargs.get('frozen',False)
 
-        case_name = Utilities.get_json_path(Case_name)  # creates the right path in which case_name will be saved
         #json_tab_file_write = JSONTabIndentFileWriter( Case_name,5a)
-        data = Utilities.get_empty_canvas()
+        data = self.get_empty_canvas()
 
         '''       - the 3 next items are for tracking purpose only, not fundamentally necessary'''
-        data["header"]['Identification'] = case_name
+        data["header"]['Identification'] = self.file
         data["header"]['Date'] = datetime.datetime.now().strftime("%c")
         data["header"]['Description'] = description
         '''       - the next item gives a file containing possible training data (OPTIONAL)'''
@@ -460,11 +486,11 @@ class Utilities(object):
         data["CPDs"] = cpds
 
         ''' dumping to CASENAME file in jason format'''
-        Utilities.save_json(case_name,json.dumps(data))
+        self.save_json(json.dumps(data))
 
-        print("Json file for  - ", case_name, "  - created")
+        print("Json file for  - ", self.file, "  - created")
 
-    def create_json_template():
+    def create_json_template(self):
         """
         A helping method if the  jason template in the project_repository ditectory has been deleted or corrupted
 
@@ -474,10 +500,9 @@ class Utilities(object):
         :type : void
         :rtype : void
         """
-        case_name = "Template"
-        case_name = Utilities.get_json_path(case_name)  # creates the right path in which case_name will be saved
-        data = Utilities.get_empty_canvas()
-        data['header']['Identification'] = case_name
+        self.get_json_path("Template")  # creates the right path in which case_name will be saved
+        data =  self.get_empty_canvas()
+        data['header']['Identification'] = self.file
         '''Filling some dummies to facilitate the user'''
         a_node = ['*',0]
         an_edge = {'*':['&','&','&']}
@@ -501,10 +526,10 @@ class Utilities(object):
         ''' dumping to CASENAME file in jason format'''
         # with open(case_name, 'w') as f:
         #     json.dump(data, f, separators = (",",":"))
-        Utilities.save_json(case_name,json.dumps(data))
+        self.save_json(json.dumps(data))
         print("Empty template created")
 
-    def get_empty_canvas():
+    def get_empty_canvas(self):
         """
          This method creates a json canvas which will be used for the several json creating method
 
@@ -541,33 +566,47 @@ class Utilities(object):
         data['CPDs'] = cpds
         return data
 
+
+
+
 def main():
     '''TEMPORARY : for testing purpose  -> will be removed after thourough pratical testing'''
 
     print("Please enter a valid name for the peepo case i.e. a valid filename without any extension or path.")
     print("If you just want to recreate a slate template, just leave this blank and press ENTER")
+
     var = input()
     if len(var) == 0:
         var = "Template"
     print("You entered :" + str(var), " OK (Y/N) ?")
     confirm = input()
+    util = Utilities(var)
     if confirm == "Y" or confirm ==  "y":
         if  var == "Template":
-            Utilities.create_json_template()
+            util.create_json_template()
+            exit()
         else:
-            Utilities.create_json_file(str(var), description = 'testing')
+            util.create_json_file( description = 'testing')
     ''' going back and forward to test if the get and save methods keep the data integrity'''
-    networkx, dic, header = Utilities.get_network(var)
-    Utilities.save_network(var, header, dic, networkx)
+    print('expected filename ', util.file)
+    networkx, dic, header = util.get_network()
+    '''do something with it'''
+    util.update_networkx(networkx, dic, header)
+    util.save_network()
     network = BayesianModel()
-    dic, header = Utilities.get_pgmpy_network(var, network)
-
-    # ''' backward'''
-    networkx, dic, header = Utilities.get_network(var)
-    Utilities.save_pgmpy_network(var, header, dic, network)
+    network, dic, header = util.get_pgmpy_network()
+    '''do something with it'''
+    util.update_pgmpy(network, dic, header)
+    network, dic, header = util.get_pgmpy_network()
+    util.save_pgmpy_network()
+    ''' backward'''
+    networkx, dic, header = util.get_network()
+    util.update_networkx(networkx, dic, header)
+    util.save_network()
+    util.save_pgmpy_network()
     # ''' backward'''
     network = BayesianModel()
-    dic, header = Utilities.get_pgmpy_network(var, network)
+    network, dic, header = util.get_pgmpy_network()
     print("Dictionary  ", dic)
     print("header ",  header)
 
