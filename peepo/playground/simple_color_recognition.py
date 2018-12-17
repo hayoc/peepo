@@ -37,6 +37,7 @@ class MyClass(object):
         print(self.header)
         print(self.dictionary)
         possible_structures  = self._lat.get_possible_paths()
+        print("Possible models : ", len(possible_structures))
         entropy = 0
         count = 0#TEMPORARY
         for skeleton in possible_structures:
@@ -46,9 +47,10 @@ class MyClass(object):
             parent = ''
             child = ''
             for column, ben  in enumerate(skelet[1]):
+                parent = []
                 if ben == 1:
                     parent = 'BENS_'+str(column)
-                    print('parent : ', parent)
+                    #print('parent : ', parent)
                 if len(parent) > 0:
                     for row, world in enumerate(skelet[0]):
                         child = 'WORLD_'+str(row)
@@ -56,9 +58,10 @@ class MyClass(object):
             self.edges= self.networx.edges()
             '''following  4 lines to remove : just use to check whether the algorithms are correct regarding the edges building'''
             count += 1
-            print('edges : ', self.edges)
-            if count > 100:
-                break
+            # print('edges : ', self.edges)
+            # if count > 100:
+            #     break
+        print('Check -> number of structures in loop : ', count)
         '''TO DO ----------------------------------------------------
                 a) add random cpds , convert to pgmpy BN, 
                 b) enbedd the skeleton loop  within the learning loop->
