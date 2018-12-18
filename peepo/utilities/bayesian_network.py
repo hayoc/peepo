@@ -15,6 +15,13 @@ from config import ROOT_DIR
 
 
 def bayesian_network_to_json(bayesian_network, folder_id, bn_id):
+    """
+    Writes a BayesianModel to a json file at ROOT/resources/bn/{folder_id}/{bn_id}
+
+    :param bayesian_network: BayesianModel to serialize
+    :param folder_id: Folder where to place json
+    :param bn_id: Name of json file
+    """
     cpds = []
     for cpd in bayesian_network.get_cpds():
         cpds.append({
@@ -40,6 +47,13 @@ def bayesian_network_to_json(bayesian_network, folder_id, bn_id):
 
 
 def json_to_bayesian_network(folder_id, bn_id):
+    """
+    Reads a json to create a Bayesian Network
+
+    :param folder_id: Folder where json is under ROOT/resources/bn
+    :param bn_id: Name of json file
+    :return: BayesianModel
+    """
     with open(ROOT_DIR + '/resources/bn/' + str(folder_id) + '/' + str(bn_id) + '.json') as json_data:
         json_object = json.load(json_data)
 
@@ -57,6 +71,13 @@ def json_to_bayesian_network(folder_id, bn_id):
 
 
 def fully_connected_model(nodes, training_data):
+    """
+    Creates a fully connected model between the given nodes, with the given training data.
+
+    :param nodes: List of nodes for the model
+    :param training_data: Data to train the model on
+    :return: BayesianModel with edges from all root nodes to all leaf nodes
+    """
     network = BayesianModel()
     network.add_nodes_from(nodes)
 
@@ -72,6 +93,17 @@ def fully_connected_model(nodes, training_data):
 
 
 def synaptic_pruning(model, training_data, reset=None):
+    """
+    Given a GenerativeModel with a fully connected Bayesian network (i.e. edges between all root and leaf nodes), and
+    training data executes the model sequentially first with the fully connected network, afterwards it will prune the
+    edges and rerun the model with the pruned network.
+    Returns the edges and amount of loops to minimize prediction error for each pruned network.
+
+    :param model: GenerativeModel
+    :param training_data: dict
+    :param reset: optional callback to reset any values after each model has run
+    :return: edges and loop score
+    """
     original_model = model.network.copy()
     edges = original_model.edges()
 
@@ -110,6 +142,12 @@ def synaptic_pruning(model, training_data, reset=None):
 
 
 def add_node(model):
+    """
+    Random mutation of adding a single node and an edge.
+
+    :param model: BayesianModel to mutate
+    :return: mutated Bayesian Model
+    """
     model = model.copy()
     new_node_name = str(uuid.uuid4())[:8]
     node_to_add_to = random.choice(model.nodes())
@@ -148,6 +186,12 @@ def add_node(model):
 
 
 def add_edge(model):
+    """
+    Random mutation of adding a single edge.
+
+    :param model: BayesianModel to mutate
+    :return: mutated Bayesian Model
+    """
     model = model.copy()
     parent_node = random.choice(model.nodes())
     child_node = random.choice(filter_for_edge(model, parent_node))
@@ -184,6 +228,12 @@ def add_edge(model):
 
 
 def remove_node(model):
+    """
+    Random mutation of removing a single node and its edges.
+
+    :param model: BayesianModel to mutate
+    :return: mutated Bayesian Model
+    """
     model = model.copy()
     options = filter_observed_nodes([x for x in model.nodes() if x not in model.get_leaves()])
     if not options:
@@ -199,26 +249,13 @@ def remove_node(model):
     return model
 
 
-OBSERVABLES = ['motor', 'vision', 'obs']
-
-
-def filter_observed_nodes(nodes):
-    result = []
-    for node in nodes:
-        if not any(obs in node for obs in OBSERVABLES):
-            result.append(node)
-    return result
-
-
-def filter_non_observed_nodes(nodes):
-    result = []
-    for node in nodes:
-        if any(obs in node for obs in OBSERVABLES):
-            result.append(node)
-    return result
-
-
 def remove_edge(model):
+    """
+    Random mutation of removing a single edge.
+
+    :param model: BayesianModel to mutate
+    :return: mutated Bayesian Model
+    """
     model = model.copy()
     options = model.edges()
     if not options:
@@ -241,14 +278,11 @@ def remove_edge(model):
         values = old_cpd.get_values()[:, 0::2]  # TODO: Make it work for non-binary CPDs
         evidence_card = old_cpd.cardinality[2:]  # TODO: Idem
 
-        try:
-            new_cpd = TabularCPD(variable=child_node,
-                                 variable_card=old_cpd.variable_card,
-                                 values=values,
-                                 evidence=evidence,
-                                 evidence_card=evidence_card)
-        except:
-            print('')
+        new_cpd = TabularCPD(variable=child_node,
+                             variable_card=old_cpd.variable_card,
+                             values=values,
+                             evidence=evidence,
+                             evidence_card=evidence_card)
     else:
         values = [old_cpd.get_values()[:, 0]]
 
@@ -267,6 +301,12 @@ def remove_edge(model):
 
 
 def change_parameters(model):
+    """
+    Random mutation of changing the parameters of a single node.
+
+    :param model: BayesianModel to mutate
+    :return: mutated Bayesian Model
+    """
     model = model.copy()
     node = random.choice(model.nodes())
     logging.info('Changing parameters of %s', node)
@@ -289,6 +329,25 @@ def change_parameters(model):
     model.check_model()
 
     return model
+
+
+OBSERVABLES = ['motor', 'vision', 'obs']
+
+
+def filter_observed_nodes(nodes):
+    result = []
+    for node in nodes:
+        if not any(obs in node for obs in OBSERVABLES):
+            result.append(node)
+    return result
+
+
+def filter_non_observed_nodes(nodes):
+    result = []
+    for node in nodes:
+        if any(obs in node for obs in OBSERVABLES):
+            result.append(node)
+    return result
 
 
 def filter_for_edge(model, parent_node):
@@ -344,7 +403,3 @@ MUTATIONS = [add_node, add_edge, change_parameters, remove_node, remove_edge]
 
 def random_mutation(model):
     return random.choice(MUTATIONS)(model)
-
-# network = createone()
-# for _ in range(0, 1000):
-#     pop = random_mutation(network)
