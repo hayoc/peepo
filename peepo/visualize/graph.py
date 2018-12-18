@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 
 import networkx as nx
@@ -28,4 +27,3 @@ def draw_network(network):
 
     # write json
     json.dump(d, open(path + '/static/peepo.json', 'w'))
-    logging.debug('Wrote node-link JSON data to static/peepo.json')
