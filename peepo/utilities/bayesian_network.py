@@ -1,3 +1,4 @@
+import itertools
 import json
 import logging
 import math
@@ -6,6 +7,7 @@ import random
 import uuid
 
 import numpy as np
+from pgmpy.estimators import BayesianEstimator
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 
@@ -52,6 +54,59 @@ def json_to_bayesian_network(folder_id, bn_id):
             bayesian_network.add_cpds(cpd)
         bayesian_network.check_model()
         return bayesian_network
+
+
+def fully_connected_model(nodes, training_data):
+    network = BayesianModel()
+    network.add_nodes_from(nodes)
+
+    for hypo in nodes:
+        if 'hypo' in hypo:
+            for obs in nodes:
+                if 'obs' in obs or 'motor' in obs:
+                    network.add_edge(u=hypo, v=obs)
+
+    network.fit(training_data, estimator=BayesianEstimator, prior_type="BDeu")
+
+    return network
+
+
+def synaptic_pruning(model, training_data, reset=None):
+    original_model = model.network.copy()
+    edges = original_model.edges()
+
+    result = {}
+
+    for x in range(0, len(edges) + 1):
+        subresult = []
+        for cmb in itertools.combinations(edges, x):
+            if reset:
+                reset()
+            copy = original_model.copy()
+
+            for cpd in copy.get_cpds():
+                copy.remove_cpds(cpd)
+
+            for edge in cmb:
+                copy.remove_edge(edge[0], edge[1])
+
+            copy.fit(training_data, estimator=BayesianEstimator, prior_type="BDeu")
+            model.network = copy
+
+            loops = -1
+            for l in range(0, 100):
+                total_error = model.process()
+                if total_error < 0.1:
+                    loops = l
+                    break
+
+            subresult.append({
+                "score": loops,
+                "edges": copy.edges()})
+
+        result[str(x)] = subresult
+
+    return result
 
 
 def add_node(model):

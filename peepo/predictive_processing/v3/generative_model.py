@@ -150,13 +150,13 @@ class GenerativeModel:
         else:
             result = infer.query(
                 variables=[x for x in self.network.get_roots()
-                           if x not in [leaf_node]],
+                           if 'obs' not in x and 'motor' not in x],
                 evidence={leaf_node: np.argmax(prediction_error + prediction)})
 
             for root_node, root_cpd in result.items():
                 before = self.network.get_cpds(root_node).values
                 self.network.get_cpds(root_node).values = root_cpd.values
-                logging.debug("node[%s] hypothesis-update from %s to %s", root_node, before, result)
+                logging.debug("node[%s] hypothesis-update from %s to %s", root_node, before, root_cpd.values)
 
     def model_update(self, node, prediction_error, prediction):
         """
