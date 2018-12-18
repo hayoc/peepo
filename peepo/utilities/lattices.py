@@ -73,7 +73,6 @@ class Lattices(object):
             for i in itertools.product(matrix,unit_state.tolist()):
                 #print('i = ', i)
                 a = i.tolist()
-                print(' a = ',a)
                 matrix.append(a)
         return matrix
 
@@ -90,16 +89,15 @@ class Lattices(object):
     def calculate_entropy(self, b_w_matrix):
         B_W_matrix =[]
         shape = np.asarray(b_w_matrix[0]).shape
-        #mu = 1.0 / np.prod(shape)
-        nu = scp.special.lambertw(1.0 / np.prod(shape)).real  # , k=0, tol=1e-8)[source]¶
+        #nu = scp.special.lambertw(1.0 / np.prod(shape)).real  # , k=0, tol=1e-8)[source]¶
         for i, mat in enumerate(b_w_matrix):
-            entropy = self.calculate_NM_entropy(mat,shape, nu)
-            B_W_matrix.append([mat, entropy])
+            entropy = np.sum(mat)/np.prod(shape)
+            B_W_matrix.append([mat,entropy])
         '''reorder B_W_matrix with the entropy as key'''
         B_W_matrix.sort(key=lambda tup: tup[1])  # sorts in place
         return B_W_matrix
 
-    def calculate_NM_entropy(self, b_w_matrix, shape, nu):
+    def calculate_NM_entropy(self, b_w_matrix, shape,nu):
         entropy = 0
         for row in range(0, shape[0]):
             for column in range(0,shape[1]):
@@ -107,8 +105,8 @@ class Lattices(object):
         return entropy
 
 
-    def get_possible_paths(self):
-        print('in get_paths')
+    def get_possible_topologies(self):
+        print('in get_topologies')
         BENS_Nodes  = self._util.get_nodes_in_family( 'BENS')
         # MEMS_Nodes  = self._util.get_nodes_in_family('MEMS')
         # LANS_Nodes  = self._util.get_nodes_in_family( 'LANS')
@@ -135,9 +133,9 @@ class Lattices(object):
         B_W_matrix = self.calculate_entropy(b_w_matrix)
         #print(b_n_matrix)
         #B_M_matrix = self.make_state_sub_matrix(BENS_states,len(WORLD_Nodes))
-        print('B_W_matrix :')
-        for i, m in enumerate(B_W_matrix):
-            print(m[1], ' ---> ', m[0])
+        # print('B_W_matrix :')
+        # for i, m in enumerate(B_W_matrix):
+        #     print(m[1],  ' ---> ', m[0])
         # print(len(B_M_matrix))
         #
         #
