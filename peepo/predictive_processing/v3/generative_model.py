@@ -48,20 +48,10 @@ class GenerativeModel:
         Returns the total prediction error size observed (for informational purposes...)
         """
         total_prediction_error_size = 0
-        # predictions =
         for node, pred in self.predict(self.network).items():
             prediction = pred.values
             observation = self.sensory_input.value(node)
-
-            try:
-                prediction_error_size = self.error_size(prediction, observation)
-            except:
-                print(self.network.edges())
-
-                print('FUCK: ' + node)
-                print('FUCK: ' + str(pred))
-                print(prediction)
-                print(observation)
+            prediction_error_size = self.error_size(prediction, observation)
             prediction_error = self.error(prediction, observation)
             precision = entropy(prediction, base=2)
             total_prediction_error_size += prediction_error_size
