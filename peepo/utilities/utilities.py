@@ -209,6 +209,20 @@ class Utilities(object):
         self.networkx_object.add_edges_from(edges)
         return
 
+    def translate_digraph_to_pgmpy(self, digraf):
+        """
+        Converts a pgmpy network into a networkx network
+
+        :param  pgmpy_object: the pgmpy network
+        :return networkx : networkx network
+
+        :type  :pgmpy_object:adress
+        :rtype :networkx:adress
+        """
+        self.pgmpy_object, x,y = self.get_pgmpy_network(from_object = True, digraph = digraf )
+        return self.pgmpy_object
+
+
     def update_networkx(self, networkx, dic, header):
         self.header = header
         self.dictionary = dic
@@ -272,7 +286,7 @@ class Utilities(object):
         self.save_json(json.dumps(data))
         return
 
-    def get_pgmpy_network(self):
+    def get_pgmpy_network(self, from_object = False, digraph = None):
         """
         Reads the passed json file and translates it's content to the passed pgmpy class object
         - uses the get_network(file) to read the json file in a networkx format and translate this to pgmpy
@@ -289,7 +303,10 @@ class Utilities(object):
         CAUTION : the method does not perform a check() on the constructed DAG ! -> has to be done in the calling module
         """
         self.pgmpy_object = BayesianModel()
-        network, dictionary, header =  self.get_network()
+        if not (from_object):
+            network, dictionary, header =  self.get_network()
+        else:
+            network = digraph
         nw_nodes = network.nodes(data = True)
         nw_edges = network.edges()
         '''adding nnodes and edges'''
