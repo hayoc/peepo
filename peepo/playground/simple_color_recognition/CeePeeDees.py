@@ -50,11 +50,12 @@ class CPD:
             M[row, :] = R
         return M
 
-    def create_fixed_parent(cardinality, index):
-        ar = np.zeros(cardinality)
-        for i in range(0,cardinality):
-            ar[i] = 1/cardinality
-        ar[index] = cardinality
+    def create_fixed_parent(cardinality, state = 0, modus = 'status'):
+        hi = 0.99
+        lo = 0.01/(cardinality-1)
+        ar = np.full(cardinality,lo)
+        if(modus == 'status'):
+            ar[state] = hi
         #normalize
         som = 0
         for i in range(0,cardinality):
@@ -63,12 +64,25 @@ class CPD:
             ar[i] /= som
         return ar
 
-    def create_random_child(card_latent, card_parent):
-        modus = 'random'
+    def create_random_child(card_child, card_parent = [], modus = 'random'):
+        table = []
+
+        if (modus == 'orphan'):
+            hi = 1.
+            lo = 1.
+            table = np.full(card_child, lo)
+            # normalize
+            som = 0
+            for i in range(0, card_child):
+                som += table[i]
+            for i in range(0, card_child):
+                table[i] /= som
+            return table
+
         if (modus == 'random'):
             cardinality = 1
             if len(card_parent) == 1:
-                table = np.random.rand(card_latent, card_parent[0])
+                table = np.random.rand(card_child, card_parent[0])
                 # Normalize distribution
                 factor = 0
                 for column in range(0, card_parent[0]):
@@ -80,13 +94,14 @@ class CPD:
             for n, nod in enumerate(card_parent):
                 cardinality = cardinality * card_parent[n]
                 #n = n + 1
-                table = np.random.rand(card_latent, cardinality)
-            for c in range(0, len(table[0])):
-                factor = 0
-                for r in range(0, len(table)):
-                    factor += table[r][c]
-                for r in range(0, len(table)):
-                    table[r][c] /= factor
+                table = np.random.rand(card_child, cardinality)
+
+        for c in range(0, len(table[0])):
+            factor = 0
+            for r in range(0, len(table)):
+                factor += table[r][c]
+            for r in range(0, len(table)):
+                table[r][c] /= factor
         return table
 
 
@@ -98,25 +113,7 @@ class CPD:
             return
         return ar
 
-    def color_cpd(var,card_var,evidence,cardinality):
-        table = CPD.get_index_matrix(cardinality)
-        colors ={}
-        n_evidence = len(cardinality)
-        hi = 0.99
-        lo = 0.01
-        C = np.prod(cardinality)
-        matrix = np.full((3, C), 1. / 3.)
-        matrix[0] = [hi, lo, lo, hi, lo, lo, hi, lo, hi, lo, lo, hi, lo, lo, hi, lo]
-        matrix[1] = [lo, hi, lo, lo, hi, lo, lo, hi, lo, hi, lo, lo, hi, lo, lo, hi]
-        matrix[2] = [lo, lo, hi, lo, lo, hi, lo, lo, lo, lo, hi, lo, lo, hi, lo, lo]
-        cpd =TabularCPD(variable=var, variable_card=card_var, values=matrix,
-                          evidence=evidence,
-                          evidence_card=cardinality)
-        for i, node in enumerate(evidence):
-            colors.update({node:table[i]})
-        return colors,table, cpd
-
-
+    
     def normalize_distribution(matrix):
         R = np.size(matrix,0)
         C = np.size(matrix,1)
@@ -129,8 +126,8 @@ class CPD:
                 matrix[row][column] /= factor
         return matrix
 
-    def RON_cpd(var, cardinality, mu, sigma, mode):
-        if mode == "random":
+    def RON_cpd(var, cardinality, mu = 0, sigma = 0, modus = 'fixed'):
+        if modus == "random":
             table = np.random.rand( cardinality)
             # Normalize distribution
             factor = 0
@@ -140,7 +137,6 @@ class CPD:
                 table[column] /= factor
             return TabularCPD(variable=var, variable_card=cardinality, values=[table])
         table = CPD.create_fixed_parent(cardinality,mu)
-
         return TabularCPD(variable=var, variable_card=cardinality, values=[table])
 
     def LAN_cpd(var, card_latent, card_parent, evid, modus, gamma):
