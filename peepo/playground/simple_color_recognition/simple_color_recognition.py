@@ -1,3 +1,4 @@
+#versie 219/12/2018
 import math
 import os
 import random
