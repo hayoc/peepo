@@ -48,20 +48,11 @@ class GenerativeModel:
         Returns the total prediction error size observed (for informational purposes...)
         """
         total_prediction_error_size = 0
-        # predictions =
         for node, pred in self.predict(self.network).items():
             prediction = pred.values
             observation = self.sensory_input.value(node)
 
-            try:
-                prediction_error_size = self.error_size(prediction, observation)
-            except:
-                print(self.network.edges())
-
-                print('FUCK: ' + node)
-                print('FUCK: ' + str(pred))
-                print(prediction)
-                print(observation)
+            prediction_error_size = self.error_size(prediction, observation)
             prediction_error = self.error(prediction, observation)
             precision = entropy(prediction, base=2)
             total_prediction_error_size += prediction_error_size
@@ -86,8 +77,7 @@ class GenerativeModel:
         :rtype: dict
         """
         infer = VariableElimination(network)
-        variables = self.get_observed_nodes(network)
-        # variables = network.get_leaves()
+        variables = network.get_leaves()
         evidence = self.get_root_nodes(network)
         evidence = {k: v for k, v in evidence.items() if k not in variables}
 
@@ -166,7 +156,7 @@ class GenerativeModel:
             for root_node, root_cpd in result.items():
                 before = self.network.get_cpds(root_node).values
                 self.network.get_cpds(root_node).values = root_cpd.values
-                logging.debug("node[%s] hypothesis-update from %s to %s", root_node, before, result)
+                logging.debug("node[%s] hypothesis-update from %s to %s", root_node, before, root_cpd.values)
 
     def model_update(self, node, prediction_error, prediction):
         """
