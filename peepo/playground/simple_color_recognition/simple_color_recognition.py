@@ -28,7 +28,7 @@ class SensoryInputVirtualPeepo(SensoryInput):
     def value(self, name):
         for i, node in enumerate(self.peepo.nodes):
             if name == node[0]:
-                return self.peepo.get_cpds(node[0]).values
+                return self.peepo.pgmpy_test.get_cpds(node[0]).values
 
 class MyClass(object):
     def __init__(self, case):
