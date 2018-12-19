@@ -86,15 +86,17 @@ class Lattices(object):
             matrix.append(m)
         return matrix
 
-    def calculate_entropy(self, b_w_matrix):
+    def calculate_entropy(self, b_w_matrix, treshold):
+        treshold /= 100
         B_W_matrix =[]
         shape = np.asarray(b_w_matrix[0]).shape
         #nu = scp.special.lambertw(1.0 / np.prod(shape)).real  # , k=0, tol=1e-8)[source]¶
         for i, mat in enumerate(b_w_matrix):
             entropy = np.sum(mat)/np.prod(shape)
-            B_W_matrix.append([mat,entropy])
-        '''reorder B_W_matrix with the entropy as key'''
-        B_W_matrix.sort(key=lambda tup: tup[1])  # sorts in place
+            if entropy >= treshold :
+                B_W_matrix.append([mat,entropy])
+        '''reorder B_W_matrix with the entropy in descending order as key'''
+        B_W_matrix.sort(reverse=True,key=lambda tup: tup[1])  # sorts in place
         return B_W_matrix
 
     def calculate_NM_entropy(self, b_w_matrix, shape,nu):
@@ -105,8 +107,7 @@ class Lattices(object):
         return entropy
 
 
-    def get_possible_topologies(self):
-        print('in get_topologies')
+    def get_possible_topologies(self, treshold = 0):
         BENS_Nodes  = self._util.get_nodes_in_family( 'BENS')
         # MEMS_Nodes  = self._util.get_nodes_in_family('MEMS')
         # LANS_Nodes  = self._util.get_nodes_in_family( 'LANS')
@@ -114,23 +115,26 @@ class Lattices(object):
         WORLD_Nodes = self._util.get_nodes_in_family( 'WORLD')
         BENS_states = self.get_possible_states(len(BENS_Nodes))
         b_w_matrix  = self.make_state_base(BENS_states, len(WORLD_Nodes))
-        '''TO be developed further for MEMS and LANS
-        MEMS_states = self.get_possible_states(len(MEMS_Nodes))
-        LANS_states = self.get_possible_states(len(LANS_Nodes))
+        '''
+        *******************  TO DO *********************************'''
 
+        # TO be developed further for MEMS and LANS
+        # MEMS_states = self.get_possible_states(len(MEMS_Nodes))
+        # LANS_states = self.get_possible_states(len(LANS_Nodes))
+        #
+        #
+        # if not LANS_states:
+        #     if not BENS_states:
+        #         b_m_matrix = self.make_state_base(BENS_states, len(MOTOR_Nodes))
+        #     if not BENS_states:
+        #     b_w_matrix = self.make_state_base(BENS_states, len(WORLD_Nodes))
+        #     if not BENS_states:
+        #     m_m_matrix = self.make_state_base(MEMS_states, len(MOTOR_Nodes))
+        #     if not BENS_states:
+        #     m_w_matrix = self.make_state_base(MEMS_states, len(WORLD_Nodes))
 
-        if not LANS_states:
-            if not BENS_states:
-                b_m_matrix = self.make_state_base(BENS_states, len(MOTOR_Nodes))
-            if not BENS_states:
-            b_w_matrix = self.make_state_base(BENS_states, len(WORLD_Nodes))
-            if not BENS_states:
-            m_m_matrix = self.make_state_base(MEMS_states, len(MOTOR_Nodes))
-            if not BENS_states:
-            m_w_matrix = self.make_state_base(MEMS_states, len(WORLD_Nodes))'''
-        print('b_w_matrix has length : ', len(b_w_matrix))
+        B_W_matrix = self.calculate_entropy(b_w_matrix,treshold)
 
-        B_W_matrix = self.calculate_entropy(b_w_matrix)
         #print(b_n_matrix)
         #B_M_matrix = self.make_state_sub_matrix(BENS_states,len(WORLD_Nodes))
         # print('B_W_matrix :')
