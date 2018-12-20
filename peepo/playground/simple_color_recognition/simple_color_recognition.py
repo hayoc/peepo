@@ -270,8 +270,8 @@ class MyClass(object):
             '''following  4 lines to remove : just use to check whether the algorithms are correct regarding the edges building'''
             count += 1
             #print('edges : ', self.edges)
-            if count > 20:
-                break
+            # if count > 20:
+            #     break
         print('Check -> number of processed topologies in loop : ', count)
         # print('My colors : ')
         # print(self.colors_table)
