@@ -16,6 +16,7 @@ from peepo.playground.simple_color_recognition.CeePeeDees import CPD
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
 
 
 class SensoryInputVirtualPeepo(SensoryInput):
@@ -106,11 +107,11 @@ class MyClass(object):
         shape = np.asarray(topology).shape
         ''' let's first remove all void nodes  ----> not necssary -----> delete the code ??'''
         nodes_to_remove = []
-        rows = np.sum(topology, axis = 1)
-        columns = np.sum(topology,axis = 0)
+        #rows = np.sum(topology, axis = 1)
         # for row in range(0, len(rows)):
         #     if rows[row] == 0:
         #         nodes_to_remove.append('WORLD_' + str(row))
+        columns = np.sum(topology, axis=0)
         for column in range(0, len(columns)):
             if columns[column] == 0:
                 nodes_to_remove.append('BENS_' + str(column))
@@ -145,15 +146,27 @@ class MyClass(object):
     def create_learning_data(self):
         self.get_my_colors()
         self.learning_data = {}
-        for i, node in enumerate(self.nodes):
-            if "BEN" in node[0]:
-                self.learning_data.update({node[0]:self.colors_table[i].tolist()})
-            if "WORLD" in node[0]:
-                shape = self.colors_cpd.values.shape
-                reshaped_cpd = self.colors_cpd.values.reshape(shape[0], int(np.prod(shape)/shape[0]))
-                for hue in range(0,3):
-                    if str(hue) in node[0]:
-                        self.learning_data.update({node[0]:reshaped_cpd[hue,:].tolist()})
+        ben_nodes = [x for x in self.nodes if "BEN" in x[0]]
+        world_nodes = [x for x in self.nodes if "WORLD" in x[0]]
+
+        for i, node in enumerate(ben_nodes):
+            self.learning_data.update({node[0]: self.colors_table[i].tolist()})
+
+        for i, node in enumerate(world_nodes):
+            shape = self.colors_cpd.values.shape
+            reshaped_cpd = self.colors_cpd.values.reshape(shape[0], int(np.prod(shape) / shape[0]))
+            for hue in range(0, 3):
+                if str(hue) in node[0]:
+                    self.learning_data.update({node[0]: reshaped_cpd[hue, :].tolist()})
+        # for i, node in enumerate(self.nodes):
+        #     if "BEN" in node[0]:
+        #         self.learning_data.update({node[0]:self.colors_table[i].tolist()})
+        #     if "WORLD" in node[0]:
+        #         shape = self.colors_cpd.values.shape
+        #         reshaped_cpd = self.colors_cpd.values.reshape(shape[0], int(np.prod(shape)/shape[0]))
+        #         for hue in range(0,3):
+        #             if str(hue) in node[0]:
+        #                 self.learning_data.update({node[0]:reshaped_cpd[hue,:].tolist()})
         # print('Learning data')
         # print(self.learning_data)
 
@@ -240,7 +253,7 @@ class MyClass(object):
 
             self.loop += 1
             self.add_dummy_cpds()
-            print('Loop **************************************************************-> ', self.loop)
+            print('Loop *-> ', self.loop, ' of ', len(possible_topologies) )
 
             ''' ----------- convert DiGraph to pgmpy and check'''
             self.pgmpy = self._util.translate_digraph_to_pgmpy(self.networx)
@@ -292,18 +305,22 @@ class MyClass(object):
         # self._util.save_network()
         # self._util.update_pgmpy(self.pgmpy, self.dictionary, self.header)
         # self._util.save_pgmpy_network()
-        self.draw()
+        #self.draw()
         self.draw_xy()
         return self.results
 
-    def draw_x_y(self):
-        '''TO REMOVE LATER'''
-        plt.figure(figsize=(10, 5))
-        pos = nx.circular_layout(self.best_topology[2], scale=2)
-        # node_labels = nx.get_node_attributes(self.networx, 'cpd')
-        nx.draw(self.best_topology[2], pos, node_size=1200, node_color='lightblue',
-                linewidths=0.25, font_size=10, font_weight='bold', with_labels=True)
+    def draw_xy(self):
+        x = []
+        y = []
+        for i in range(0, len(self.results)):
+            x.append(self.results[i][0])
+            y.append(self.results[i][1])
+        plt.scatter(x, y, s = 20, c="r", alpha=0.5)
+        plt.xlabel("Complexity of topology")
+        plt.ylabel("Average error over all colors")
         plt.show()
+
+
 
     def draw(self):
         '''TO REMOVE LATER'''
@@ -312,6 +329,7 @@ class MyClass(object):
         #node_labels = nx.get_node_attributes(self.networx, 'cpd')
         nx.draw(self.best_topology[2], pos, node_size=1200, node_color='lightblue',
                 linewidths=0.25,  font_size=10, font_weight='bold', with_labels=True)
+        plt.text(1,1, 'Topology compexity : ' +str(self.best_topology[1]))
         plt.show()
 
 def main():
