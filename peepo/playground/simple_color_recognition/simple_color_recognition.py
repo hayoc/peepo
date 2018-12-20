@@ -46,7 +46,7 @@ class MyClass(object):
         self.networx = nx.DiGraph()
         self.pgmpy = BayesianModel()
         self.best_error = math.inf
-        self.best_topology = [0,0,nx.DiGraph]#[error, entropy, networkx DiGraph]
+        self.best_topology = [0,0,nx.DiGraph,0]#[error, entropy, networkx DiGraph]
         self.dictionary = []
         self.header = {}
         self.nodes_0 = []
@@ -207,7 +207,8 @@ class MyClass(object):
             self.best_topology[0] = error
             self.best_topology[1] = entropy
             self.best_topology[2] = self.networx_test
-
+            self.best_topology[3] = self.loop
+        self.loop += 1
 
     def estimate_parameters(self):
         data = pd.DataFrame(data=self.learning_data)
@@ -241,6 +242,7 @@ class MyClass(object):
             entropy = topology[1]
             if entropy == 0:
                 continue#safeguard
+            print('Loop *-> ', self.loop + 1, ' of ', len(possible_topologies))
             topo  = topology[0]
             self.networx = copy.deepcopy(self.networx_fixed)
             edges = []
@@ -251,9 +253,8 @@ class MyClass(object):
                             depending on the number of incoming nodes'''
             self.add_edges(topo)
 
-            self.loop += 1
+
             self.add_dummy_cpds()
-            print('Loop *-> ', self.loop, ' of ', len(possible_topologies) )
 
             ''' ----------- convert DiGraph to pgmpy and check'''
             self.pgmpy = self._util.translate_digraph_to_pgmpy(self.networx)
@@ -270,7 +271,7 @@ class MyClass(object):
             '''following  4 lines to remove : just use to check whether the algorithms are correct regarding the edges building'''
             count += 1
             #print('edges : ', self.edges)
-            # if count > 20:
+            # if count > 5:
             #     break
         print('Check -> number of processed topologies in loop : ', count)
         # print('My colors : ')
@@ -305,17 +306,29 @@ class MyClass(object):
         # self._util.save_network()
         # self._util.update_pgmpy(self.pgmpy, self.dictionary, self.header)
         # self._util.save_pgmpy_network()
-        #self.draw()
+        self.draw()
         self.draw_xy()
         return self.results
 
     def draw_xy(self):
         x = []
         y = []
+        s = []
+        color = []
+        best_x = 0
+        best_y = 0
         for i in range(0, len(self.results)):
             x.append(self.results[i][0])
             y.append(self.results[i][1])
-        plt.scatter(x, y, s = 20, c="r", alpha=0.5)
+            if i == self.best_topology[3]:
+                best_x = self.results[i][0]
+                best_y = self.results[i][1]
+                s.append(60)
+                color.append("r")
+            else:
+                s.append(20)
+                color.append("b")
+        plt.scatter(x, y, s = s, c=color, alpha=0.5)
         plt.xlabel("Complexity of topology")
         plt.ylabel("Average error over all colors")
         plt.show()
