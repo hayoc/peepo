@@ -3,6 +3,7 @@ import math
 import os
 import random
 import sys
+import copy
 import pandas as pd
 import networkx as nx
 import numpy as np
@@ -26,20 +27,25 @@ class SensoryInputVirtualPeepo(SensoryInput):
         a = 0
 
     def value(self, name):
+        expected_result = self.peepo.expected_result
+        cpds = {}
+        for i in range(0,len(expected_result)):
+            cpds.update({'WORLD_'+str(i): CPD.create_fixed_parent(2, state = int(expected_result[i]))})
         for i, node in enumerate(self.peepo.nodes):
             if name == node[0]:
-                return self.peepo.pgmpy_test.get_cpds(node[0]).values
+                return cpds[name]
 
 class MyClass(object):
     def __init__(self, case):
         self.case = case
         self.results = []
         self.networx_test = nx.DiGraph()
+        self.networx_fixed = nx.DiGraph()
         self.pgmpy_test  = BayesianModel()
         self.networx = nx.DiGraph()
         self.pgmpy = BayesianModel()
         self.best_error = math.inf
-        self.best_topology = [0,0,nx.DiGraph]
+        self.best_topology = [0,0,nx.DiGraph]#[error, entropy, networkx DiGraph]
         self.dictionary = []
         self.header = {}
         self.nodes_0 = []
@@ -54,6 +60,8 @@ class MyClass(object):
         self.nummber_of_colors = 0
         self._util = Utilities(case)
         self._lat = Lattices(self._util)
+        self.expected_result = [0, 0, 0]
+        self.loop = 0
 
     def get_my_colors(self):
         evidence = []
@@ -64,8 +72,8 @@ class MyClass(object):
                 cardinality.append(node[1]['cardinality'])
         self.colors_dictionary, self.colors_table, self.colors_cpd = self.color_cpd('WORLD',3,evidence,cardinality)
         self.number_of_colors = self.colors_table.shape[1]
-        print('Number of colors : ', self.number_of_colors)
-        print(self.colors_cpd)
+        # print('Number of colors : ', self.number_of_colors)
+        # print(self.colors_cpd)
         #print(self.colors_cpd.values)
 
     def color_cpd(self,var,card_var,evidence,cardinality):
@@ -96,17 +104,17 @@ class MyClass(object):
         self.networx.remove_edges_from(self.edges)
         self.edges = []
         shape = np.asarray(topology).shape
-        # ''' let's first remove all void nodes  ----> not necssary -----> delete the code ??'''
-        # nodes_to_remove = []
-        # rows = np.sum(topology, axis = 1)
-        # columns = np.sum(topology,axis = 0)
+        ''' let's first remove all void nodes  ----> not necssary -----> delete the code ??'''
+        nodes_to_remove = []
+        rows = np.sum(topology, axis = 1)
+        columns = np.sum(topology,axis = 0)
         # for row in range(0, len(rows)):
         #     if rows[row] == 0:
         #         nodes_to_remove.append('WORLD_' + str(row))
-        # for column in range(0, len(columns)):
-        #     if columns[column] == 0:
-        #         nodes_to_remove.append('BENS_' + str(column))
-        # self.networx.remove_nodes_from(nodes_to_remove)
+        for column in range(0, len(columns)):
+            if columns[column] == 0:
+                nodes_to_remove.append('BENS_' + str(column))
+        self.networx.remove_nodes_from(nodes_to_remove)
         self.nodes = self.networx.nodes(data = True)
         for column in range(0,shape[1]):
             for row in range(0,shape[0]):
@@ -138,7 +146,6 @@ class MyClass(object):
         self.get_my_colors()
         self.learning_data = {}
         for i, node in enumerate(self.nodes):
-            print('node in create learnin data : ', node[0])
             if "BEN" in node[0]:
                 self.learning_data.update({node[0]:self.colors_table[i].tolist()})
             if "WORLD" in node[0]:
@@ -147,31 +154,46 @@ class MyClass(object):
                 for hue in range(0,3):
                     if str(hue) in node[0]:
                         self.learning_data.update({node[0]:reshaped_cpd[hue,:].tolist()})
-        print('Learning data')
-        print(self.learning_data)
+        # print('Learning data')
+        # print(self.learning_data)
 
 
-    def do_inference(self, models, expected_result):
-        print(models)
+    def do_inference(self, models):
+        error = 0
         for key in models:
-            err = models[key].process()
+            error += models[key].process()
+        return error
 
 
-    def test_topology(self):
-        self.networx_test = self.networx.copy()
-        self.pgmpy_test   = self.pgmpy.copy()
+
+
+
+    def test_topology(self, entropy):
+        self.networx_test = copy.deepcopy(self.networx)
+        self.pgmpy_test = BayesianModel()
+        self.pgmpy_test   = copy.deepcopy(self.pgmpy)
         model = {'main': GenerativeModel(SensoryInputVirtualPeepo(self), self.pgmpy_test)}
-        expected_result = [0,0,0]
+        self.expected_result = [0,0,0]
         ''' ------ going through all possible "colors'''
+        error = 0
         for color in range(0, self.number_of_colors):
             states = self.colors_table[:,color]
             shape = self.colors_cpd.values.shape
             reshaped_cpd = self.colors_cpd.values.reshape(shape[0], int(np.prod(shape) / shape[0]))
-            expected_result = reshaped_cpd[:,int(color)]
+            self.expected_result = reshaped_cpd[:,int(color)]
             for i, pixel in enumerate(states):
+                if 'BENS_'+str(i) not in self.networx_test.nodes():
+                   continue
                 cardinality = self.pgmpy_test.get_cardinality('BENS_'+str(i))
                 self.pgmpy_test.get_cpds('BENS_' + str(i)).values = CPD.create_fixed_parent(cardinality, state = int(pixel))
-            self.do_inference(model ,expected_result)
+            error += self.do_inference(model)
+        error /= self.number_of_colors
+        self.results.append([entropy, error])
+        if error <= self.best_error:
+            self.best_error = error
+            self.best_topology[0] = error
+            self.best_topology[1] = entropy
+            self.best_topology[2] = self.networx_test
 
 
     def estimate_parameters(self):
@@ -179,20 +201,18 @@ class MyClass(object):
         estimator = BayesianEstimator(self.pgmpy, data)
         for i, node in enumerate(self.nodes):
             if 'LAN' in node[0] or 'MOTOR' in node[0] or 'WORLD' in node[0]:
-                self.pgmpy.get_cpds(node[0]).values = estimator.estimate_cpd('WORLD_0', prior_type='dirichlet', pseudo_counts=[2, 3]).values
-                # print('cpd for ', node[0])
-                # print(self.pgmpy.get_cpds(node[0]))
+                self.pgmpy.get_cpds(node[0]).values = estimator.estimate_cpd(node[0], prior_type='dirichlet', pseudo_counts=[2, 3]).values
 
 
 
 
     def do_it(self):
         '''EXPLANATIONS'''
-        self.networx_test, self.dictionary, self.header = self._util.get_network()
-        self.networx = self.networx_test.copy()
+        self.networx_fixed , self.dictionary, self.header = self._util.get_network()
+        self.networx = copy.deepcopy(self.networx_fixed)
+        self.networx_test= copy.deepcopy(self.networx_fixed)
         self.nodes = self.networx.nodes(data=True)
         self.create_learning_data()
-        print('incoming panda data')
         print(self.learning_data)
         print('Dictionary : ', self.dictionary)
 
@@ -209,7 +229,7 @@ class MyClass(object):
             if entropy == 0:
                 continue#safeguard
             topo  = topology[0]
-            #self.networx = self.networx_0.copy()
+            self.networx = copy.deepcopy(self.networx_fixed)
             edges = []
             parent = ''
             child = ''
@@ -217,23 +237,27 @@ class MyClass(object):
             ''' ----------- for each topology we construct the edges and update dummy cpd (necessary as the shape of the LENs cpd's can change
                             depending on the number of incoming nodes'''
             self.add_edges(topo)
+
+            self.loop += 1
             self.add_dummy_cpds()
+            print('Loop **************************************************************-> ', self.loop)
+
             ''' ----------- convert DiGraph to pgmpy and check'''
             self.pgmpy = self._util.translate_digraph_to_pgmpy(self.networx)
-            self.pgmpy.check_model()
 
             '''------------ ask pgmpy to guess the best cpd's of the LANs and LENs 
                              -> provide pgmpy with the learning data'''
             self.estimate_parameters()
 
+            self.pgmpy.check_model()
 
             '''-------------- Testing the constructed topology'''
-            self.test_topology()
+            self.test_topology(entropy)
 
             '''following  4 lines to remove : just use to check whether the algorithms are correct regarding the edges building'''
             count += 1
             #print('edges : ', self.edges)
-            if count > 0:
+            if count > 20:
                 break
         print('Check -> number of processed topologies in loop : ', count)
         # print('My colors : ')
@@ -269,15 +293,24 @@ class MyClass(object):
         # self._util.update_pgmpy(self.pgmpy, self.dictionary, self.header)
         # self._util.save_pgmpy_network()
         self.draw()
+        self.draw_xy()
         return self.results
 
+    def draw_x_y(self):
+        '''TO REMOVE LATER'''
+        plt.figure(figsize=(10, 5))
+        pos = nx.circular_layout(self.best_topology[2], scale=2)
+        # node_labels = nx.get_node_attributes(self.networx, 'cpd')
+        nx.draw(self.best_topology[2], pos, node_size=1200, node_color='lightblue',
+                linewidths=0.25, font_size=10, font_weight='bold', with_labels=True)
+        plt.show()
 
     def draw(self):
         '''TO REMOVE LATER'''
         plt.figure(figsize=(10, 5))
-        pos = nx.circular_layout(self.networx, scale=2)
+        pos = nx.circular_layout(self.best_topology[2], scale=2)
         #node_labels = nx.get_node_attributes(self.networx, 'cpd')
-        nx.draw(self.networx, pos, node_size=1200, node_color='lightblue',
+        nx.draw(self.best_topology[2], pos, node_size=1200, node_color='lightblue',
                 linewidths=0.25,  font_size=10, font_weight='bold', with_labels=True)
         plt.show()
 
@@ -285,7 +318,7 @@ def main():
     case = 'simple_color_recognition'
     mycase = MyClass(case)
     results = mycase.do_it()
-    print(results)
+    #print(results)
 
 ####################################################################################
 ############################### BEGIN HERE #########################################
