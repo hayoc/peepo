@@ -12,7 +12,7 @@ class Lattices(object):
 
     def __init__(self,utility_pointer):
         self._util = utility_pointer
-        ''' no object creation -> opportune  ?'''
+
 
         pass
 
@@ -71,7 +71,6 @@ class Lattices(object):
         matrix = matrix.tolist()
         for r in range(0,number_of_atoms-1):
             for i in itertools.product(matrix,unit_state.tolist()):
-                #print('i = ', i)
                 a = i.tolist()
                 matrix.append(a)
         return matrix
@@ -82,8 +81,15 @@ class Lattices(object):
         for el in range(0,number_of_atoms):
             list.append(unit_state.tolist())
         for m in itertools.product(*list):
-            #print('matrix : ', matrix)
-            matrix.append(m)
+            ''' CHECK whether all LENS has at least 1 incoming parent'''
+            sum_columns = np.sum(m,axis =1)
+            accept = True
+            for c in range(0,len(sum_columns)):
+                if sum_columns[c] == 0:
+                    accept = False
+                    break
+            if accept:
+                matrix.append(m)
         return matrix
 
     def calculate_entropy(self, b_w_matrix, treshold):
@@ -93,7 +99,7 @@ class Lattices(object):
         #nu = scp.special.lambertw(1.0 / np.prod(shape)).real  # , k=0, tol=1e-8)[source]¶
         for i, mat in enumerate(b_w_matrix):
             entropy = np.sum(mat)/np.prod(shape)
-            if entropy >= treshold :
+            if entropy >= treshold and  entropy < treshold*1.1:
                 B_W_matrix.append([mat,entropy])
         '''reorder B_W_matrix with the entropy in descending order as key'''
         B_W_matrix.sort(reverse=True,key=lambda tup: tup[1])  # sorts in place
