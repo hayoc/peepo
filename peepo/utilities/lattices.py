@@ -99,7 +99,7 @@ class Lattices(object):
         #nu = scp.special.lambertw(1.0 / np.prod(shape)).real  # , k=0, tol=1e-8)[source]¶
         for i, mat in enumerate(b_w_matrix):
             entropy = np.sum(mat)/np.prod(shape)
-            if entropy >= treshold and  entropy < treshold*1.1:
+            if entropy >= treshold :
                 B_W_matrix.append([mat,entropy])
         '''reorder B_W_matrix with the entropy in descending order as key'''
         B_W_matrix.sort(reverse=True,key=lambda tup: tup[1])  # sorts in place
