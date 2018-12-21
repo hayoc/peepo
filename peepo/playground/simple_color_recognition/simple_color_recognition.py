@@ -1,4 +1,5 @@
 #versie 19/12/2018
+import logging
 import math
 import os
 import random
@@ -17,6 +18,8 @@ from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
+from pgmpy.inference import VariableElimination
+from scipy.stats import entropy
 
 
 class SensoryInputVirtualPeepo(SensoryInput):
@@ -29,12 +32,22 @@ class SensoryInputVirtualPeepo(SensoryInput):
 
     def value(self, name):
         expected_result = self.peepo.expected_result
-        cpds = {}
+        cpds = []
         for i in range(0,len(expected_result)):
-            cpds.update({'WORLD_'+str(i): CPD.create_fixed_parent(2, state = int(expected_result[i]))})
+            cpds.append(['WORLD_'+str(i), CPD.create_fixed_parent(2, state = int(expected_result[i]))])
         for i, node in enumerate(self.peepo.nodes):
-            if name == node[0]:
-                return cpds[name]
+            for j in range(0,len(cpds)):
+                if name == cpds[j][0]:
+                    return cpds[j][1]
+
+    # def value(self, name):
+    #     expected_result = self.peepo.expected_result
+    #     cpds = {}
+    #     for i in range(0,len(expected_result)):
+    #         cpds.update({'WORLD_'+str(i): CPD.create_fixed_parent(2, state = int(expected_result[i]))})
+    #     for i, node in enumerate(self.peepo.nodes):
+    #         if name == node[0]:
+    #             return cpds[name]
 
 class MyClass(object):
     def __init__(self, case):
@@ -46,7 +59,7 @@ class MyClass(object):
         self.networx = nx.DiGraph()
         self.pgmpy = BayesianModel()
         self.best_error = math.inf
-        self.best_topology = [0,0,nx.DiGraph,0]#[error, entropy, networkx DiGraph]
+        self.best_topology = [0,0,nx.DiGraph,0]#[error, entropy, networkx DiGraph, loop]
         self.dictionary = []
         self.header = {}
         self.nodes_0 = []
@@ -177,9 +190,85 @@ class MyClass(object):
             error += models[key].process()
         return error
 
+    '''.................. vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ..................................'''
+    def do_simple_inference(self):
+        total_prediction_error_size = 0
+        for node in self.pgmpy_test.get_leaves():
+            prediction = self.predict(node)
+            observation = self.sensory_input(node)
+            prediction_error_size = self.error_size(prediction, observation)
+            prediction_error = self.error(prediction, observation)
+            precision = entropy(prediction, base=2)
+            total_prediction_error_size += prediction_error_size
+        return total_prediction_error_size
+
+    def predict(self, node):
+        """
+        Predicts the given leaf node (i.e. the observational node) based on the root nodes (i.e. the belief nodes)
+        :return: prediction for given observation variable, a prediction is a probability distribution
+        :rtype: np.array
+        """
+        infer = VariableElimination(self.pgmpy_test)
+        evidence = self.get_root_nodes()
+        evidence = {k: v for k, v in evidence.items() if k not in [node]}
+        return infer.query(variables=[node], evidence=evidence)[node].values
+
+    def sensory_input(self, name):
+        expected_result = self.expected_result
+        cpds = []
+        for i in range(0, len(expected_result)):
+            cpds.append(['WORLD_' + str(i), CPD.create_fixed_parent(2, state=int(expected_result[i]))])
+        for i, node in enumerate(self.nodes):
+            for j in range(0, len(cpds)):
+                if name == cpds[j][0]:
+                    return cpds[j][1]
+
+    def error(self,pred, obs):
+        """
+        Calculates the prediction error as the residual of subtracting the predicted inputs from the observed inputs
+        :param pred: predicted sensory inputs
+        :param obs: observed sensory inputs
+        :return: prediction error
+        :type pred : np.array
+        :type obs : np.array
+        :rtype : np.array
+        """
+        return obs - pred
 
 
+    def error_size(self,pred, obs):
+        """
+        Calculates the size of the prediction error as the Kullback-Leibler divergence. This responds the magnitude
+        of the prediction error, how wrong the prediction was.
+        :param pred: predicted sensory inputs
+        :param obs: observed sensory inputs
+        :return: prediction error size
+        :type pred : np.array
+        :type obs : np.array
+        :rtype : float
+        """
+        return entropy(obs, pred)
 
+    def get_root_nodes(self):
+        """
+        Returns status of all root nodes.
+        :param network: Bayesian Network representing the generative model
+        :return: Dictionary containing all root nodes as keys and status as values
+        :type network: BayesianModel
+        :rtype dict
+        """
+        roots = {}
+        for root in self.pgmpy_test.get_roots():
+            roots.update({root: np.argmax(self.pgmpy_test.get_cpds(root).values)})
+        return roots
+
+    def get_observations(self):
+        obs = {}
+        for leaf in self.pgmpy_test.get_leaves():
+            obs.update({leaf: np.argmax(self.pgmpy_test.get_cpds(leaf).values)})
+        return obs
+
+    '''**********************   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                           '''
 
     def test_topology(self, entropy):
         self.networx_test = copy.deepcopy(self.networx)
@@ -199,7 +288,9 @@ class MyClass(object):
                    continue
                 cardinality = self.pgmpy_test.get_cardinality('BENS_'+str(i))
                 self.pgmpy_test.get_cpds('BENS_' + str(i)).values = CPD.create_fixed_parent(cardinality, state = int(pixel))
-            error += self.do_inference(model)
+            #error += self.do_inference(model)
+
+            error += self.do_simple_inference()
         error /= self.number_of_colors
         self.results.append([entropy, error])
         if error <= self.best_error:
@@ -233,7 +324,7 @@ class MyClass(object):
         ''' -------------- Constructing all possible topologies, 
                               --> option : restrain the number with the treshold : 
                                         0 -> all possible topologies, 100 -> only the fully connnected topology'''
-        possible_topologies  = self._lat.get_possible_topologies(treshold = 50)#setting the entropy at a 50% -> only topologies with an entropy >= 0.5 will be considered
+        possible_topologies  = self._lat.get_possible_topologies(treshold = 70)#setting the entropy at a 50% -> only topologies with an entropy >= 0.5 will be considered
         print("Possible topologies : ", len(possible_topologies))
         entropy = 0
         count = 0#TEMPORARY
@@ -271,6 +362,7 @@ class MyClass(object):
             '''following  4 lines to remove : just use to check whether the algorithms are correct regarding the edges building'''
             count += 1
             #print('edges : ', self.edges)
+            #
             # if count > 5:
             #     break
         print('Check -> number of processed topologies in loop : ', count)
@@ -357,5 +449,5 @@ def main():
 
 if __name__ == "__main__":
     # logging.basicConfig()
-    # logging.getLogger().setLevel(logging.INFO)
+    # logging.getLogger().setLevel(logging.DEBUG)
     main()
