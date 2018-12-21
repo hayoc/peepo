@@ -33,7 +33,7 @@ class GenerativeModel:
 
     def __init__(self, sensory_input, network):
         self.sensory_input = sensory_input
-        self.network = network
+        self.network = network.copy()
         draw_network(network)
 
     def process(self):
