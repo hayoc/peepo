@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 from pgmpy.inference import VariableElimination
 from scipy.stats import entropy
+from pomegranate import *
 
 
 class SensoryInputVirtualPeepo(SensoryInput):
@@ -76,6 +77,9 @@ class MyClass(object):
         self._lat = Lattices(self._util)
         self.expected_result = [0, 0, 0]
         self.loop = 0
+        self.pommy = BayesianNetwork()
+        self.summary = {}
+
 
     def get_my_colors(self):
         evidence = []
@@ -114,46 +118,7 @@ class MyClass(object):
     #         node = 'BENS_'+ str(i)
     #         self.pgmpy.get_cpds(node).values = CPD.RON_cpd(node, self.pgmpy.get_cardinality(node), mu = int(col[i])).values
 
-    def add_edges(self, topology):
-        self.networx.remove_edges_from(self.edges)
-        self.edges = []
-        shape = np.asarray(topology).shape
-        ''' let's first remove all void nodes  ----> not necssary -----> delete the code ??'''
-        nodes_to_remove = []
-        #rows = np.sum(topology, axis = 1)
-        # for row in range(0, len(rows)):
-        #     if rows[row] == 0:
-        #         nodes_to_remove.append('WORLD_' + str(row))
-        columns = np.sum(topology, axis=0)
-        for column in range(0, len(columns)):
-            if columns[column] == 0:
-                nodes_to_remove.append('BENS_' + str(column))
-        self.networx.remove_nodes_from(nodes_to_remove)
-        self.nodes = self.networx.nodes(data = True)
-        for column in range(0,shape[1]):
-            for row in range(0,shape[0]):
-                if topology[row][column] == 1:
-                    parent = 'BENS_' + str(column)
-                    child  = 'WORLD_'+ str(row)
-                    self.networx.add_edge(parent, child)
-        self.edges = self.networx.edges()
 
-
-    def add_dummy_cpds(self):
-        for i, node in enumerate(self.nodes):
-            cardinality = node[1]['cardinality']
-            if ('BEN' in node[0]) or ('MEM' in node[0]):
-                self.nodes[i][1]['cpd'] = CPD.create_fixed_parent(cardinality, modus = 'uniform')
-            else:
-                incoming_nodes = self.networx.in_edges(node[0])
-                if len(incoming_nodes) == 0:
-                    self.nodes[i][1]['cpd'] = CPD.create_random_child(cardinality, modus = 'orphan')
-                    continue
-                card_parent = []
-                for  m, n in enumerate(incoming_nodes):
-                    par = self.networx.node[n[0]]['cardinality']
-                    card_parent.append(par)
-                self.nodes[i][1]['cpd'] = CPD.create_random_child(cardinality, card_parent)
 
 
     def create_learning_data(self):
@@ -308,12 +273,97 @@ class MyClass(object):
             if 'LAN' in node[0] or 'MOTOR' in node[0] or 'WORLD' in node[0]:
                 self.pgmpy.get_cpds(node[0]).values = estimator.estimate_cpd(node[0], prior_type='dirichlet', pseudo_counts=[2, 3]).values
 
+    def add_edges(self, topology):
+        self.networx.remove_edges_from(self.edges)
+        self.edges = []
+        shape = np.asarray(topology).shape
+        ''' let's first remove all void nodes  ----> not necssary -----> delete the code ??'''
+        nodes_to_remove = []
+        #rows = np.sum(topology, axis = 1)
+        # for row in range(0, len(rows)):
+        #     if rows[row] == 0:
+        #         nodes_to_remove.append('WORLD_' + str(row))
+        columns = np.sum(topology, axis=0)
+        for column in range(0, len(columns)):
+            if columns[column] == 0:
+                nodes_to_remove.append('BENS_' + str(column))
+        self.networx.remove_nodes_from(nodes_to_remove)
+        self.nodes = self.networx.nodes(data = True)
+        for column in range(0,shape[1]):
+            for row in range(0,shape[0]):
+                if topology[row][column] == 1:
+                    parent = 'BENS_' + str(column)
+                    child  = 'WORLD_'+ str(row)
+                    self.networx.add_edge(parent, child)
+        self.edges = self.networx.edges()
 
+
+    def add_dummy_cpds(self):
+        for i, node in enumerate(self.nodes):
+            cardinality = node[1]['cardinality']
+            if ('BEN' in node[0]) or ('MEM' in node[0]):
+                self.nodes[i][1]['cpd'] = CPD.create_fixed_parent(cardinality, modus = 'uniform')
+            else:
+                incoming_nodes = self.networx.in_edges(node[0])
+                if len(incoming_nodes) == 0:
+                    self.nodes[i][1]['cpd'] = CPD.create_random_child(cardinality, modus = 'orphan')
+                    continue
+                card_parent = []
+                for  m, n in enumerate(incoming_nodes):
+                    par = self.networx.node[n[0]]['cardinality']
+                    card_parent.append(par)
+                self.nodes[i][1]['cpd'] = CPD.create_random_child(cardinality, card_parent)
+
+    def update_network(self):
+        '''Feeding G with the nodes'''
+        for i, node in enumerate(self.nodes):
+            cardinality = node[1]['cardinality']
+            if ('BEN' in node[0]) or ('MEM' in node[0]):
+                self.nodes[i][1]['parents'] = []
+            else:
+                incoming_nodes = self.networx.in_edges(node[0])
+                if len(incoming_nodes) == 0:
+                    self.nodes[i][1]['parents']  = []
+                    continue
+                card_parent = []
+                paren = []
+                for  m, n in enumerate(incoming_nodes):
+                    par = self.networx.node[n[0]]['cardinality']
+                    paren.append(self.networx.node[n[0]])
+                    card_parent.append(par)
+                self.nodes[i][1]['parents_cardinality'] = card_parent
+                self.nodes[i][1]['parents'] = paren
+        '''Feeding G with the edges'''
+        edges = []
+
+        for j, pair in enumerate(data['Edges']):
+            for parent in pair.keys():
+                for child in data['Edges'][j][parent]:
+                    parent_ = self.translation(parent, 0)
+                    child_  = self.translation(child, 0)
+                    edges.append((parent_,child_))
+                    parents[child_].append(parent_)
+                    childs[parent_].append(child_)
+                    cardinality_parents[child_].append(self.networkx_object.node[parent_]['cardinality'])
+        np.ravel(edges)
+        self.networkx_object.add_edges_from(edges)
+
+        '''gather info about the parent and or childs  of a node'''
+        for i, node in enumerate(self.networkx_object.nodes()):
+            self.networkx_object.node[node]['parents'] = parents[node]
+            self.networkx_object.node[node]['parents_cardinality'] = cardinality_parents[node]
+            self.networkx_object.node[node]['childs'] = childs[node]
+
+        '''Feeding G with the  CPD's as nodes attributes'''
+        for j, node in enumerate(data['CPDs']):
+            for parent, cpd in node.items():
+                node_ = self.translation( parent, 0)
+                self.networkx_object.node[node_]['cpd'] = cpd
 
 
     def do_it(self):
         '''EXPLANATIONS'''
-        self.networx_fixed , self.dictionary, self.header = self._util.get_network()
+        self.networx_fixed , self.summary, self.dictionary, self.header = self._util.get_network()
         self.networx = copy.deepcopy(self.networx_fixed)
         self.networx_test= copy.deepcopy(self.networx_fixed)
         self.nodes = self.networx.nodes(data=True)
@@ -324,7 +374,7 @@ class MyClass(object):
         ''' -------------- Constructing all possible topologies, 
                               --> option : restrain the number with the treshold : 
                                         0 -> all possible topologies, 100 -> only the fully connnected topology'''
-        possible_topologies  = self._lat.get_possible_topologies(treshold = 70)#setting the entropy at a 50% -> only topologies with an entropy >= 0.5 will be considered
+        possible_topologies  = self._lat.get_possible_topologies(treshold = 50)#setting the entropy at a 50% -> only topologies with an entropy >= 0.5 will be considered
         print("Possible topologies : ", len(possible_topologies))
         entropy = 0
         count = 0#TEMPORARY
@@ -343,18 +393,18 @@ class MyClass(object):
             ''' ----------- for each topology we construct the edges and update dummy cpd (necessary as the shape of the LENs cpd's can change
                             depending on the number of incoming nodes'''
             self.add_edges(topo)
-
-
             self.add_dummy_cpds()
-
+            self.update_network()
             ''' ----------- convert DiGraph to pgmpy and check'''
             self.pgmpy = self._util.translate_digraph_to_pgmpy(self.networx)
+            self.pomi, self.summary = self._util.translate_digraph_to_pomegranate(self.networx)
 
             '''------------ ask pgmpy to guess the best cpd's of the LANs and LENs 
                              -> provide pgmpy with the learning data'''
             self.estimate_parameters()
 
             self.pgmpy.check_model()
+            self.update_network()
 
             '''-------------- Testing the constructed topology'''
             self.test_topology(entropy)
@@ -362,7 +412,7 @@ class MyClass(object):
             '''following  4 lines to remove : just use to check whether the algorithms are correct regarding the edges building'''
             count += 1
             #print('edges : ', self.edges)
-            #
+
             # if count > 5:
             #     break
         print('Check -> number of processed topologies in loop : ', count)
