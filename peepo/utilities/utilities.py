@@ -12,6 +12,8 @@ from peepo.utilities.lattices import  Lattices
 import matplotlib.pyplot as plt
 #from peepo.visualize.graph import draw_network
 #import matplotlib.pyplot as plt
+from pomegranate import *
+from peepo.utilities.CPD_Pomgranate import CPD_P
 
 
 class Utilities(object):
@@ -24,8 +26,12 @@ class Utilities(object):
         self.get_json_path(file)
         self.pgmpy_object = BayesianModel()
         self.networkx_object = nx.DiGraph()
+        self.pomegranate_object = BayesianNetwork()
         self.header =''
         self.dictionary =[]
+        self.summary = {'raw_cpd':{},'pom_cpd':{},'cardinality':{},'edges':{},'parents':{},'parents_cardinalities':{},'childs':{}}
+        self.summary_0 = {'raw_cpd': {}, 'pom_cpd': {}, 'cardinality': {}, 'edges': {}, 'parents': {},
+                        'parents_cardinalities': {}, 'childs': {}}
 
     def get_nodes_in_family(self, family, attributes=False):
         nw_nodes = self.networkx_object.nodes()
@@ -223,6 +229,20 @@ class Utilities(object):
         return self.pgmpy_object
 
 
+    def translate_digraph_to_pomegranate(self, digraf):
+        """
+        Converts a pgmpy network into a networkx network
+
+        :param  pgmpy_object: the pgmpy network
+        :return networkx : networkx network
+
+        :type  :pgmpy_object:adress
+        :rtype :networkx:adress
+        """
+        self.pomegranate , self.summary, x,y = self.get_pomegranate_network(from_object = True, digraph = digraf )
+        return self.pomegranate_object, self.summary
+    
+
     def update_networkx(self, networkx, dic, header):
         self.header = header
         self.dictionary = dic
@@ -286,6 +306,136 @@ class Utilities(object):
         self.save_json(json.dumps(data))
         return
 
+
+    def translate_cpd_to_pomegranate(self, type, node_name,cardinality, cpd, cpd_parents, parents_cardinality, child):
+        '''    create ad hoc dictionary or table       '''
+        if type == 'RONS':
+            dictionary = {}
+            for state in range(0, cardinality):
+                state_label = str(state)
+                dictionary.update({state_label:cpd[state]})
+            return DiscreteDistribution(dictionary)
+        if type == 'LANS' or type == 'MOTOR' or type == 'WORLD' or type == 'LENS':
+            table = CPD_P.get_index_matrix(parents_cardinality)
+            shape = table.shape
+            cpd_table = []
+            cpd_shape = cpd.shape
+            for column  in range(0,shape[1]):
+                for child_state in range(0, cpd_shape[0]):
+                    an_entry = []
+                    state_child = str(int(child_state))
+                    phi_child = cpd[child_state][column]
+                    for parent  in range(0,shape[0]):
+                        an_entry.append(str(int(table[parent][column])))
+                    an_entry.append(state_child)
+                    an_entry.append(phi_child)
+                    cpd_table.append(an_entry)
+            return ConditionalProbabilityTable(cpd_table,cpd_parents)
+
+    def get_pomegranate_network(self, from_object = False, digraph = None):
+        """
+        Reads the passed json file and translates it's content to the passed pgmpy class object
+        - uses the get_network(file) to read the json file in a networkx format and translate this to pgmpy
+        - Creates a dictionary for the nodes in the form of an array of tuples : [(names defines by user, standard name)]
+
+        :param file: : filename without path or extension
+        :pgmp_object : the pgmpy object which will be completed
+        :return: a dictionary as an array of tuples and the header of the json file
+
+        :type file : string
+        :type pgmp_object : pgmpy class object
+        :rtype : array of tuples, dictionary
+
+        CAUTION : the method does not perform a check() on the constructed DAG ! -> has to be done in the calling module
+        """
+        self.pomegranate_object = BayesianModel()
+        self.summary = copy.deepcopy(self.summary_0)
+        if not (from_object):
+            network, dictionary, header =  self.get_network()
+        else:
+            network = digraph
+        nw_nodes = network.nodes(data = True)
+        nw_edges = network.edges()
+        '''make a pomegranate compatible list of cpd's  and states'''
+        for i, node in enumerate(nw_nodes):
+            node_name = node[0]
+            self.summary['cardinality'].update({node_name:node[1]['cardinality']})
+            self.summary['parents'].update({node_name:node[1]['parents']})
+            self.summary['parents_cardinalities'].update({node_name: node[1]['parents_cardinality']})
+            self.summary['raw_cpd'].update({node_name:node[1]['cpd']})
+            self.summary['childs'].update({node_name:node[1]['childs']})
+
+        ''' first the RONs'''
+        for i, node in enumerate(nw_nodes):
+            node_name = node[0]
+            cardinality = self.summary['cardinality'][node_name]
+            parent = self.summary['parents'][node_name]
+            child = self.summary['childs'][node_name]
+            parent_cardinality = self.summary['parents_cardinalities'][node_name]
+            cpd = self.summary['raw_cpd'][node_name]
+            if len(parent) != 0 :
+                continue
+            cpd_parents = []
+            cpd_p = self.translate_cpd_to_pomegranate('RONS',node_name,cardinality, cpd, cpd_parents, parent_cardinality, child)
+            self.summary['pom_cpd'].update({node_name:cpd_p})
+
+        '''2nd  the LANs'''
+        for i, node in enumerate(nw_nodes):
+            node_name = node[0]
+            cardinality = self.summary['cardinality'][node_name]
+            parent = self.summary['parents'][node_name]
+            child = self.summary['childs'][node_name]
+            parent_cardinality = self.summary['parents_cardinalities'][node_name]
+            cpd = self.summary['raw_cpd'][node_name]
+            if len(parent) == 0 or len(child ) == 0:
+                continue
+            cpd_parents = []
+            for k, par in enumerate(parent):
+                cpd_parents.append(self.summary['pom_cpd'][par])
+            cpd_p = self.translate_cpd_to_pomegranate('LANS',node_name,cardinality, cpd, cpd_parents, parent_cardinality, child)
+            self.summary['pom_cpd'].update({node_name:cpd_p})
+
+        '''3rd the LEAFs'''
+        for i, node in enumerate(nw_nodes):
+            node_name = node[0]
+            cardinality = self.summary['cardinality'][node_name]
+            parent = self.summary['parents'][node_name]
+            child = self.summary['childs'][node_name]
+            parent_cardinality = self.summary['parents_cardinalities'][node_name]
+            cpd = self.summary['raw_cpd'][node_name]
+            if len(parent) == 0 or len(child) != 0:
+                continue
+            cpd_parents = []
+            for k, par in enumerate(parent):
+                cpd_parents.append(self.summary['pom_cpd'][par])
+            cpd_p = self.translate_cpd_to_pomegranate('LENS',node_name,cardinality, cpd, cpd_parents, parent_cardinality, child)
+            self.summary['pom_cpd'].update({node_name:cpd_p})
+
+        self.pomegranate_object = BayesianNetwork()
+
+        '''adding nodes '''
+        pom_edges = []
+        pom_nodes = []
+        s = 0
+        for i, node in enumerate(nw_nodes):
+            node_name = node[0]
+            s = copy.deepcopy(Node(self.summary['pom_cpd'][node_name], name = node_name))
+            pom_nodes.append([node_name,s])
+            self.pomegranate_object.add_state(s)
+
+        '''adding edges '''
+        for i, edge in enumerate(nw_edges):
+            s_parent  = ''
+            s_child = ''
+            for k, pom in enumerate(pom_nodes):
+                if edge[0]== pom[0]:
+                    s_parent = pom[1]
+                if edge[1] == pom[0]:
+                    s_child = pom[1]
+            self.pomegranate_object.add_edge(s_parent, s_child)
+
+        return self.pomegranate_object, self.summary, self.dictionary, self.header
+
     def get_pgmpy_network(self, from_object = False, digraph = None):
         """
         Reads the passed json file and translates it's content to the passed pgmpy class object
@@ -309,7 +459,7 @@ class Utilities(object):
             network = digraph
         nw_nodes = network.nodes(data = True)
         nw_edges = network.edges()
-        '''adding nnodes and edges'''
+        '''adding nodes and edges'''
         for i, node in enumerate(nw_nodes):
             node_name = node[0]
             self.pgmpy_object.add_node(node_name)
@@ -365,38 +515,47 @@ class Utilities(object):
         self.header = data['header']
         '''Feeding G with the nodes'''
         cardinality = {}
+        parents = {}
+        childs = {}
+        cardinality_parents = {}
         for key in data['Nodes'].keys():
             for  secondkey in data['Nodes'][key].keys():
                 for c, n  in enumerate(data['Nodes'][key][secondkey]):
                     node = secondkey + "_" + str(c)
-                    self.networkx_object.add_node(node, {'cardinality':n[1], 'cpd':[]})
+                    self.networkx_object.add_node(node, {'cardinality':n[1], 'cpd':[], 'parents':[],'parents_cardinality':[], 'childs':[]})
                     self.dictionary.append((n[0],node))
                     cardinality.update({node:n[1]})#this contains the cardinality of each node with the node name as dictionary entry
+                    parents.update({node:[]})
+                    cardinality_parents.update({node:[]})
+                    childs.update({node:[]})
 
         '''Feeding G with the edges'''
         edges = []
+
         for j, pair in enumerate(data['Edges']):
             for parent in pair.keys():
                 for child in data['Edges'][j][parent]:
                     parent_ = self.translation(parent, 0)
                     child_  = self.translation(child, 0)
                     edges.append((parent_,child_))
+                    parents[child_].append(parent_)
+                    childs[parent_].append(child_)
+                    cardinality_parents[child_].append(self.networkx_object.node[parent_]['cardinality'])
         np.ravel(edges)
         self.networkx_object.add_edges_from(edges)
+
+        '''gather info about the parent and or childs  of a node'''
+        for i, node in enumerate(self.networkx_object.nodes()):
+            self.networkx_object.node[node]['parents'] = parents[node]
+            self.networkx_object.node[node]['parents_cardinality'] = cardinality_parents[node]
+            self.networkx_object.node[node]['childs'] = childs[node]
+
         '''Feeding G with the  CPD's as nodes attributes'''
         for j, node in enumerate(data['CPDs']):
             for parent, cpd in node.items():
                 node_ = self.translation( parent, 0)
                 self.networkx_object.node[node_]['cpd'] = cpd
-
-        '''TO REMOVE LATER'''
-        # plt.figure(figsize=(10, 5))
-        # pos = nx.circular_layout(G, scale=2)
-        # node_labels = nx.get_node_attributes(G, 'cpd')
-        # nx.draw(G, pos, node_size=1200, node_color='lightblue',
-        #         linewidths=0.25,  font_size=10, font_weight='bold', with_labels=True)
-        # plt.show()
-        return self.networkx_object, self.dictionary, self.header
+        return self.networkx_object, self.summary, self.dictionary, self.header
 
 
     def create_json_file(self, **kwargs):
