@@ -315,7 +315,7 @@ class MyClass(object):
                 self.nodes[i][1]['cpd'] = CPD.create_random_child(cardinality, card_parent)
 
     def update_network(self):
-        '''Feeding G with the nodes'''
+        ''' update the data associated with the nodes'''
         for i, node in enumerate(self.nodes):
             self.nodes[i][1]['childs'] = []
             self.nodes[i][1]['parents'] = []
@@ -381,9 +381,11 @@ class MyClass(object):
                             depending on the number of incoming nodes'''
             self.add_edges(topo)
             self.add_dummy_cpds()
+            ''' update the data associated with the nodes'''
             self.update_network()
             ''' ----------- convert DiGraph to pgmpy and check'''
             self.pgmpy = self._util.translate_digraph_to_pgmpy(self.networx)
+            ''' ----------- convert DiGraph topomegrante'''
             self.pomi, self.summary = self._util.translate_digraph_to_pomegranate(self.networx)
 
             '''------------ ask pgmpy to guess the best cpd's of the LANs and LENs 
