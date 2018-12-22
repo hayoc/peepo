@@ -15,21 +15,15 @@ the mobile, until it has sufficiently learned the causal model and can consisten
 is moved to the other limb - a large increase in prediction error should be witnessed, until this again lowers as the
 baby learns the new causal model.
 """
-import json
 import logging
-
-import itertools
-
-from pgmpy.estimators import BayesianEstimator
 
 import peepo.playground.baby_in_crib.model as md
 from peepo.playground.baby_in_crib.crib import Crib
 from peepo.playground.baby_in_crib.sensory_input import SensoryInputCribBaby
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
-from peepo.visualize.graph import draw_network
 
 logging.basicConfig()
-logging.getLogger().setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 class Baby:
@@ -43,69 +37,76 @@ class Baby:
         }
 
 
-baby = Baby()
-crib = Crib()
-network = md.baby_model()
+model = GenerativeModel(md.baby_model(), SensoryInputCribBaby(Baby(), Crib()))
 
-model = GenerativeModel(SensoryInputCribBaby(baby, crib), network)
-original_model = model.network.copy()
-edges = original_model.edges()
+while True:
+    model.process()
 
-result = {}
-
-for x in range(0, len(edges) + 1):
-    subresult = []
-    for cmb in itertools.combinations(edges, x):
-        crib.mobile = False
-        copy = original_model.copy()
-
-        for cpd in copy.get_cpds():
-            copy.remove_cpds(cpd)
-
-        for edge in cmb:
-            copy.remove_edge(edge[0], edge[1])
-
-        copy.fit(md.TRAINING_DATA, estimator=BayesianEstimator, prior_type="BDeu")
-        model.network = copy
-
-        loops = -1
-        for l in range(0, 100):
-            total_error = model.process()
-            if total_error < 0.1:
-                loops = l
-                break
-
-        subresult.append({
-            "score": loops,
-            "edges": copy.edges()})
-
-        logging.info('---------' + str(x) + '-------------')
-        logging.info('SCORE: ' + str(loops))
-        logging.info(copy.edges())
-        logging.info('--------------------------')
-    result[str(x)] = subresult
-
-print('======================================')
-print('======================================')
-print('======================================')
-print('======================================')
-print('======================================')
-print('======================================')
-print('======================================')
-
-print(result)
-with open('lolk.json', 'w') as outfile:
-    json.dump(result, outfile)
-
-# import json
+# def run():
+#     model = GenerativeModel(SensoryInputCribBaby(Baby(), Crib()), md.fully_connected_model())
+#     # model.process()
+#     original_model = model.network.copy()
+#     edges = original_model.edges()
 #
-# dfs = []
-# with open('lolk.json') as json_data:
-#     hahajk = json.load(json_data)
-#     for x in range(0, 6):
-#         durp = pd.DataFrame(hahajk[str(x)])
-#         dfs.append(durp['score'])
+#     result = {}
 #
-# prottyke = pd.concat(dfs)
-# prottyke.plot(kind='bar')
-
+#     for x in range(0, len(edges) + 1):
+#         subresult = []
+#         for cmb in itertools.combinations(edges, x):
+#             copy = original_model.copy()
+#
+#             for cpd in copy.get_cpds():
+#                 copy.remove_cpds(cpd)
+#
+#             for edge in cmb:
+#                 copy.remove_edge(edge[0], edge[1])
+#
+#             copy.fit(md.TRAINING_DATA, estimator=BayesianEstimator, prior_type="BDeu")
+#             model = GenerativeModel(SensoryInputCribBaby(Baby(), Crib()), copy)
+#
+#             loops = -1
+#             for l in range(0, 20):
+#                 total_error = model.process()
+#                 if total_error < 0.1:
+#                     loops = l
+#                     break
+#
+#             subresult.append({
+#                 "score": loops,
+#                 "edges": copy.edges()})
+#
+#             logging.info('---------' + str(x) + '-------------')
+#             logging.info('SCORE: ' + str(loops))
+#             logging.info(copy.edges())
+#             logging.info('--------------------------')
+#         result[str(x)] = subresult
+#
+#     print('======================================')
+#     print('======================================')
+#     print('======================================')
+#     print('======================================')
+#     print('======================================')
+#     print('======================================')
+#     print('======================================')
+#
+#     print(result)
+#     # with open('lolk.json', 'w') as outfile:
+#     #     json.dump(result, outfile)
+#     #
+#     # # import json
+#     # #
+#     # # dfs = []
+#     # # with open('lolk.json') as json_data:
+#     # #     hahajk = json.load(json_data)
+#     # #     for x in range(0, 6):
+#     # #         durp = pd.DataFrame(hahajk[str(x)])
+#     # #         dfs.append(durp['score'])
+#     # #
+#     # # prottyke = pd.concat(dfs)
+#     # # prottyke.plot(kind='bar')
+#
+#
+# if __name__ == "__main__":
+#     logging.basicConfig()
+#     logging.getLogger().setLevel(logging.DEBUG)
+#     run()

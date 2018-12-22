@@ -11,6 +11,9 @@ setup(
     license='LICENSE',
     description='Personhood through Predictive Processing.',
     long_description=open('README.md').read(),
-    install_requires=['scipy', 'numpy', 'matplotlib', 'pgmpy', 'pandas', 'wrapt', 'networkx==1.11', 'pygame', 'flask'],
+    install_requires=['scipy', 'numpy', 'matplotlib', 'pgmpy', 'pandas', 'wrapt', 'networkx', 'pygame', 'flask',
+                      'cython', 'pomegranate'],
     setup_requires=[]
 )
+
+# "pip install git+https://github.com/jmschrei/pomegranate.git"

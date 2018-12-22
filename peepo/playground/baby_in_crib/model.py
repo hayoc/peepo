@@ -1,54 +1,60 @@
 import pandas as pd
 from pgmpy.estimators import BayesianEstimator
-from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
+from pomegranate.BayesianNetwork import BayesianNetwork
+from pomegranate.base import State
+from pomegranate.distributions.ConditionalProbabilityTable import ConditionalProbabilityTable
+from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
 
-MOBILE = 'obs_mobile'
-LEFT_ARM = 'motor_left_arm'
-RIGHT_ARM = 'motor_right_arm'
-LEFT_FOOT = 'motor_left_foot'
-RIGHT_FOOT = 'motor_right_foot'
+MOBILE = 'LEN_mobile'
+LEFT_ARM = 'LEN_motor_left_arm'
+RIGHT_ARM = 'LEN_motor_right_arm'
+LEFT_FOOT = 'LEN_motor_left_foot'
+RIGHT_FOOT = 'LEN_motor_right_foot'
 
-DESIRE = 'obs_desire'
-BOREDOM = 'hypo_boredom'
-MOTOR_HYPO = 'hypo_movement'
-
-
-def random_binary_cpd(var):
-    return TabularCPD(variable=var, variable_card=2, values=[[0.5, 0.5]])
-
-
-def inactivity_cpd(var):
-    return TabularCPD(variable=var, variable_card=2, values=[[0.9, 0.1]])
+DESIRE = 'LEN_desire'
+BOREDOM = 'RON_BOREDOM'
+MOTOR_HYPO = 'RON_MOVEMENT'
 
 
 def baby_model():
-    model = fully_connected_model()
+    d1 = DiscreteDistribution({'0': 0.6, '1': 0.4})
+    d2 = DiscreteDistribution({'0': 0.6, '1': 0.4})
+    d3 = ConditionalProbabilityTable(
+        [['1', '1', 0.1],
+         ['1', '0', 0.9],
+         ['0', '1', 0.9],
+         ['0', '0', 0.1]], [d1])
+    d4 = ConditionalProbabilityTable(
+        [['1', '1', '1', 0.1],
+         ['1', '1', '0', 0.9],
+         ['1', '0', '1', 0.1],
+         ['1', '0', '0', 0.9],
+         ['0', '1', '1', 0.9],
+         ['0', '1', '0', 0.1],
+         ['0', '0', '1', 0.9],
+         ['0', '0', '0', 0.1]], [d1, d2])
+    d5 = ConditionalProbabilityTable(
+        [['1', '1', 0.1],
+         ['1', '0', 0.9],
+         ['0', '1', 0.9],
+         ['0', '0', 0.1]], [d2])
+
+    s1 = State(d1, name=BOREDOM)
+    s2 = State(d2, name=MOTOR_HYPO)
+    s3 = State(d3, name=DESIRE)
+    s4 = State(d4, name=MOBILE)
+    s5 = State(d5, name=LEFT_ARM)
+
+    model = BayesianNetwork()
+    model.add_states(s1, s2, s3, s4, s5)
+    model.add_edge(s1, s3)
+    model.add_edge(s1, s4)
+    model.add_edge(s2, s4)
+    model.add_edge(s2, s5)
+    model.bake()
+
     return model
-    # network = BayesianModel()
-    #
-    # network.add_nodes_from([BOREDOM, DESIRE, MOBILE, LEFT_ARM])
-    # network.add_edges_from([(BOREDOM, DESIRE), (BOREDOM, MOBILE), (MOTOR_HYPO, MOBILE), (MOTOR_HYPO, LEFT_ARM)])
-    #
-    # cpd1 = TabularCPD(variable=DESIRE, variable_card=2, values=[[0.1, 0.9],
-    #                                                             [0.9, 0.1]],
-    #                   evidence=[BOREDOM],
-    #                   evidence_card=[2])
-    # cpd2 = TabularCPD(variable=LEFT_ARM, variable_card=2, values=[[0.1, 0.9],
-    #                                                               [0.9, 0.1]],
-    #                   evidence=[MOTOR_HYPO],
-    #                   evidence_card=[2])
-    # cpd3 = TabularCPD(variable=MOBILE, variable_card=2, values=[[0.1, 0.1, 0.9, 0.9],
-    #                                                             [0.9, 0.9, 0.1, 0.1]],
-    #                   evidence=[BOREDOM, MOTOR_HYPO],
-    #                   evidence_card=[2, 2])
-    # cpd4 = TabularCPD(variable=BOREDOM, variable_card=2, values=[[0.6, 0.4]])
-    # cpd5 = TabularCPD(variable=MOTOR_HYPO, variable_card=2, values=[[0.6, 0.4]])
-    #
-    # network.add_cpds(cpd1, cpd2, cpd3, cpd4, cpd5)
-    # network.check_model()
-    #
-    # return network
 
 
 TRAINING_DATA = pd.DataFrame(data={
