@@ -317,6 +317,12 @@ class MyClass(object):
     def update_network(self):
         '''Feeding G with the nodes'''
         for i, node in enumerate(self.nodes):
+            self.nodes[i][1]['childs'] = []
+            self.nodes[i][1]['parents'] = []
+            self.nodes[i][1]['parents_cardinality'] = []
+            for k, edge in enumerate(self.networx.edges()):
+                if node[0] == edge[0]:
+                    self.nodes[i][1]['childs'].append(edge[1])
             cardinality = node[1]['cardinality']
             if ('BEN' in node[0]) or ('MEM' in node[0]):
                 self.nodes[i][1]['parents'] = []
@@ -328,37 +334,18 @@ class MyClass(object):
                 card_parent = []
                 paren = []
                 for  m, n in enumerate(incoming_nodes):
-                    par = self.networx.node[n[0]]['cardinality']
-                    paren.append(self.networx.node[n[0]])
-                    card_parent.append(par)
-                self.nodes[i][1]['parents_cardinality'] = card_parent
-                self.nodes[i][1]['parents'] = paren
-        '''Feeding G with the edges'''
-        edges = []
+                    if n[1] == node[0]:
+                        par = self.networx.node[n[0]]['cardinality']
+                        paren.append(n[0])
+                        card_parent.append(par)
+                    self.nodes[i][1]['parents_cardinality'] = card_parent
 
-        for j, pair in enumerate(data['Edges']):
-            for parent in pair.keys():
-                for child in data['Edges'][j][parent]:
-                    parent_ = self.translation(parent, 0)
-                    child_  = self.translation(child, 0)
-                    edges.append((parent_,child_))
-                    parents[child_].append(parent_)
-                    childs[parent_].append(child_)
-                    cardinality_parents[child_].append(self.networkx_object.node[parent_]['cardinality'])
-        np.ravel(edges)
-        self.networkx_object.add_edges_from(edges)
+                    self.nodes[i][1]['parents'] = paren
+        for node, out_degree in self.networx.out_degree_iter():
+            if out_degree == 0:
+                self.networx.node[node]['childs'] = []
 
-        '''gather info about the parent and or childs  of a node'''
-        for i, node in enumerate(self.networkx_object.nodes()):
-            self.networkx_object.node[node]['parents'] = parents[node]
-            self.networkx_object.node[node]['parents_cardinality'] = cardinality_parents[node]
-            self.networkx_object.node[node]['childs'] = childs[node]
-
-        '''Feeding G with the  CPD's as nodes attributes'''
-        for j, node in enumerate(data['CPDs']):
-            for parent, cpd in node.items():
-                node_ = self.translation( parent, 0)
-                self.networkx_object.node[node_]['cpd'] = cpd
+        self.nodes = self.networx.nodes(data=True)
 
 
     def do_it(self):
