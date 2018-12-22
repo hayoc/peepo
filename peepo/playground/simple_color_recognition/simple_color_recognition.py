@@ -155,7 +155,7 @@ class MyClass(object):
             error += models[key].process()
         return error
 
-    '''.................. vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv ..................................'''
+    '''.................. vvvvvvvvvvvvvvvvv  TEMPORARY  vvvvvvvvvvvvvvvvvvvvvv ..................................'''
     def do_simple_inference(self):
         total_prediction_error_size = 0
         for node in self.pgmpy_test.get_leaves():
@@ -233,7 +233,7 @@ class MyClass(object):
             obs.update({leaf: np.argmax(self.pgmpy_test.get_cpds(leaf).values)})
         return obs
 
-    '''**********************   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                           '''
+    '''**********************   ^^^^^^^^^^^^^^^ END OF TEMPORARY  ^^^^^^^^^^^^^^^^^^^ ***************************** '''
 
     def test_topology(self, entropy):
         self.networx_test = copy.deepcopy(self.networx)
