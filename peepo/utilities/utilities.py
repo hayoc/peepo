@@ -32,6 +32,7 @@ class Utilities(object):
         self.summary = {'raw_cpd':{},'pom_cpd':{},'cardinality':{},'edges':{},'parents':{},'parents_cardinalities':{},'childs':{}}
         self.summary_0 = {'raw_cpd': {}, 'pom_cpd': {}, 'cardinality': {}, 'edges': {}, 'parents': {},
                         'parents_cardinalities': {}, 'childs': {}}
+        self.pom_nodes = []
 
     def get_nodes_in_family(self, family, attributes=False):
         nw_nodes = self.networkx_object.nodes()
@@ -239,8 +240,8 @@ class Utilities(object):
         :type  :pgmpy_object:adress
         :rtype :networkx:adress
         """
-        self.pomegranate , self.summary, x,y = self.get_pomegranate_network(from_object = True, digraph = digraf )
-        return self.pomegranate_object, self.summary
+        self.pomegranate , self.pom_nodes, self.summary, x,y = self.get_pomegranate_network(from_object = True, digraph = digraf )
+        return self.pomegranate_object, self.pom_nodes,self.summary
     
 
     def update_networkx(self, networkx, dic, header):
@@ -414,26 +415,25 @@ class Utilities(object):
         self.pomegranate_object = BayesianNetwork()
 
         '''adding nodes '''
-        pom_nodes = []
+        self.pom_nodes = []
         s = 0
         for i, node in enumerate(nw_nodes):
             node_name = node[0]
             s = copy.deepcopy(Node(self.summary['pom_cpd'][node_name], name = node_name))
-            pom_nodes.append([node_name,s])
+            self.pom_nodes.append([node_name,s])
             self.pomegranate_object.add_state(s)
-
         '''adding edges '''
         for i, edge in enumerate(nw_edges):
             s_parent  = ''
             s_child = ''
-            for k, pom in enumerate(pom_nodes):
+            for k, pom in enumerate(self.pom_nodes):
                 if edge[0]== pom[0]:
                     s_parent = pom[1]
                 if edge[1] == pom[0]:
                     s_child = pom[1]
             self.pomegranate_object.add_edge(s_parent, s_child)
 
-        return self.pomegranate_object, self.summary, self.dictionary, self.header
+        return self.pomegranate_object,  self.pom_nodes, self.summary, self.dictionary, self.header
 
     def get_pgmpy_network(self, from_object = False, digraph = None):
         """
