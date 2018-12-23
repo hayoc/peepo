@@ -5,8 +5,8 @@ import os
 import random
 import sys
 import copy
-import pandas as pd
 import networkx as nx
+import json
 import numpy as np
 from pgmpy.estimators import BayesianEstimator
 from pgmpy.factors.discrete import TabularCPD
@@ -56,9 +56,9 @@ class MyClass(object):
         self.results = []
         self.networx_test = nx.DiGraph()
         self.networx_fixed = nx.DiGraph()
-        self.pgmpy_test  = BayesianModel()
+        self.pommy_test  = BayesianNetwork()
         self.networx = nx.DiGraph()
-        self.pgmpy = BayesianModel()
+        self.pommy = BayesianNetwork()
         self.best_error = math.inf
         self.best_topology = [0,0,nx.DiGraph,0]#[error, entropy, networkx DiGraph, loop]
         self.dictionary = []
@@ -77,117 +77,46 @@ class MyClass(object):
         self._lat = Lattices(self._util)
         self.expected_result = [0, 0, 0]
         self.loop = 0
-        self.pommy = BayesianNetwork()
         self.summary = {}
-        self.pom_nodes = []
-
-
-    def get_my_colors(self):
-        evidence = []
-        cardinality = []
-        for i, node in enumerate(self.nodes):
-            if 'BEN' in node[0] or 'MEN' in node[0]:
-                evidence.append(node[0])
-                cardinality.append(node[1]['cardinality'])
-        self.colors_dictionary, self.colors_table, self.colors_cpd = self.color_cpd('LEN_WORLD',3,evidence,cardinality)
-        self.number_of_colors = self.colors_table.shape[1]
-        # print('Number of colors : ', self.number_of_colors)
-        # print(self.colors_cpd)
-        #print(self.colors_cpd.values)
-
-    def color_cpd(self,var,card_var,evidence,cardinality):
-        table = CPD.get_index_matrix(cardinality)
-        colors ={}
-        hi = 1
-        lo = 0
-        C = np.prod(cardinality)
-        matrix = np.full((3, C), 1. / 3.)
-        matrix[0] = [hi, lo, lo, hi, lo, lo, hi, lo, hi, lo, lo, hi, lo, lo, hi, lo]
-        matrix[1] = [lo, hi, lo, lo, hi, lo, lo, hi, lo, hi, lo, lo, hi, lo, lo, hi]
-        matrix[2] = [lo, lo, hi, lo, lo, hi, lo, lo, lo, lo, hi, lo, lo, hi, lo, lo]
-        cpd =TabularCPD(variable=var, variable_card=card_var, values=matrix,
-                          evidence=evidence,
-                          evidence_card=cardinality)
-        for i, node in enumerate(evidence):
-            colors.update({node:table[i]})
-        return colors,table, cpd
-
-
-    # def set_color(self, color):
-    #     col = self.colors_table[:, color]
-    #     for i in range(0,len(col)):
-    #         node = 'BENS_'+ str(i)
-    #         self.pgmpy.get_cpds(node).values = CPD.RON_cpd(node, self.pgmpy.get_cardinality(node), mu = int(col[i])).values
-
-
-
-
-    def create_learning_data(self):
-        self.get_my_colors()
-        self.learning_data = {}
-        ben_nodes = [x for x in self.nodes if "BEN" in x[0]]
-        world_nodes = [x for x in self.nodes if "WORLD" in x[0]]
-
-        for i, node in enumerate(ben_nodes):
-            self.learning_data.update({node[0]: self.colors_table[i].tolist()})
-
-        for i, node in enumerate(world_nodes):
-            shape = self.colors_cpd.values.shape
-            reshaped_cpd = self.colors_cpd.values.reshape(shape[0], int(np.prod(shape) / shape[0]))
-            for hue in range(0, 3):
-                if str(hue) in node[0]:
-                    self.learning_data.update({node[0]: reshaped_cpd[hue, :].tolist()})
-        # for i, node in enumerate(self.nodes):
-        #     if "BEN" in node[0]:
-        #         self.learning_data.update({node[0]:self.colors_table[i].tolist()})
-        #     if "WORLD" in node[0]:
-        #         shape = self.colors_cpd.values.shape
-        #         reshaped_cpd = self.colors_cpd.values.reshape(shape[0], int(np.prod(shape)/shape[0]))
-        #         for hue in range(0,3):
-        #             if str(hue) in node[0]:
-        #                 self.learning_data.update({node[0]:reshaped_cpd[hue,:].tolist()})
-        # print('Learning data')
-        # print(self.learning_data)
-
-
-    def do_inference(self, models):
-        error = 0
-        for key in models:
-            error += models[key].process()
-        return error
+        self.pom_nodes = {}
+        self.summary_test = {}
+        self.pom_nodes_test = {}
+        self.pixel_states = {'RON_BEN_0':0,'RON_BEN_1':0,'RON_BEN_2':0,'RON_BEN_3':0}
 
     '''.................. vvvvvvvvvvvvvvvvv  TEMPORARY  vvvvvvvvvvvvvvvvvvvvvv ..................................'''
+
+    def sensory_input_value(self, name):
+        if name == 'LEN_WORLD_0':
+            expected_result = CPD.create_fixed_parent(2, state = self.expected_result[0], modus = 'status')
+        if name == 'LEN_WORLD_1':
+            expected_result = CPD.create_fixed_parent(2, state = self.expected_result[1], modus = 'status')
+        if name == 'LEN_WORLD_2':
+            expected_result = CPD.create_fixed_parent(2, state = self.expected_result[2], modus = 'status')
+        return expected_result
+
+
     def do_simple_inference(self):
         total_prediction_error_size = 0
-        for node in self.pgmpy_test.get_leaves():
-            prediction = self.predict(node)
-            observation = self.sensory_input(node)
-            prediction_error_size = self.error_size(prediction, observation)
-            prediction_error = self.error(prediction, observation)
-            precision = entropy(prediction, base=2)
-            total_prediction_error_size += prediction_error_size
+        for index, node in enumerate(self.predict()):
+            node_name = self.pommy_test.states[index].name
+            if 'LEN' in node_name:
+                prediction = np.array([x[1] for x in sorted(node.items(), key=lambda tup: tup[0])])
+                observation = self.sensory_input_value(node_name)
+                prediction_error_size = self.error_size(prediction, observation)
+                total_prediction_error_size += prediction_error_size
         return total_prediction_error_size
 
-    def predict(self, node):
+    def predict(self):
         """
-        Predicts the given leaf node (i.e. the observational node) based on the root nodes (i.e. the belief nodes)
-        :return: prediction for given observation variable, a prediction is a probability distribution
-        :rtype: np.array
+        Predicts the leaf nodes (i.e. the observational nodes) based on the root nodes (i.e. the belief nodes)
+        :return: prediction for all leaf nodes, a prediction is a probability distribution
+        :rtype: list of Distributions
+        #TODO: A fundamental problem with PP?: Cannot do prediction>error minimization with one loop per node,
+        #TODO: since a sister LEN node which does not yet have the correct input will revert the hypothesis update.
         """
-        infer = VariableElimination(self.pgmpy_test)
-        evidence = self.get_root_nodes()
-        evidence = {k: v for k, v in evidence.items() if k not in [node]}
-        return infer.query(variables=[node], evidence=evidence)[node].values
-
-    def sensory_input(self, name):
-        expected_result = self.expected_result
-        cpds = []
-        for i in range(0, len(expected_result)):
-            cpds.append(['LEN_WORLD_' + str(i), CPD.create_fixed_parent(2, state=int(expected_result[i]))])
-        for i, node in enumerate(self.nodes):
-            for j in range(0, len(cpds)):
-                if name == cpds[j][0]:
-                    return cpds[j][1]
+        evidence = self.get_root_values()
+        #self.pommy_test.bake()
+        return self.pommy_test.predict_proba(evidence)
 
     def error(self,pred, obs):
         """
@@ -215,47 +144,99 @@ class MyClass(object):
         """
         return entropy(obs, pred)
 
-    def get_root_nodes(self):
-        """
-        Returns status of all root nodes.
-        :param network: Bayesian Network representing the generative model
-        :return: Dictionary containing all root nodes as keys and status as values
-        :type network: BayesianModel
-        :rtype dict
-        """
-        roots = {}
-        for root in self.pgmpy_test.get_roots():
-            roots.update({root: np.argmax(self.pgmpy_test.get_cpds(root).values)})
-        return roots
 
-    def get_observations(self):
-        obs = {}
-        for leaf in self.pgmpy_test.get_leaves():
-            obs.update({leaf: np.argmax(self.pgmpy_test.get_cpds(leaf).values)})
-        return obs
+    def get_root_values(self):
+        return {x.name:self.pixel_states[x.name] for x in self.get_roots()}
+
+    def get_roots(self):
+        return [x for x in self.pommy_test.states if 'RON' in x.name]
+
+    def get_leaves(self):
+        return [x for x in self.pommy_test.states if 'LEN' in x.name]
+
+    def get_node_index(self, node_name):
+        for x, state in enumerate(self.pommy_test.states):
+            if state.name == node_name:
+                return x
+        raise ValueError('Node %s does not exist in network.', node_name)
+
 
     '''**********************   ^^^^^^^^^^^^^^^ END OF TEMPORARY  ^^^^^^^^^^^^^^^^^^^ ***************************** '''
 
+    def get_my_colors(self):
+        evidence = []
+        cardinality = []
+        for i, node in enumerate(self.nodes):
+            if 'BEN' in node[0] or 'MEN' in node[0]:
+                evidence.append(node[0])
+                cardinality.append(node[1]['cardinality'])
+        self.colors_dictionary, self.colors_table, self.colors_cpd = self.color_cpd('LEN_WORLD',3,evidence,cardinality)
+        self.number_of_colors = self.colors_table.shape[1]
+
+    def color_cpd(self,var,card_var,evidence,cardinality):
+        table = CPD.get_index_matrix(cardinality)
+        colors ={}
+        hi = 1
+        lo = 0
+        C = np.prod(cardinality)
+        matrix = np.full((3, C), 1. / 3.)
+        matrix[0] = [hi, lo, lo, hi, lo, lo, hi, lo, hi, lo, lo, hi, lo, lo, hi, lo]
+        matrix[1] = [lo, hi, lo, lo, hi, lo, lo, hi, lo, hi, lo, lo, hi, lo, lo, hi]
+        matrix[2] = [lo, lo, hi, lo, lo, hi, lo, lo, lo, lo, hi, lo, lo, hi, lo, lo]
+        for i, node in enumerate(evidence):
+            colors.update({node:table[i]})
+        return colors,table.astype(int), matrix.astype(int)
+
+
+    # def set_color(self, color):
+    #     col = self.colors_table[:, color]
+    #     for i in range(0,len(col)):
+    #         node = 'BENS_'+ str(i)
+    #         self.pgmpy.get_cpds(node).values = CPD.RON_cpd(node, self.pgmpy.get_cardinality(node), mu = int(col[i])).values
+
+
+
+
+    def create_learning_data(self):
+        self.get_my_colors()
+        self.learning_data = []
+        ben_nodes = [x for x in self.nodes if "BEN" in x[0]]
+        world_nodes = [x for x in self.nodes if "WORLD" in x[0]]
+
+        for i, node in enumerate(ben_nodes):
+            self.learning_data.append(self.colors_table[i].tolist())
+
+        for i, node in enumerate(world_nodes):
+            shape = self.colors_cpd.shape
+            reshaped_cpd = self.colors_cpd.reshape(shape[0], int(np.prod(shape) / shape[0]))
+            for hue in range(0, 3):
+                if str(hue) in node[0]:
+                    self.learning_data.append(reshaped_cpd[hue, :].tolist())
+        self.learning_data = np.asarray(self.learning_data).transpose()
+
+    def do_inference(self, models):
+        error = 0
+        for key in models:
+            error += models[key].process()
+        return error
+
     def test_topology(self, entropy):
         self.networx_test = copy.deepcopy(self.networx)
-        self.pgmpy_test = BayesianModel()
-        self.pgmpy_test   = copy.deepcopy(self.pgmpy)
-        model = {'main': GenerativeModel(SensoryInputVirtualPeepo(self), self.pgmpy_test)}
-        self.expected_result = [0,0,0]
+        self.pommy_test, self.pom_nodes_test, self.summary_test = self._util.translate_digraph_to_pomegranate(self.networx_test)
+        self.pommy_test.bake()
+        #model = {'main': GenerativeModel(SensoryInputVirtualPeepo(self), self.pgmpy_test)}
+        self.expected_result = {'LEN_WORLD_0':0,'LEN_WORLD_1':0,'LEN_WORLD_2':0}
         ''' ------ going through all possible "colors'''
         error = 0
         for color in range(0, self.number_of_colors):
-            states = self.colors_table[:,color]
-            shape = self.colors_cpd.values.shape
-            reshaped_cpd = self.colors_cpd.values.reshape(shape[0], int(np.prod(shape) / shape[0]))
+            pixel_states = self.colors_table[:,color]
+            self.pixel_states['RON_BEN_0'] = pixel_states[0]
+            self.pixel_states['RON_BEN_1'] = pixel_states[1]
+            self.pixel_states['RON_BEN_2'] = pixel_states[2]
+            self.pixel_states['RON_BEN_3'] = pixel_states[3]
+            shape = self.colors_cpd.shape
+            reshaped_cpd = self.colors_cpd.reshape(shape[0], int(np.prod(shape) / shape[0]))
             self.expected_result = reshaped_cpd[:,int(color)]
-            for i, pixel in enumerate(states):
-                if 'RON_BEN_'+str(i) not in self.networx_test.nodes():
-                   continue
-                cardinality = self.pgmpy_test.get_cardinality('RON_BEN_'+str(i))
-                self.pgmpy_test.get_cpds('RON_BEN_' + str(i)).values = CPD.create_fixed_parent(cardinality, state = int(pixel))
-            #error += self.do_inference(model)
-
             error += self.do_simple_inference()
         error /= self.number_of_colors
         self.results.append([entropy, error])
@@ -267,12 +248,6 @@ class MyClass(object):
             self.best_topology[3] = self.loop
         self.loop += 1
 
-    def estimate_parameters(self):
-        data = pd.DataFrame(data=self.learning_data)
-        estimator = BayesianEstimator(self.pgmpy, data)
-        for i, node in enumerate(self.nodes):
-            if 'LAN' in node[0] or 'MOTOR' in node[0] or 'WORLD' in node[0]:
-                self.pgmpy.get_cpds(node[0]).values = estimator.estimate_cpd(node[0], prior_type='dirichlet', pseudo_counts=[2, 3]).values
 
     def add_edges(self, topology):
         self.networx.remove_edges_from(self.edges)
@@ -349,14 +324,13 @@ class MyClass(object):
         self.nodes = self.networx.nodes(data=True)
 
 
+
     def do_it(self):
         '''EXPLANATIONS'''
         self.networx_fixed , self.summary, self.dictionary, self.header = self._util.get_network()
         self.networx = copy.deepcopy(self.networx_fixed)
         self.networx_test= copy.deepcopy(self.networx_fixed)
         self.nodes = self.networx.nodes(data=True)
-        self.create_learning_data()
-        print(self.learning_data)
         print('Dictionary : ', self.dictionary)
 
         ''' -------------- Constructing all possible topologies, 
@@ -374,9 +348,6 @@ class MyClass(object):
             print('Loop *-> ', self.loop + 1, ' of ', len(possible_topologies))
             topo  = topology[0]
             self.networx = copy.deepcopy(self.networx_fixed)
-            edges = []
-            parent = ''
-            child = ''
 
             ''' ----------- for each topology we construct the edges and update dummy cpd (necessary as the shape of the LENs cpd's can change
                             depending on the number of incoming nodes'''
@@ -384,18 +355,13 @@ class MyClass(object):
             self.add_dummy_cpds()
             ''' update the data associated with the nodes'''
             self.update_network()
-            ''' ----------- convert DiGraph to pgmpy and check'''
-            self.pgmpy = self._util.translate_digraph_to_pgmpy(self.networx)
+            self.create_learning_data()
             ''' ----------- convert DiGraph topomegrante'''
             self.pomi, self.pom_nodes, self.summary = self._util.translate_digraph_to_pomegranate(self.networx)
-            print('Pomegranate nodes in self.pom_nodes')
-            print(self.pom_nodes)
-
-            '''------------ ask pgmpy to guess the best cpd's of the LANs and LENs 
-                             -> provide pgmpy with the learning data'''
-            self.estimate_parameters()
-
-            self.pgmpy.check_model()
+            self.pomi.bake()
+            '''------------ askpomegranate to guess the best cpd's of the LANs and LENs 
+                             -> provide pomegranate with the learning data'''
+            self.pomi.fit(self.learning_data)
             self.update_network()
 
             '''-------------- Testing the constructed topology'''
@@ -404,8 +370,8 @@ class MyClass(object):
             '''following  4 lines to remove : just use to check whether the algorithms are correct regarding the edges building'''
             count += 1
             #print('edges : ', self.edges)
-
-            # if count > 5:
+            #
+            # if count > 300:
             #     break
         print('Check -> number of processed topologies in loop : ', count)
         # print('My colors : ')
