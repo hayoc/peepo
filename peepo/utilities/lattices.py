@@ -6,6 +6,7 @@ from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 import re
 import itertools
+from peepo.playground.simple_color_recognition.CeePeeDees import CPD
 
 
 class Lattices(object):
@@ -14,57 +15,12 @@ class Lattices(object):
         self._util = utility_pointer
 
 
-        pass
-
-    def get_index_matrix(self,cardinality):
-        ''' creates a matrix of all possible two states combinations (0,1)  of a vector of size len(cardinality) '''
-        C = np.prod(cardinality)
-        blocks = np.copy(cardinality)
-        B = len(blocks)
-        for b in range(1, B):
-            index = B - 1 - b
-            blocks[index] = blocks[index + 1] * cardinality[index]
-        M = np.zeros((len(cardinality), C))
-        # construct first the lowest row
-        block = np.zeros(cardinality[len(cardinality) - 1])
-        for n in range(0, len(block)):
-            block[n] = n
-        # fill M  with the right number of blocks
-        n_blocks = int(C / blocks[B - 1])
-        R = []
-        for n in range(0, n_blocks):
-            R.append(block)
-        R = np.reshape(R, n_blocks * len(block))
-        M[B - 1, :] = R
-        block_mem = int(C / blocks[B - 1])
-        # now the rest of the rows
-        for b in range(0, B - 1):
-            row = B - 2 - b
-            block = np.zeros(blocks[row])
-            block_mem /= cardinality[row]
-            n_blocks = int(block_mem)
-            # fill first the block
-            index = 0
-            index_ = 0
-            for p in range(0, len(block)):
-                block[p] = index
-                index_ += 1
-                if index_ > blocks[row + 1] - 1:
-                    index_ = 0
-                    index += 1
-            # now create an R array with the right number of blocks
-            R = []
-            for n in range(0, n_blocks):
-                R.append(block)
-            R = np.reshape(R, n_blocks * len(block))
-            M[row, :] = R
-        return np.transpose(M)
 
     def get_possible_states(self,number_of_nodes):
         if number_of_nodes == 0:
             return False
         card = np.full(number_of_nodes,2)
-        return self.get_index_matrix(card)
+        return np.transpose(CPD.get_index_matrix(card))
 
     def make_state_sub_matrix(self,unit_state, number_of_atoms):
         matrix = unit_state
