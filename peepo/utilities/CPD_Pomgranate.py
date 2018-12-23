@@ -1,6 +1,7 @@
 from  pomegranate import *
 import random
 import numpy as np
+import itertools
 
 class CPD_P:
 
@@ -24,11 +25,10 @@ class CPD_P:
                           [0 0 1 1 2 2 0 0 1 1 2 2],
                           [0 1 0 1 0 1 0 1 0 1 0 1 ]]
          """
-        blocks = []
-        for i in range(0, len(cardinality)):
+        blocks =[]
+        for i in range(0,len(cardinality)):
             subblock = []
-            for s in range(0, cardinality[i]):
-                subblock.append(int(s))
+            [subblock.append(int(s)) for s in range(0,cardinality[i])]
             blocks.append(subblock)
         return np.transpose(np.asarray(list(itertools.product(*blocks))))
 
