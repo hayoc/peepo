@@ -79,6 +79,7 @@ class MyClass(object):
         self.loop = 0
         self.pommy = BayesianNetwork()
         self.summary = {}
+        self.pom_nodes = []
 
 
     def get_my_colors(self):
@@ -386,7 +387,9 @@ class MyClass(object):
             ''' ----------- convert DiGraph to pgmpy and check'''
             self.pgmpy = self._util.translate_digraph_to_pgmpy(self.networx)
             ''' ----------- convert DiGraph topomegrante'''
-            self.pomi, self.summary = self._util.translate_digraph_to_pomegranate(self.networx)
+            self.pomi, self.pom_nodes, self.summary = self._util.translate_digraph_to_pomegranate(self.networx)
+            print('Pomegranate nodes in self.pom_nodes')
+            print(self.pom_nodes)
 
             '''------------ ask pgmpy to guess the best cpd's of the LANs and LENs 
                              -> provide pgmpy with the learning data'''
