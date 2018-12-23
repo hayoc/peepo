@@ -35,7 +35,7 @@ class SensoryInputVirtualPeepo(SensoryInput):
         expected_result = self.peepo.expected_result
         cpds = []
         for i in range(0,len(expected_result)):
-            cpds.append(['WORLD_'+str(i), CPD.create_fixed_parent(2, state = int(expected_result[i]))])
+            cpds.append(['LEN_WORLD_'+str(i), CPD.create_fixed_parent(2, state = int(expected_result[i]))])
         for i, node in enumerate(self.peepo.nodes):
             for j in range(0,len(cpds)):
                 if name == cpds[j][0]:
@@ -85,10 +85,10 @@ class MyClass(object):
         evidence = []
         cardinality = []
         for i, node in enumerate(self.nodes):
-            if 'BEN' in node[0] or 'MEM' in node[0]:
+            if 'BEN' in node[0] or 'MEN' in node[0]:
                 evidence.append(node[0])
                 cardinality.append(node[1]['cardinality'])
-        self.colors_dictionary, self.colors_table, self.colors_cpd = self.color_cpd('WORLD',3,evidence,cardinality)
+        self.colors_dictionary, self.colors_table, self.colors_cpd = self.color_cpd('LEN_WORLD',3,evidence,cardinality)
         self.number_of_colors = self.colors_table.shape[1]
         # print('Number of colors : ', self.number_of_colors)
         # print(self.colors_cpd)
@@ -182,7 +182,7 @@ class MyClass(object):
         expected_result = self.expected_result
         cpds = []
         for i in range(0, len(expected_result)):
-            cpds.append(['WORLD_' + str(i), CPD.create_fixed_parent(2, state=int(expected_result[i]))])
+            cpds.append(['LEN_WORLD_' + str(i), CPD.create_fixed_parent(2, state=int(expected_result[i]))])
         for i, node in enumerate(self.nodes):
             for j in range(0, len(cpds)):
                 if name == cpds[j][0]:
@@ -249,10 +249,10 @@ class MyClass(object):
             reshaped_cpd = self.colors_cpd.values.reshape(shape[0], int(np.prod(shape) / shape[0]))
             self.expected_result = reshaped_cpd[:,int(color)]
             for i, pixel in enumerate(states):
-                if 'BENS_'+str(i) not in self.networx_test.nodes():
+                if 'RON_BEN_'+str(i) not in self.networx_test.nodes():
                    continue
-                cardinality = self.pgmpy_test.get_cardinality('BENS_'+str(i))
-                self.pgmpy_test.get_cpds('BENS_' + str(i)).values = CPD.create_fixed_parent(cardinality, state = int(pixel))
+                cardinality = self.pgmpy_test.get_cardinality('RON_BEN_'+str(i))
+                self.pgmpy_test.get_cpds('RON_BEN_' + str(i)).values = CPD.create_fixed_parent(cardinality, state = int(pixel))
             #error += self.do_inference(model)
 
             error += self.do_simple_inference()
@@ -292,8 +292,8 @@ class MyClass(object):
         for column in range(0,shape[1]):
             for row in range(0,shape[0]):
                 if topology[row][column] == 1:
-                    parent = 'BENS_' + str(column)
-                    child  = 'WORLD_'+ str(row)
+                    parent = 'RON_BEN_' + str(column)
+                    child  = 'LEN_WORLD_'+ str(row)
                     self.networx.add_edge(parent, child)
         self.edges = self.networx.edges()
 
@@ -301,7 +301,7 @@ class MyClass(object):
     def add_dummy_cpds(self):
         for i, node in enumerate(self.nodes):
             cardinality = node[1]['cardinality']
-            if ('BEN' in node[0]) or ('MEM' in node[0]):
+            if ('BEN' in node[0]) or ('MEN' in node[0]):
                 self.nodes[i][1]['cpd'] = CPD.create_fixed_parent(cardinality, modus = 'uniform')
             else:
                 incoming_nodes = self.networx.in_edges(node[0])
