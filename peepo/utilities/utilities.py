@@ -19,9 +19,9 @@ from peepo.utilities.CPD_Pomgranate import CPD_P
 class Utilities(object):
     def __init__(self, file):
         ''' no object creation -> opportune  ?'''
-        self.keywords = ['BENS','MEMS','LANS','MOTOR','WORLD']
-        self.standard_nodes = {'RONS': {'BENS': [], 'MEMS': []}, 'LANS': {'LANS': []},
-                               'LENS': {'MOTOR': [], 'WORLD': []}}
+        self.keywords = ['RON_BEN','RON_MEN','LANS','LEN_MOTOR','LEN_WORLD']
+        self.standard_nodes = {'RONS': {'RON_BEN': [], 'RON_MEN': []}, 'LANS': {'LANS': []},
+                               'LENS': {'LEN_MOTOR': [], 'LEN_WORLD': []}}
         self.file = file
         self.get_json_path(file)
         self.pgmpy_object = BayesianModel()
@@ -101,12 +101,12 @@ class Utilities(object):
         astring = re.sub('\"Frozen', '\n\"Frozen', astring)
         astring = re.sub('\"Nodes', '\n\n\"Nodes', astring)
         astring = re.sub('\"RONS', '\n\t\t\"RONS', astring)
-        astring = re.sub('\"BENS', '\n\t\t\t\"BENS', astring)
-        astring = re.sub('\"MEMS', '\n\t\t\t\"MEMS', astring)
+        astring = re.sub('\"RON_BEN', '\n\t\t\t\"RON_BEN', astring)
+        astring = re.sub('\"RON_MEN', '\n\t\t\t\"RON_MEN', astring)
         astring = re.sub('\"LANS', '\n\t\t\"LANS', astring)
         astring = re.sub('\"LENS', '\n\t\t\"LENS', astring)
-        astring = re.sub('\"MOTOR', '\n\t\t\t\"MOTOR', astring)
-        astring = re.sub('\"WORLD', '\n\t\t\t\"WORLD', astring)
+        astring = re.sub('\"LEN_MOTOR', '\n\t\t\t\"LEN_MOTOR', astring)
+        astring = re.sub('\"LEN_WORLD', '\n\t\t\t\"LEN_WORLD', astring)
         astring = re.sub('\"Edges', '\n\n\"Edges', astring)
         astring = re.sub('\"CPDs', '\n\n\"CPDs', astring)
         astring = re.sub('{', '\n\t\t{', astring)
@@ -272,7 +272,7 @@ class Utilities(object):
         nw_nodes = self.networkx_object.nodes(data = True)
         nw_edges = self.networkx_object.edges()
         keywords = self.keywords
-        nodes = copy.deepcopy(self.standard_nodes)#{'RONS': {'BENS': [], 'MEMS': []}, 'LANS': {'LANS': []}, 'LENS': {'MOTOR': [], 'WORLD': []}}
+        nodes = copy.deepcopy(self.standard_nodes)
         edges = []
         cpds = []
         '''adding edges'''
@@ -292,11 +292,11 @@ class Utilities(object):
             for pseudonym  in keywords:
                 if pseudonym in node_name:
                     node_name_ = self.translation(node_name,1)
-                    if pseudonym == 'BENS' or pseudonym == 'MEMS':
+                    if 'BEN' in pseudonym  or 'MEN' in pseudonym :
                         nodes['RONS'][pseudonym].append([node_name_, cardinality])
                     if pseudonym == 'LANS':
                         nodes['LANS'][pseudonym].append([node_name_, cardinality])
-                    if pseudonym == 'MOTOR' or pseudonym == 'WORLD':
+                    if 'MOTOR' in pseudonym  or 'WORLD' in pseudonym :
                         nodes['LENS'][pseudonym].append([node_name_, cardinality])
             cpds.append({self.translation(node_name,1):cpd})
         data['Nodes'] = nodes
@@ -569,11 +569,11 @@ class Utilities(object):
                                                             description = kwargs.get('description', '')
                                                             train_from = kwargs.get('train_from', '')
                                                             cpds = kwargs.get('CPDs', [])
-                                                            bens = kwargs.get('BENS',[])
-                                                            mems = kwargs.get('MEMS', [])
+                                                            bens = kwargs.get('RON_BEN',[])
+                                                            mems = kwargs.get('RON_MEN', [])
                                                             lans = kwargs.get('LANS', [])
                                                             motors = kwargs.get('MOTORS', [])
-                                                            world = kwargs.get('WORLD', [])
+                                                            world = kwargs.get('LEN_WORLD', [])
                                                             edges = kwargs.get('Edges', [])
                                                             frozen = kwargs.get('frozen',False)
         .
@@ -591,11 +591,11 @@ class Utilities(object):
         description = kwargs.get('description', '')
         train_from = kwargs.get('train_from', '')
         cpds = kwargs.get('CPDs', [])
-        bens = kwargs.get('BENS',[])
-        mems = kwargs.get('MEMS', [])
+        bens = kwargs.get('RON_BEN',[])
+        mems = kwargs.get('RON_MEN', [])
         lans = kwargs.get('LANS', [])
-        motors = kwargs.get('MOTORS', [])
-        world = kwargs.get('WORLD', [])
+        motors = kwargs.get('LEN_MOTORS', [])
+        world = kwargs.get('LEN_WORLD', [])
         edges = kwargs.get('Edges', [])
         frozen = kwargs.get('frozen',False)
 
@@ -652,11 +652,11 @@ class Utilities(object):
         cpds.append({'garden2': [[0.3,0.8,0.8,0.7, 0.8,0.2,0.5,0.5],[0.7,0.2,0.2,0.3,0.2,0.8,0.5,0.5]]})
 
         '''       - feeding the data'''
-        data["Nodes"]['RONS']['BENS']  = bens
-        data["Nodes"]['RONS']['MEMS']  = mems
+        data["Nodes"]['RONS']['RON_BEN']  = bens
+        data["Nodes"]['RONS']['RON_MEN']  = mems
         data["Nodes"]['LANS']['LANS']= lans
-        data["Nodes"]['LENS']['MOTOR'] = motors
-        data["Nodes"]['LENS']['WORLD'] = world
+        data["Nodes"]['LENS']['LEN_MOTOR'] = motors
+        data["Nodes"]['LENS']['LEN_WORLD'] = world
         data["Edges"] = edges
         data["CPDs"] = cpds
 
@@ -690,11 +690,11 @@ class Utilities(object):
             edges.append(an_edge)
             cpds.append(a_cpd)
 
-        data['Nodes']['RONS']['BENS'] = nodes
-        data['Nodes']['RONS']['MEMS']= nodes
+        data['Nodes']['RONS']['RON_BEN'] = nodes
+        data['Nodes']['RONS']['RON_MEN']= nodes
         data['Nodes']['LANS']['LANS'] = nodes
-        data['Nodes']['LENS']['MOTOR'] = nodes
-        data['Nodes']['LENS']['WORLD'] =nodes
+        data['Nodes']['LENS']['LEN_MOTOR'] = nodes
+        data['Nodes']['LENS']['LEN_WORLD'] =nodes
         data['Edges'] = edges
         data['CPDs'] = cpds
 
@@ -736,7 +736,7 @@ class Utilities(object):
         cpds = []
 
         '''       - feeding the data'''
-        data['Nodes']= {'RONS': {'BENS': bens, 'MEMS': mems}, 'LANS':{'LANS':lans}, 'LENS': {'MOTOR': motors, 'WORLD': world}}
+        data['Nodes']= {'RONS': {'RON_BEN': bens, 'RON_': mems}, 'LANS':{'LANS':lans}, 'LENS': {'LEN_MOTOR': motors, 'LEN_WORLD': world}}
         data['Edges']= edges
         data['CPDs'] = cpds
         return data
