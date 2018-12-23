@@ -32,7 +32,7 @@ class Utilities(object):
         self.summary = {'raw_cpd':{},'pom_cpd':{},'cardinality':{},'edges':{},'parents':{},'parents_cardinalities':{},'childs':{}}
         self.summary_0 = {'raw_cpd': {}, 'pom_cpd': {}, 'cardinality': {}, 'edges': {}, 'parents': {},
                         'parents_cardinalities': {}, 'childs': {}}
-        self.pom_nodes = []
+        self.pom_nodes = {}
 
     def get_nodes_in_family(self, family, attributes=False):
         nw_nodes = self.networkx_object.nodes()
@@ -313,23 +313,23 @@ class Utilities(object):
         if type == 'RONS':
             dictionary = {}
             for state in range(0, cardinality):
-                state_label = str(state)
+                state_label = int(state)
                 dictionary.update({state_label:cpd[state]})
             return DiscreteDistribution(dictionary)
         if type == 'LANS' or type == 'MOTOR' or type == 'WORLD' or type == 'LENS':
             table = CPD_P.get_index_matrix(parents_cardinality)
             shape = table.shape
             cpd_table = []
-            cpd_shape = cpd.shape
+            cpd_shape = numpy.shape(cpd)
             for column  in range(0,shape[1]):
                 for child_state in range(0, cpd_shape[0]):
                     an_entry = []
-                    state_child = str(int(child_state))
+                    state_child = (int(child_state))
                     phi_child = cpd[child_state][column]
                     for parent  in range(0,shape[0]):
-                        an_entry.append(str(int(table[parent][column])))
+                        an_entry.append((int(table[parent][column])))
                     an_entry.append(state_child)
-                    an_entry.append(phi_child)
+                    an_entry.append((phi_child))
                     cpd_table.append(an_entry)
             return ConditionalProbabilityTable(cpd_table,cpd_parents)
 
@@ -409,29 +409,25 @@ class Utilities(object):
             cpd_parents = []
             for k, par in enumerate(parent):
                 cpd_parents.append(self.summary['pom_cpd'][par])
+
             cpd_p = self.translate_cpd_to_pomegranate('LENS',node_name,cardinality, cpd, cpd_parents, parent_cardinality, child)
             self.summary['pom_cpd'].update({node_name:cpd_p})
 
         self.pomegranate_object = BayesianNetwork()
 
         '''adding nodes '''
-        self.pom_nodes = []
+        self.pom_nodes ={}
         s = 0
         for i, node in enumerate(nw_nodes):
             node_name = node[0]
-            s = copy.deepcopy(Node(self.summary['pom_cpd'][node_name], name = node_name))
-            self.pom_nodes.append([node_name,s])
+            s = Node(self.summary['pom_cpd'][node_name], name = node_name)
+            self.pom_nodes[node_name] = s
             self.pomegranate_object.add_state(s)
         '''adding edges '''
         for i, edge in enumerate(nw_edges):
-            s_parent  = ''
-            s_child = ''
-            for k, pom in enumerate(self.pom_nodes):
-                if edge[0]== pom[0]:
-                    s_parent = pom[1]
-                if edge[1] == pom[0]:
-                    s_child = pom[1]
-            self.pomegranate_object.add_edge(s_parent, s_child)
+            s_parent = self.pom_nodes[edge[0]]
+            s_child  = self.pom_nodes[edge[1]]
+            self.pomegranate_object.add_transition(s_parent, s_child)
 
         return self.pomegranate_object,  self.pom_nodes, self.summary, self.dictionary, self.header
 
@@ -548,6 +544,9 @@ class Utilities(object):
             self.networkx_object.node[node]['parents'] = parents[node]
             self.networkx_object.node[node]['parents_cardinality'] = cardinality_parents[node]
             self.networkx_object.node[node]['childs'] = childs[node]
+            self.summary['parents'][node] = parents[node]
+            self.summary['parents_cardinalities'][node] = cardinality_parents[node]
+            self.summary['childs'][node] = childs[node]
 
         '''Feeding G with the  CPD's as nodes attributes'''
         for j, node in enumerate(data['CPDs']):
