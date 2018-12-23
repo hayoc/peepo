@@ -334,8 +334,8 @@ class Utilities(object):
 
     def get_pomegranate_network(self, from_object = False, digraph = None):
         """
-        Reads the passed json file and translates it's content to the passed pgmpy class object
-        - uses the get_network(file) to read the json file in a networkx format and translate this to pgmpy
+        Reads the passed json file or the passed DiGraph() and translates it's content a pomegranate class object
+        - uses the get_network(file) to read the json file in a networkx format and translate this to pomegranate
         - Creates a dictionary for the nodes in the form of an array of tuples : [(names defines by user, standard name)]
 
         :param file: : filename without path or extension
@@ -414,7 +414,6 @@ class Utilities(object):
         self.pomegranate_object = BayesianNetwork()
 
         '''adding nodes '''
-        pom_edges = []
         pom_nodes = []
         s = 0
         for i, node in enumerate(nw_nodes):
