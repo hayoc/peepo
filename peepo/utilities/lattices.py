@@ -70,8 +70,8 @@ class Lattices(object):
 
 
     def get_possible_topologies(self, treshold = 0):
-        BENS_Nodes  = self._util.get_nodes_in_family( 'BENS')
-        # MEMS_Nodes  = self._util.get_nodes_in_family('MEMS')
+        BENS_Nodes  = self._util.get_nodes_in_family( 'BEN')
+        # MEMS_Nodes  = self._util.get_nodes_in_family('MEN')
         # LANS_Nodes  = self._util.get_nodes_in_family( 'LANS')
         # MOTOR_Nodes = self._util.get_nodes_in_family( 'MOTOR')
         WORLD_Nodes = self._util.get_nodes_in_family( 'WORLD')
