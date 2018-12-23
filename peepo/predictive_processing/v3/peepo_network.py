@@ -190,6 +190,17 @@ class PeepoNetwork:
 
         return self
 
+    def get_root_nodes(self):
+        roots = [[node['name'] for node in self.bel_nodes],
+                 [node['name'] for node in self.mem_nodes]]
+        return [item for sublist in roots for item in sublist]
+
+    def get_leaf_nodes(self):
+        leaves = [[node['name'] for node in self.ext_nodes],
+                  [node['name'] for node in self.int_nodes],
+                  [node['name'] for node in self.pro_nodes]]
+        return [item for sublist in leaves for item in sublist]
+
     def train_data_to_matrix(self):
         return pandas.DataFrame(self.train_data).values
 

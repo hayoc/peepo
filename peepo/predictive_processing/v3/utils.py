@@ -1,8 +1,35 @@
+import itertools
 import json
 import os
 
 from config import ROOT_DIR
 from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
+
+
+def get_topologies(peepo_network):
+    max_edges = peepo_network.edges
+
+    topologies = []
+    for x in range(0, len(max_edges) + 1):
+        for cmb in itertools.combinations(max_edges, x):
+            edges = list(max_edges)
+
+            for edge_to_remove in cmb:
+                edges.remove(edge_to_remove)
+
+            topologies.append({
+                'edges': edges,
+                'entropy': x
+            })
+
+    return topologies
+
+
+def fully_connected_network(peepo_network):
+    for root in peepo_network.get_root_nodes():
+        for leaf in peepo_network.get_leaf_nodes():
+            peepo_network.edges.append((root, leaf))
+    return peepo_network
 
 
 def write_to_file(name, peepo_network):
