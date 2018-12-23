@@ -1,0 +1,53 @@
+{
+  "header": {
+    "identification": "",
+    "description": "",
+    "frozen": false,
+    "train_from": "",
+    "date": "2018-12-23 13:42:01.218775"
+  },
+  "nodes": {
+    "RON": {
+      "BEL": [
+        {
+          "name": "BENS_0",
+          "card": 2
+        },
+        {
+          "name": "BENS_1",
+          "card": 2
+        },
+        {
+          "name": "BENS_2",
+          "card": 2
+        },
+        {
+          "name": "BENS_3",
+          "card": 2
+        }
+      ],
+      "MEM": []
+    },
+    "LAN": [],
+    "LEN": {
+      "EXT": [
+        {
+          "name": "WORLD_0",
+          "card": 2
+        },
+        {
+          "name": "WORLD_1",
+          "card": 2
+        },
+        {
+          "name": "WORLD_2",
+          "card": 2
+        }
+      ],
+      "INT": [],
+      "PRO": []
+    }
+  },
+  "edges": [],
+  "cpds": {}
+}
