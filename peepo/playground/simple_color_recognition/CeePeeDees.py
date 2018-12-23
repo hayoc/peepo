@@ -28,8 +28,7 @@ class CPD:
         blocks =[]
         for i in range(0,len(cardinality)):
             subblock = []
-            for s in range(0,cardinality[i]):
-                subblock.append(int(s))
+            [subblock.append(int(s)) for s in range(0,cardinality[i])]
             blocks.append(subblock)
         return np.transpose(np.asarray(list(itertools.product(*blocks))))
 
