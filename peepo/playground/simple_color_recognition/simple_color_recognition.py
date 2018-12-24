@@ -101,6 +101,7 @@ class MyClass(object):
         for index, node in enumerate(self.predict()):
             node_name = self.pommy_test.states[index].name
             if 'LEN' in node_name:
+                # print('index : ', index)
                 prediction = np.array([x[1] for x in sorted(node.items(), key=lambda tup: tup[0])])
                 observation = self.sensory_input_value(node_name)
                 prediction_error_size = self.error_size(prediction, observation)
@@ -143,48 +144,13 @@ class MyClass(object):
         :type obs : np.array
         :rtype : float
         """
-        return entropy(obs, pred)
-
-    def error_minimization(self, node_name, precision, prediction_error, prediction):
-        """
-        Attempts to minimize the prediction error by one of the possible PEM methods:
-            1) Hypothesis Update
-            2) Model Update
-        :param node_name: name of the node causing the prediction error
-        :param precision: precision of the prediction
-        :param prediction_error: the prediction error itself
-        :param prediction: prediction causing the prediction error
-        :type node_name : str
-        :type precision: float
-        :type prediction_error: np.array
-        :type prediction: np.array
-        """
-        self.hypothesis_update(node_name, prediction_error, prediction)
-
-    def hypothesis_update(self, node_name, prediction_error, prediction):
-        """
-        Updates the hypotheses of the generative model to minimize prediction error
-        :param node_name: name of the node causing the prediction error
-        :param prediction_error: the prediction error itself
-        :param prediction: prediction causing the prediction error
-        :type node_name : str
-        :type prediction_error: np.array
-        :type prediction: np.array
-        """
-        if "motor" in node_name:
-            self.sensory_input.action(node_name, prediction)
-        else:
-            evidence = {node_name: str(np.argmax(prediction_error + prediction))}
-            result = self.pommy_test.predict_proba(evidence)
-
-            for root in self.get_roots():
-                root_index = self.get_node_index(root.name)
-
-                old_hypo = self.pommy_test.states[root_index].distribution.items()
-                new_hypo = result[root_index].items()
-
-                self.pommy_test.states[root_index].distribution = DiscreteDistribution(dict(new_hypo))
-                logging.debug("node[%s] hypothesis-update from %s to %s", root.name, old_hypo, new_hypo)
+        scalar = 0.0
+        for i in range(0, len(obs)):
+            s1 = np.argmax(pred)
+            s2 = np.argmax(obs)
+            scalar += (s1-s2)*(s1-s2)
+        # print('prediction : ', pred, '  observation : ', obs, ' ----> error : ', scalar)
+        return scalar#entropy(obs, pred)
 
     def get_root_values(self):
         return {x.name: x.distribution.mle() for x in self.get_roots()}
@@ -229,15 +195,16 @@ class MyClass(object):
         hi = 1#0.999
         lo = 1-hi
         C = np.prod(cardinality)
-        matrix = np.full((3, C), 1./3.)
+        average = 0
+        matrix = np.full((3, C), average)
         if 'BENS_1' in evidence and not 'BENS_2' in evidence and 'BENS_3' in evidence and 'BENS_0' in evidence:
-            matrix[0] = [1./3, lo, hi, 1./3,1./3, lo, hi, 1./3]
-            matrix[1] = [1./3, lo, lo, 1./3,1./3, lo, lo, 1./3]
-            matrix[2] = [1./3, hi, lo, 1./3,1./3, hi, lo, 1./3]
+            matrix[0] = [average, lo, hi, average,average, lo, hi, average]
+            matrix[1] = [average, lo, lo, average,average, lo, lo, average]
+            matrix[2] = [average, hi, lo, average,average, hi, lo, average]
         if 'BENS_1' in evidence and not 'BENS_2' in evidence and 'BENS_3' in evidence and not 'BENS_0' in evidence:
-            matrix[0] = [1./3, lo, hi, 1./3]
-            matrix[1] = [1./3, lo, lo, 1./3]
-            matrix[2] = [1./3, hi, lo, 1./3]
+            matrix[0] = [average, lo, hi, average]
+            matrix[1] = [average, lo, lo, average]
+            matrix[2] = [average, hi, lo, average]
         if 'BENS_1' in evidence and 'BENS_2' in evidence and 'BENS_3' in evidence and not 'BENS_0' in evidence:
             matrix[0] = [lo, lo, lo, lo, hi, lo, hi, lo]
             matrix[1] = [hi, lo, hi, lo, lo, hi, lo, hi]
@@ -275,7 +242,7 @@ class MyClass(object):
             for hue in range(0, 3):
                 if str(hue) in node[0]:
                     self.learning_data.append(reshaped_cpd[hue, :].tolist())
-        self.learning_data = np.asarray(self.learning_data).transpose()
+        self.learning_data = np.asarray(self.learning_data).transpose().astype(int)
 
     def do_inference(self, models):
         error = 0
@@ -308,15 +275,12 @@ class MyClass(object):
                 a_dic = self.get_pommy_root_cpd(self.pixel_states[pixel])
                 root_index = self.get_node_index(pixel)
                 self.pommy_test.states[root_index].distribution.parameters = a_dic
-
             self.pommy_test.bake()
-
-
             shape = self.colors_cpd.shape
             reshaped_cpd = self.colors_cpd.reshape(shape[0], int(np.prod(shape) / shape[0]))
             self.expected_result = reshaped_cpd[:,int(color)]
             error += self.do_simple_inference()
-        error /= self.number_of_colors
+        error /= (self.number_of_colors*len(self.get_roots()))
         self.results.append([entropy, error])
         if error <= self.best_error:
             self.best_error = error
@@ -447,9 +411,9 @@ class MyClass(object):
             '''following  4 lines to remove : just use to check whether the algorithms are correct regarding the edges building'''
             count += 1
             #print('edges : ', self.edges)
-            # #
-            if count > 400:
-                break
+            #
+            # if count > 400:
+            #     break
         print('Check -> number of processed topologies in loop : ', count)
         # print('My colors : ')
         # print(self.colors_table)
