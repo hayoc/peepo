@@ -82,6 +82,7 @@ class MyClass(object):
         self.summary_test = {}
         self.pom_nodes_test = {}
         self.pixel_states = {'RON_BEN_0':0,'RON_BEN_1':0,'RON_BEN_2':0,'RON_BEN_3':0}
+        self.all_pixel_states = {}
 
     '''.................. vvvvvvvvvvvvvvvvv  TEMPORARY  vvvvvvvvvvvvvvvvvvvvvv ..................................'''
 
@@ -144,15 +145,55 @@ class MyClass(object):
         """
         return entropy(obs, pred)
 
+    def error_minimization(self, node_name, precision, prediction_error, prediction):
+        """
+        Attempts to minimize the prediction error by one of the possible PEM methods:
+            1) Hypothesis Update
+            2) Model Update
+        :param node_name: name of the node causing the prediction error
+        :param precision: precision of the prediction
+        :param prediction_error: the prediction error itself
+        :param prediction: prediction causing the prediction error
+        :type node_name : str
+        :type precision: float
+        :type prediction_error: np.array
+        :type prediction: np.array
+        """
+        self.hypothesis_update(node_name, prediction_error, prediction)
+
+    def hypothesis_update(self, node_name, prediction_error, prediction):
+        """
+        Updates the hypotheses of the generative model to minimize prediction error
+        :param node_name: name of the node causing the prediction error
+        :param prediction_error: the prediction error itself
+        :param prediction: prediction causing the prediction error
+        :type node_name : str
+        :type prediction_error: np.array
+        :type prediction: np.array
+        """
+        if "motor" in node_name:
+            self.sensory_input.action(node_name, prediction)
+        else:
+            evidence = {node_name: str(np.argmax(prediction_error + prediction))}
+            result = self.pommy_test.predict_proba(evidence)
+
+            for root in self.get_roots():
+                root_index = self.get_node_index(root.name)
+
+                old_hypo = self.pommy_test.states[root_index].distribution.items()
+                new_hypo = result[root_index].items()
+
+                self.pommy_test.states[root_index].distribution = DiscreteDistribution(dict(new_hypo))
+                logging.debug("node[%s] hypothesis-update from %s to %s", root.name, old_hypo, new_hypo)
 
     def get_root_values(self):
-        return {x.name:self.pixel_states[x.name] for x in self.get_roots()}
+        return {x.name: x.distribution.mle() for x in self.get_roots()}
 
     def get_roots(self):
         return [x for x in self.pommy_test.states if 'RON' in x.name]
 
     def get_leaves(self):
-        return [x for x in self.pommy_test.states if 'LEN' in x.name]
+        return [x for x in self.pommy_test.states if self.LEN in x.name]
 
     def get_node_index(self, node_name):
         for x, state in enumerate(self.pommy_test.states):
@@ -174,15 +215,37 @@ class MyClass(object):
         self.number_of_colors = self.colors_table.shape[1]
 
     def color_cpd(self,var,card_var,evidence,cardinality):
+        self.all_pixel_states = {}
         table = CPD.get_index_matrix(cardinality)
+        for i in range(0,len(table[1])):
+            self.all_pixel_states.update({i: []})
+            a_dic ={}
+            for j in range(0,len(evidence)):
+                a_dic.update({evidence[j]:table[j][i]})
+            self.all_pixel_states[i] = a_dic
+        # print('*********************************************self.all_pixel_states')
+        # print(self.all_pixel_states)
         colors ={}
-        hi = 1
-        lo = 0
+        hi = 1#0.999
+        lo = 1-hi
         C = np.prod(cardinality)
-        matrix = np.full((3, C), 1. / 3.)
-        matrix[0] = [hi, lo, lo, hi, lo, lo, hi, lo, hi, lo, lo, hi, lo, lo, hi, lo]
-        matrix[1] = [lo, hi, lo, lo, hi, lo, lo, hi, lo, hi, lo, lo, hi, lo, lo, hi]
-        matrix[2] = [lo, lo, hi, lo, lo, hi, lo, lo, lo, lo, hi, lo, lo, hi, lo, lo]
+        matrix = np.full((3, C), 1./3.)
+        if 'BENS_1' in evidence and not 'BENS_2' in evidence and 'BENS_3' in evidence and 'BENS_0' in evidence:
+            matrix[0] = [1./3, lo, hi, 1./3,1./3, lo, hi, 1./3]
+            matrix[1] = [1./3, lo, lo, 1./3,1./3, lo, lo, 1./3]
+            matrix[2] = [1./3, hi, lo, 1./3,1./3, hi, lo, 1./3]
+        if 'BENS_1' in evidence and not 'BENS_2' in evidence and 'BENS_3' in evidence and not 'BENS_0' in evidence:
+            matrix[0] = [1./3, lo, hi, 1./3]
+            matrix[1] = [1./3, lo, lo, 1./3]
+            matrix[2] = [1./3, hi, lo, 1./3]
+        if 'BENS_1' in evidence and 'BENS_2' in evidence and 'BENS_3' in evidence and not 'BENS_0' in evidence:
+            matrix[0] = [lo, lo, lo, lo, hi, lo, hi, lo]
+            matrix[1] = [hi, lo, hi, lo, lo, hi, lo, hi]
+            matrix[2] = [lo, hi, lo, hi, lo, lo, lo, lo]
+        if 'BENS_0' in evidence and 'BENS_1' in evidence and 'BENS_2' in evidence and 'BENS_3' in evidence:
+            matrix[0] = [lo, lo, lo, lo, hi, lo, hi, lo, lo, lo, lo, lo, hi, lo, hi, lo]
+            matrix[1] = [hi, lo, hi, lo, lo, hi, lo, hi, hi, lo, hi, lo, lo, hi, lo, hi]
+            matrix[2] = [lo, hi, lo, hi, lo, lo, lo, lo, lo, hi, lo, hi, lo, lo, lo, lo]
         for i, node in enumerate(evidence):
             colors.update({node:table[i]})
         return colors,table.astype(int), matrix.astype(int)
@@ -220,8 +283,17 @@ class MyClass(object):
             error += models[key].process()
         return error
 
+    def  get_pommy_root_cpd(self,status):
+        if status == 0:
+            a_dic = [{0:0.01,1:0.99}]
+        if status == 1:
+            a_dic = [{0: 0.99, 1: 0.01}]
+        return a_dic
+
+
+
     def test_topology(self, entropy):
-        self.networx_test = copy.deepcopy(self.networx)
+        self.networx_test = self.networx.copy()
         self.pommy_test, self.pom_nodes_test, self.summary_test = self._util.translate_digraph_to_pomegranate(self.networx_test)
         self.pommy_test.bake()
         #model = {'main': GenerativeModel(SensoryInputVirtualPeepo(self), self.pgmpy_test)}
@@ -229,11 +301,17 @@ class MyClass(object):
         ''' ------ going through all possible "colors'''
         error = 0
         for color in range(0, self.number_of_colors):
-            pixel_states = self.colors_table[:,color]
-            self.pixel_states['RON_BEN_0'] = pixel_states[0]
-            self.pixel_states['RON_BEN_1'] = pixel_states[1]
-            self.pixel_states['RON_BEN_2'] = pixel_states[2]
-            self.pixel_states['RON_BEN_3'] = pixel_states[3]
+            self.pommy_test.thaw()
+            pixel_states = self.all_pixel_states[color]
+            for m, pixel in enumerate(pixel_states):
+                self.pixel_states[pixel] = self.all_pixel_states[color][pixel]
+                a_dic = self.get_pommy_root_cpd(self.pixel_states[pixel])
+                root_index = self.get_node_index(pixel)
+                self.pommy_test.states[root_index].distribution.parameters = a_dic
+
+            self.pommy_test.bake()
+
+
             shape = self.colors_cpd.shape
             reshaped_cpd = self.colors_cpd.reshape(shape[0], int(np.prod(shape) / shape[0]))
             self.expected_result = reshaped_cpd[:,int(color)]
@@ -262,7 +340,7 @@ class MyClass(object):
         columns = np.sum(topology, axis=0)
         for column in range(0, len(columns)):
             if columns[column] == 0:
-                nodes_to_remove.append('BENS_' + str(column))
+                nodes_to_remove.append('RON_BEN_' + str(column))
         self.networx.remove_nodes_from(nodes_to_remove)
         self.nodes = self.networx.nodes(data = True)
         for column in range(0,shape[1]):
@@ -328,8 +406,8 @@ class MyClass(object):
     def do_it(self):
         '''EXPLANATIONS'''
         self.networx_fixed , self.summary, self.dictionary, self.header = self._util.get_network()
-        self.networx = copy.deepcopy(self.networx_fixed)
-        self.networx_test= copy.deepcopy(self.networx_fixed)
+        self.networx = self.networx_fixed.copy()
+        self.networx_test= self.networx_fixed.copy()
         self.nodes = self.networx.nodes(data=True)
         print('Dictionary : ', self.dictionary)
 
@@ -347,8 +425,7 @@ class MyClass(object):
                 continue#safeguard
             print('Loop *-> ', self.loop + 1, ' of ', len(possible_topologies))
             topo  = topology[0]
-            self.networx = copy.deepcopy(self.networx_fixed)
-
+            self.networx = self.networx_fixed.copy()
             ''' ----------- for each topology we construct the edges and update dummy cpd (necessary as the shape of the LENs cpd's can change
                             depending on the number of incoming nodes'''
             self.add_edges(topo)
@@ -370,9 +447,9 @@ class MyClass(object):
             '''following  4 lines to remove : just use to check whether the algorithms are correct regarding the edges building'''
             count += 1
             #print('edges : ', self.edges)
-            #
-            # if count > 300:
-            #     break
+            # #
+            if count > 400:
+                break
         print('Check -> number of processed topologies in loop : ', count)
         # print('My colors : ')
         # print(self.colors_table)
@@ -442,7 +519,7 @@ class MyClass(object):
         #node_labels = nx.get_node_attributes(self.networx, 'cpd')
         nx.draw(self.best_topology[2], pos, node_size=1200, node_color='lightblue',
                 linewidths=0.25,  font_size=10, font_weight='bold', with_labels=True)
-        plt.text(1,1, 'Topology compexity : ' +str(self.best_topology[1]))
+        plt.text(1,1, 'Topology nr. : ' +str(self.best_topology[3]))
         plt.show()
 
 def main():
