@@ -11,15 +11,15 @@
 		{
 		"RONS": 
 		{
-			"BENS": [["dummy", 2], ["pixel_2", 2], ["pixel_3", 2], ["pixel_4", 2]], 
-			"MEMS": []}, 
+			"RON_BEN": [["dummy", 2], ["pixel_2", 2], ["pixel_3", 2], ["pixel_4", 2]], 
+			"RON_MEMS": []}, 
 		"LANS": 
 		{
 		"LANS": []}, 
 		"LENS": 
 		{
-			"MOTOR": [], 
-			"WORLD": [["warm", 2], ["neutral", 2], ["cold", 2]]}}, 
+			"LEN_MOTOR": [], 
+			"LEN_WORLD": [["warm", 3], ["neutral", 3], ["cold", 3]]}}, 
 
 "Edges": [], 
 
