@@ -28,7 +28,7 @@ class SensoryInputVirtualPeepo(SensoryInput):
     def value(self, name):
         for i, node in enumerate(self.peepo.nodes):
             if name == node[0]:
-                return self.peepo.get_cpds(node[0]).values
+                return self.peepo.pgmpy_test.get_cpds(node[0]).values
 
 class MyClass(object):
     def __init__(self, case):
@@ -152,7 +152,7 @@ class MyClass(object):
 
 
     def do_inference(self, models, expected_result):
-        print(models)
+
         for key in models:
             err = models[key].process()
 
@@ -188,7 +188,7 @@ class MyClass(object):
 
     def do_it(self):
         '''EXPLANATIONS'''
-        self.networx_test, dummy, self.dictionary, self.header = self._util.get_network()
+        self.networx_test,  self.dictionary, self.header = self._util.get_network()
         self.networx = self.networx_test.copy()
         self.nodes = self.networx.nodes(data=True)
         self.create_learning_data()
@@ -233,7 +233,7 @@ class MyClass(object):
             '''following  4 lines to remove : just use to check whether the algorithms are correct regarding the edges building'''
             count += 1
             #print('edges : ', self.edges)
-            if count > 0:
+            if count > 10:
                 break
         print('Check -> number of processed topologies in loop : ', count)
         # print('My colors : ')
@@ -282,7 +282,7 @@ class MyClass(object):
         plt.show()
 
 def main():
-    case = 'simple_color_recognition'
+    case = 'old_color_recognition'
     mycase = MyClass(case)
     results = mycase.do_it()
     print(results)
