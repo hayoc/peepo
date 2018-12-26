@@ -2,15 +2,18 @@ import itertools
 import json
 import os
 
+import numpy as np
+
 from config import ROOT_DIR
 from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
 
 
-def get_topologies(peepo_network):
-    max_edges = peepo_network.edges
+def get_topologies(peepo_network, max_removal=None):
+    max_edges = peepo_network.get_edges()
+    max_removal = max_removal or len(max_edges)
 
     topologies = []
-    for x in range(0, len(max_edges) + 1):
+    for x in range(0, max_removal + 1):
         for cmb in itertools.combinations(max_edges, x):
             edges = list(max_edges)
 
@@ -28,8 +31,46 @@ def get_topologies(peepo_network):
 def fully_connected_network(peepo_network):
     for root in peepo_network.get_root_nodes():
         for leaf in peepo_network.get_leaf_nodes():
-            peepo_network.edges.append((root, leaf))
+            peepo_network.add_edge((root, leaf))
     return peepo_network
+
+
+def get_index_matrix(cardinality):
+    """
+    Returns the state combinations of the parent nodes given the cardinality of the parents nodes
+
+    :param cardinality: list with the cardinalities of the parent
+    :returns: an array with the combination of all possible states
+    :type cardinality: list
+    :rtype : np.array
+
+    Example
+    -------
+    >>> cardinality = [2, 3, 2]
+    >>> print(get_index_matrix(cardinality))
+    [[0 0 0 0 0 0 1 1 1 1 1 1],
+     [0 0 1 1 2 2 0 0 1 1 2 2],
+     [0 1 0 1 0 1 0 1 0 1 0 1 ]]
+    """
+    blocks = []
+    for i in range(0, len(cardinality)):
+        blocks.append([s for s in range(0, cardinality[i])])
+    return np.transpose(np.asarray(list(itertools.product(*blocks))))
+
+
+def create_fixed_parent(cardinality, state=0, modus='status'):
+    hi = 0.99
+    lo = 0.01 / (cardinality - 1)
+    ar = np.full(cardinality, lo)
+    if (modus == 'status'):
+        ar[state] = hi
+    # normalize
+    som = 0
+    for i in range(0, cardinality):
+        som += ar[i]
+    for i in range(0, cardinality):
+        ar[i] /= som
+    return ar
 
 
 def write_to_file(name, peepo_network):
@@ -44,41 +85,3 @@ def write_to_file(name, peepo_network):
 def read_from_file(name):
     with open(ROOT_DIR + '/resources/' + str(name) + '.json') as json_data:
         return PeepoNetwork().from_json(json.load(json_data))
-
-
-# TEMPORARY
-if __name__ == "__main__":
-    data = {'BENS_0': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-            'BENS_1': [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0],
-            'BENS_2': [0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0],
-            'BENS_3': [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-            'WORLD_0': [1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0],
-            'WORLD_1': [0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
-            'WORLD_2': [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0]}
-
-    pp_net = PeepoNetwork(bel_nodes=[{'name': 'BENS_0', 'card': 2},
-                                     {'name': 'BENS_1', 'card': 2},
-                                     {'name': 'BENS_2', 'card': 2},
-                                     {'name': 'BENS_3', 'card': 2}],
-                          ext_nodes=[{'name': 'WORLD_0', 'card': 2},
-                                     {'name': 'WORLD_1', 'card': 2},
-                                     {'name': 'WORLD_2', 'card': 2}],
-                          edges=[('BENS_1', 'WORLD_0'),
-                                 ('BENS_1', 'WORLD_1'),
-                                 ('BENS_1', 'WORLD_2'),
-                                 ('BENS_2', 'WORLD_0'),
-                                 ('BENS_2', 'WORLD_1'),
-                                 ('BENS_2', 'WORLD_2'),
-                                 ('BENS_3', 'WORLD_0'),
-                                 ('BENS_3', 'WORLD_1'),
-                                 ('BENS_3', 'WORLD_2')],
-                          train_data=data)
-    pp_net.assemble()
-
-    write_to_file('color_recognition', pp_net)
-
-    pp_net = read_from_file('color_recognition')
-    pp_net.train_data = data
-
-    pm_net = pp_net.to_pomegranate()
-    print('')

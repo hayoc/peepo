@@ -35,26 +35,30 @@ class GenerativeModel:
     LAN = 'LAN'
     LEN = 'LEN'
 
-    def __init__(self, bayesian_network, sensory_input, n_jobs=1):
-        self.bayesian_network = bayesian_network.copy()
+    def __init__(self, peepo_network, sensory_input, n_jobs=1):
+        self.bayesian_network = peepo_network.pomegranate_network
         self.sensory_input = sensory_input
         self.n_jobs = n_jobs
 
         # draw_network(bayesian_network)
 
-    def process(self):
+    def process(self, structure_learning=False):
         """
         Processes one flow in the predictive processing algorithm:
             1) prediction
             2) prediction error
             3) prediction error minimization (hypothesis or model update)
         Returns the total prediction error size observed (for informational purposes...)
+
+        If structure_learning is True, only inference will be done. Hypothesis updates will not happen. This should
+        be used for learning the structure of a module, by manually setting the hypothesis and comparing errors of
+        different toplogies.
         """
         total_prediction_error_size = 0
 
         for index, node in enumerate(self.predict()):
             node_name = self.bayesian_network.states[index].name
-            if self.LEN in node_name:
+            if self.is_leaf(index):
                 prediction = np.array([x[1] for x in sorted(node.items(), key=lambda tup: tup[0])])
                 observation = self.sensory_input.value(node_name)
                 prediction_error = self.error(prediction, observation)
@@ -63,7 +67,7 @@ class GenerativeModel:
                 total_prediction_error_size += prediction_error_size
 
                 # Sometimes numpy entropy calculation returns extremely small numbers when there's no error
-                if prediction_error_size > 0.1:
+                if prediction_error_size > 0.1 and not structure_learning:
                     logging.debug(
                         "node[%s] prediction-error ||| predicted %s -vs- %s observed ||| PES %s ||| PRECISION %s",
                         node_name, prediction, observation, prediction_error_size, precision)
@@ -71,6 +75,7 @@ class GenerativeModel:
                                             precision=precision,
                                             prediction_error=prediction_error,
                                             prediction=prediction)
+        return total_prediction_error_size
 
     def predict(self):
         """
@@ -164,7 +169,7 @@ class GenerativeModel:
         if "motor" in node_name:
             self.sensory_input.action(node_name, prediction)
         else:
-            evidence = {node_name: str(np.argmax(prediction_error + prediction))}
+            evidence = {node_name: np.argmax(prediction_error + prediction)}
             result = self.bayesian_network.predict_proba(evidence)
 
             for root in self.get_roots():
@@ -190,3 +195,9 @@ class GenerativeModel:
             if state.name == node_name:
                 return x
         raise ValueError('Node %s does not exist in network.', node_name)
+
+    def is_leaf(self, index):
+        return not any(index in node_parents for node_parents in self.bayesian_network.structure)
+
+    def is_root(self, index):
+        return any(index in node_parents for node_parents in self.bayesian_network.structure)

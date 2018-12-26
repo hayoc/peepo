@@ -1,7 +1,8 @@
 import datetime as dt
 
-import pandas
+import numpy as np
 from pomegranate.BayesianNetwork import BayesianNetwork
+from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
 
 
 class PeepoNetwork:
@@ -20,7 +21,7 @@ class PeepoNetwork:
             The name of the network. Default is None
         description : str, optional
             The description of the network. Default is None
-        train_data : str, optional
+        train_data : np.array, optional
             The data to fit the network to, given a structure, to generate the CPDs. Default is None
         frozen : bool, optional
             Whether the network can be modified. Default is False
@@ -48,7 +49,8 @@ class PeepoNetwork:
         >>>                           ext_nodes=[{'name': 'exteroceptive_1', 'card': 2}]),
         >>>                           edges=[('belief_1', 'exteroceptive_1')],
         >>>                           cpds={'belief_1': [0.7, 0.3], 'exteroceptive_1': [[0.9, 0.1], [0.1, 0.9]]}
-        >>> print(pp_network.assemble())
+        >>> pp_network.assemble()
+        >>> print(pp_network.to_json())
         {
             'header': {
                 'identification': '',
@@ -115,8 +117,10 @@ class PeepoNetwork:
         self.edges = edges or []
         self.cpds = cpds or {}
         self.network = {}
+        self.pomegranate_network = None
 
     def assemble(self):
+        self.pomegranate_network = self.to_pomegranate()
         self.network = {
             'header': {
                 'identification': self.identification,
@@ -146,15 +150,40 @@ class PeepoNetwork:
             pass  # TODO
         else:
             structure = []
-            nodes = self.nodes_to_list()
+            nodes = self.get_nodes()
             for node in nodes:
                 parents = []
                 for edge in self.edges:
                     if node == edge[1]:
                         parents.append(nodes.index(edge[0]))
                 structure.append(tuple(parents))
+            pm_net = BayesianNetwork.from_structure(self.train_data, tuple(structure))
 
-            return BayesianNetwork.from_structure(self.train_data_to_matrix(), tuple(structure))
+            for i, state in enumerate(pm_net.states):
+                state.name = nodes[i]
+
+                if isinstance(state.distribution, DiscreteDistribution):
+                    nodevalue = []
+                    # TODO: Check whether there's always only one... Why a list of dicts anyway... Pomegranate sucks
+                    parameter = state.distribution.parameters[0]
+                    for key in sorted(parameter.keys()):
+                        nodevalue.append(parameter[key])
+                else:
+                    parameters = state.distribution.parameters[0]
+                    param_len = len(parameters)
+                    node_cardinality = len(parameters[0]) - state.distribution.m
+
+                    matrix = np.empty(shape=(node_cardinality, int(param_len / node_cardinality)))
+                    for x in range(0, param_len, node_cardinality):
+                        for y in range(0, node_cardinality):
+                            row = parameters[node_cardinality + y]
+                            matrix[y: int(x / node_cardinality)] = row[len(row) - 1]
+
+                    nodevalue = matrix.tolist()
+
+                self.add_cpd(state.name, nodevalue)
+
+            return pm_net
 
     def from_pomegranate(self, pm_net):
         pass
@@ -186,9 +215,16 @@ class PeepoNetwork:
         self.edges = obj['edges']
         self.cpds = obj['cpds']
 
-        self.assemble()
-
         return self
+
+    def get_nodes(self):
+        nodes = [[x['name'] for x in self.bel_nodes],
+                 [x['name'] for x in self.mem_nodes],
+                 [x['name'] for x in self.lan_nodes],
+                 [x['name'] for x in self.ext_nodes],
+                 [x['name'] for x in self.int_nodes],
+                 [x['name'] for x in self.pro_nodes]]
+        return [item for sublist in nodes for item in sublist]
 
     def get_root_nodes(self):
         roots = [[node['name'] for node in self.bel_nodes],
@@ -201,14 +237,23 @@ class PeepoNetwork:
                   [node['name'] for node in self.pro_nodes]]
         return [item for sublist in leaves for item in sublist]
 
-    def train_data_to_matrix(self):
-        return pandas.DataFrame(self.train_data).values
+    def get_edges(self):
+        return self.edges
 
-    def nodes_to_list(self):
-        nodes = [[x['name'] for x in self.bel_nodes],
-                 [x['name'] for x in self.mem_nodes],
-                 [x['name'] for x in self.lan_nodes],
-                 [x['name'] for x in self.ext_nodes],
-                 [x['name'] for x in self.int_nodes],
-                 [x['name'] for x in self.pro_nodes]]
-        return [item for sublist in nodes for item in sublist]
+    def set_edges(self, edges):
+        self.edges = edges
+
+    def add_edge(self, edge):
+        self.edges.append(edge)
+
+    def get_cpds(self, node=None):
+        if node:
+            return self.cpds[node]
+        else:
+            return self.cpds
+
+    def set_cpds(self, cpds):
+        self.cpds = cpds
+
+    def add_cpd(self, node, cpd):
+        self.cpds.update({node: cpd})
