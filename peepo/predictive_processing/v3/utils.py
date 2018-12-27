@@ -9,7 +9,7 @@ from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
 
 
 def get_topologies(peepo_network, max_removal=None):
-    max_edges = peepo_network.get_edges()
+    max_edges = fully_connected_network(peepo_network).get_edges()
     max_removal = max_removal or len(max_edges)
 
     topologies = []

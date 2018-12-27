@@ -1,4 +1,5 @@
 import datetime as dt
+import json
 
 import numpy as np
 from pomegranate.BayesianNetwork import BayesianNetwork
@@ -188,8 +189,8 @@ class PeepoNetwork:
     def from_pomegranate(self, pm_net):
         pass
 
-    def to_json(self):
-        return self.network
+    def to_json(self, separators=(',', ' : '), indent=4):
+        return json.dumps(self.network, separators=separators, indent=indent)
 
     def from_json(self, obj):
         header = obj['header']
@@ -257,3 +258,9 @@ class PeepoNetwork:
 
     def add_cpd(self, node, cpd):
         self.cpds.update({node: cpd})
+
+    def __str__(self):
+        return self.to_json()
+
+    def __repr__(self):
+        return self.to_json()
