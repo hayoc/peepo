@@ -1,0 +1,26 @@
+
+		{"header":
+		{
+"Identification": "C:\\Users\\Lea\\PycharmProjects\\peepo\\project_repository\\simple_color_recognition.json",
+"Date": "",
+"Description": "simple model of colour recognition. Aim is to get acquainted with optimal DAG searching algorithms",
+"Frozen": "",
+"Train_from": ""},
+
+"Nodes":
+		{
+		"RONS":
+		{
+			"BENS": [["dummy", 2], ["pixel_2", 2], ["pixel_3", 2], ["pixel_4", 2]],
+			"MEMS": []},
+		"LANS":
+		{
+		"LANS": []},
+		"LENS":
+		{
+			"MOTOR": [],
+			"WORLD": [["warm", 2], ["neutral", 2], ["cold", 2]]}},
+
+"Edges": [],
+
+"CPDs": []}
