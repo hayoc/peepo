@@ -1,3 +1,4 @@
+#28/12/2018
 import logging
 import math
 import os
@@ -17,7 +18,7 @@ from peepo.predictive_processing.v3.sensory_input import SensoryInput
 import matplotlib.pyplot as plt
 from scipy.stats import entropy
 from pomegranate import *
-import seaborn, time
+import time
 
 
 class MyClass(object):
@@ -76,46 +77,13 @@ class MyClass(object):
         # print('*********************************************self.all_pixel_states')
         # print(self.all_pixel_states)
         colors = {}
-        hi = 2  # 0.999
+        hi = 1
         lo = 0
         C = np.prod(cardinality)
-        average = 1
-        matrix = np.full((3, C), average)
-        if 'RON_BEN_1' in evidence and not 'RON_BEN_2' in evidence and 'RON_BEN_3' in evidence and 'RON_BEN_0' in evidence:
-            matrix[0] = [average, lo, hi, average, average, lo, hi, average]
-            matrix[1] = [average, lo, lo, average, average, lo, lo, average]
-            matrix[2] = [average, hi, lo, average, average, hi, lo, average]
-        if 'RON_BEN_1' in evidence and not 'RON_BEN_2' in evidence and 'RON_BEN_3' in evidence and not 'RON_BEN_0' in evidence:
-            matrix[0] = [average, lo, hi, average]
-            matrix[1] = [average, lo, lo, average]
-            matrix[2] = [average, hi, lo, average]
-
-        if not 'RON_BEN_1' in evidence and 'RON_BEN_2' in evidence and 'RON_BEN_3' in evidence and 'RON_BEN_0' in evidence:
-            matrix[0] = [average, lo, hi, average, average, lo, hi, average]
-            matrix[1] = [average, lo, lo, average, average, lo, lo, average]
-            matrix[2] = [average, hi, lo, average, average, hi, lo, average]
-        if not 'RON_BEN_1' in evidence and 'RON_BEN_2' in evidence and 'RON_BEN_3' in evidence and not 'RON_BEN_0' in evidence:
-            matrix[0] = [average, lo, hi, average]
-            matrix[1] = [average, lo, lo, average]
-            matrix[2] = [average, hi, lo, average]
-
-        if 'RON_BEN_1' in evidence and 'RON_BEN_2' in evidence and not 'RON_BEN_3' in evidence and 'RON_BEN_0' in evidence:
-            matrix[0] = [average, lo, hi, average, average, lo, hi, average]
-            matrix[1] = [average, lo, lo, average, average, lo, lo, average]
-            matrix[2] = [average, hi, lo, average, average, hi, lo, average]
-        if 'RON_BEN_1' in evidence and 'RON_BEN_2' in evidence and not 'RON_BEN_3' in evidence and not 'RON_BEN_0' in evidence:
-            matrix[0] = [average, lo, hi, average]
-            matrix[1] = [average, lo, lo, average]
-            matrix[2] = [average, hi, lo, average]
-
-        if 'RON_BEN_1' in evidence and 'RON_BEN_2' in evidence and 'RON_BEN_3' in evidence and not 'RON_BEN_0' in evidence:
-            matrix[0] = [lo, lo, lo, lo, hi, lo, hi, lo]
-            matrix[1] = [hi, lo, hi, lo, lo, hi, lo, hi]
-            matrix[2] = [lo, hi, lo, hi, lo, lo, lo, lo]
-        if 'RON_BEN_0' in evidence and 'RON_BEN_1' in evidence and 'RON_BEN_2' in evidence and 'RON_BEN_3' in evidence:
-            matrix[0] = [lo, lo, lo, lo, hi, lo, hi, lo, lo, lo, lo, lo, hi, lo, hi, lo]
-            matrix[1] = [hi, lo, hi, lo, lo, hi, lo, hi, hi, lo, hi, lo, lo, hi, lo, hi]
-            matrix[2] = [lo, hi, lo, hi, lo, lo, lo, lo, lo, hi, lo, hi, lo, lo, lo, lo]
+        matrix = np.full((3, C), 1. / 3.)
+        matrix[0] = [hi, lo, lo, hi, lo, lo, hi, lo, hi, lo, lo, hi, lo, lo, hi, lo]
+        matrix[1] = [lo, hi, lo, lo, hi, lo, lo, hi, lo, hi, lo, lo, hi, lo, lo, hi]
+        matrix[2] = [lo, lo, hi, lo, lo, hi, lo, lo, lo, lo, hi, lo, lo, hi, lo, lo]
         for i, node in enumerate(evidence):
             colors.update({node: table[i]})
         return colors, table.astype(int), matrix.astype(int)
@@ -152,74 +120,15 @@ class MyClass(object):
         self.networx.remove_edges_from(self.edges)
         self.edges = []
         shape = np.asarray(topology).shape
-        ''' let's first remove all void nodes  ----> not necssary -----> delete the code ??'''
-        nodes_to_remove = []
-        # rows = np.sum(topology, axis = 1)
-        # for row in range(0, len(rows)):
-        #     if rows[row] == 0:
-        #         nodes_to_remove.append('WORLD_' + str(row))
-        columns = np.sum(topology, axis=0)
-        for column in range(0, len(columns)):
-            if columns[column] == 0:
-                nodes_to_remove.append('RON_BEN_' + str(column))
-        self.networx.remove_nodes_from(nodes_to_remove)
-        self.nodes = self.networx.nodes(data=True)
         for column in range(0, shape[1]):
             for row in range(0, shape[0]):
                 if topology[row][column] == 1:
                     parent = 'RON_BEN_' + str(column)
-                    child = 'LEN_WORLD_' + str(row)
+                    child  = 'LEN_WORLD_' + str(row)
                     self.networx.add_edge(parent, child)
         self.edges = self.networx.edges()
 
-    def add_dummy_cpds(self):
-        for i, node in enumerate(self.nodes):
-            cardinality = node[1]['cardinality']
-            if ('BEN' in node[0]) or ('MEN' in node[0]):
-                self.nodes[i][1]['cpd'] = CPD.create_fixed_parent(cardinality, modus='uniform')
-            else:
-                incoming_nodes = self.networx.in_edges(node[0])
-                if len(incoming_nodes) == 0:
-                    self.nodes[i][1]['cpd'] = CPD.create_random_child(cardinality, modus='orphan')
-                    continue
-                card_parent = []
-                for m, n in enumerate(incoming_nodes):
-                    par = self.networx.node[n[0]]['cardinality']
-                    card_parent.append(par)
-                self.nodes[i][1]['cpd'] = CPD.create_random_child(cardinality, card_parent)
 
-    def update_network(self):
-        ''' update the data associated with the nodes'''
-        for i, node in enumerate(self.nodes):
-            self.nodes[i][1]['childs'] = []
-            self.nodes[i][1]['parents'] = []
-            self.nodes[i][1]['parents_cardinality'] = []
-            for k, edge in enumerate(self.networx.edges()):
-                if node[0] == edge[0]:
-                    self.nodes[i][1]['childs'].append(edge[1])
-            cardinality = node[1]['cardinality']
-            if ('BEN' in node[0]) or ('MEM' in node[0]):
-                self.nodes[i][1]['parents'] = []
-            else:
-                incoming_nodes = self.networx.in_edges(node[0])
-                if len(incoming_nodes) == 0:
-                    self.nodes[i][1]['parents'] = []
-                    continue
-                card_parent = []
-                paren = []
-                for m, n in enumerate(incoming_nodes):
-                    if n[1] == node[0]:
-                        par = self.networx.node[n[0]]['cardinality']
-                        paren.append(n[0])
-                        card_parent.append(par)
-                    self.nodes[i][1]['parents_cardinality'] = card_parent
-
-                    self.nodes[i][1]['parents'] = paren
-        for node, out_degree in self.networx.out_degree_iter():
-            if out_degree == 0:
-                self.networx.node[node]['childs'] = []
-
-        self.nodes = self.networx.nodes(data=True)
 
     def do_it(self):
         '''EXPLANATIONS'''
@@ -227,7 +136,12 @@ class MyClass(object):
         self.networx = self.networx_fixed.copy()
         self.networx_test = self.networx_fixed.copy()
         self.nodes = self.networx.nodes(data=True)
+        state_names = self.networx.nodes()
         print('Dictionary : ', self.dictionary)
+        number_of_RONs = 0
+        for node in self.nodes:
+            if 'RON' in node[0]:
+                number_of_RONs += 1
 
 
         ''' -------------- Constructing all possible topologies,
@@ -238,35 +152,54 @@ class MyClass(object):
         print("Possible topologies : ", len(possible_topologies))
         entropy = 0
         count = 0  # TEMPORARY
+        learning_data, learning_labels = self.create_learning_data()
+        test_data = []
+        for a in learning_data:
+            test_data.append(a)
         ''' -------------- walking through all toplogies'''
         for topology in possible_topologies:
             entropy = topology[1]
             if entropy == 0:
                 continue  # safeguard
             print('Loop *-> ', self.loop + 1, ' of ', len(possible_topologies))
+            # if self.loop > 2000:
+            #     self.loop += 1
+            #     count += 1
+            #     continue
             topo = topology[0]
             self.networx = self.networx_fixed.copy()
             ''' ----------- for each topology we construct the edges and update dummy cpd (necessary as the shape of the LENs cpd's can change
                             depending on the number of incoming nodes'''
             self.add_edges(topo)
             # print('edges : ',self.edges)
-            self.add_dummy_cpds()
-            ''' update the data associated with the nodes'''
-            self.update_network()
-            learning_data, learning_labels = self.create_learning_data()
-            ''' ----------- convert DiGraph topomegrante'''
-            self.pommy, self.pom_nodes, self.summary = self._util.translate_digraph_to_pomegranate(self.networx)
+            my_dic = {}
+            states = self.networx.nodes()
+            [my_dic.update({state:{'id': nr,'parents':[]}}) for nr, state in enumerate(states)]
+            [my_dic[node[1]]['parents'].append(node[0]) for node in self.edges]
+            structure = []
+            for n, node in enumerate(states):
+                parents = np.asarray(my_dic[node]['parents'])
+                for n, par in enumerate(parents):
+                    parents[n] =  int(my_dic[par]['id'])
+                my_tuple = (parents.astype(int))
+                if n >= number_of_RONs and len(my_tuple) < number_of_RONs:
+                    my_tuple.append('')
+                structure.append(tuple(my_tuple))
+            structure = tuple(structure)
+            print('my structure = ', structure)
+            self.pommy = BayesianNetwork.from_structure(learning_data, structure, state_names = state_names)
             self.pommy.bake()
-            '''------------ askpomegranate to guess the best cpd's of the LANs and LENs
-                             -> provide pomegranate with the learning data'''
-            self.pommy.fit(learning_data)
-            self.update_network()
-
+            # scores = []
+            # for i in range(0, len(test_data)):
+            #     state = np.asarray(test_data[i])
+            #     score = self.pommy.score(learning_data, state)
+            #     scores.append(score)
+            #
+            # mean_score = np.mean(np.asarray(scores))
             '''-------------- Testing the constructed topology'''
-            # score = self.pommy.score(learning_data, learning_labels)
-            # print('score = ', score)
-            MDL_score = math.log(len(learning_data))*self.pommy.state_count()/2 - np.sum(self.pommy.log_probability(learning_data,1))
-            # print('score = ', MDL_score)
+            MDL_score = math.log(len(learning_data)) * self.pommy.state_count() / 2 - np.mean(self.pommy.log_probability(learning_data))
+            # print('MDL score : ', MDL_score)
+            # MDL_score = mean_score
             self.results.append([entropy, MDL_score])
             if MDL_score <= self.best_error:
                 self.best_error = MDL_score
