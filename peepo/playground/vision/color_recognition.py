@@ -6,7 +6,7 @@ from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
 
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
-from peepo.predictive_processing.v3.utils import read_from_file, fully_connected_network, get_topologies
+from peepo.predictive_processing.v3.utils import read_from_file, get_topologies
 from peepo.visualize.graph import draw_network
 
 CASE = 'color_recognition'
@@ -26,7 +26,6 @@ DATA = np.array([
 
 def start():
     pp_net = read_from_file('color_recognition')
-    pp_net = fully_connected_network(pp_net)
     pp_net.train_data = DATA
 
     topologies = get_topologies(pp_net, max_removal=1)
