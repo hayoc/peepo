@@ -29,7 +29,14 @@
 			],
 			"MEM": []
 		},
-		"LAN": [],
+		"LAN": [{
+				"name": "lan_1",
+				"card": 2
+			},
+		{
+				"name": "lan_2",
+				"card": 2
+			}],
 		"LEN": {
 			"EXT": [{
 				"name": "warm",
