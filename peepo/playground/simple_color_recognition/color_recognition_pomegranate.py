@@ -49,10 +49,14 @@ class MyClass(object):
 
     def create_learning_data(self, network):
         ben_nodes = network.bel_nodes
+        lan_nodes = network.lan_nodes
         self.get_my_colors(ben_nodes)
+        data_lan = np.full(len(self.colors_table[0]), 'nan').tolist()
         learning_data = []
         for i, node in enumerate(ben_nodes):
             learning_data.append(self.colors_table[i].tolist())
+        for i, node in enumerate(lan_nodes):
+            learning_data.append(data_lan)
         shape = self.colors_cpd.shape
         reshaped_cpd = self.colors_cpd.reshape(shape[0], int(np.prod(shape) / shape[0]))
         for hue in range(0, 3):
@@ -69,7 +73,9 @@ class MyClass(object):
         peepo = PeepoNetwork()
         network = peepo.from_json(json_object)
         network.train_data = self.create_learning_data(network)
-        possible_topologies = get_topologies(network, 20)
+        print('learning data ')
+        print(network.train_data)
+        possible_topologies = get_topologies(network)
         print("Possible topologies : ", len(possible_topologies))
         ''' -------------- walking through all toplogies'''
         loop = 0
@@ -78,12 +84,11 @@ class MyClass(object):
             if entropy == 0:
                 continue  # safeguard
             print('Loop *-> ', loop + 1, ' of ', len(possible_topologies))
-            print(topology)
             # if loop > 200:
             #     loop += 1
             #     continue
             network.edges = topology['edges']
-            network.cpds = {}
+            network.cpds = {}#necessary as otherwise the cpds are considered as given and the from_structure() will not be called
             network.assemble()
             # scores = []
             # for i in range(0, len(test_data)):
