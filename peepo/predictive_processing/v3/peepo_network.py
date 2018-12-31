@@ -1,9 +1,7 @@
 import datetime as dt
 import json
 
-import numpy as np
 from pomegranate.BayesianNetwork import BayesianNetwork
-from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
 
 
 class PeepoNetwork:
@@ -160,29 +158,29 @@ class PeepoNetwork:
                 structure.append(tuple(parents))
             pm_net = BayesianNetwork.from_structure(self.train_data, tuple(structure))
 
-            for i, state in enumerate(pm_net.states):
-                state.name = nodes[i]
-
-                if isinstance(state.distribution, DiscreteDistribution):
-                    nodevalue = []
-                    # TODO: Check whether there's always only one... Why a list of dicts anyway... Pomegranate sucks
-                    parameter = state.distribution.parameters[0]
-                    for key in sorted(parameter.keys()):
-                        nodevalue.append(parameter[key])
-                else:
-                    parameters = state.distribution.parameters[0]
-                    param_len = len(parameters)
-                    node_cardinality = len(parameters[0]) - state.distribution.m
-
-                    matrix = np.empty(shape=(node_cardinality, int(param_len / node_cardinality)))
-                    for x in range(0, param_len, node_cardinality):
-                        for y in range(0, node_cardinality):
-                            row = parameters[node_cardinality + y]
-                            matrix[y: int(x / node_cardinality)] = row[len(row) - 1]
-
-                    nodevalue = matrix.tolist()
-
-                self.add_cpd(state.name, nodevalue)
+            # for i, state in enumerate(pm_net.states):
+            #     state.name = nodes[i]
+            #
+            #     if isinstance(state.distribution, DiscreteDistribution):
+            #         nodevalue = []
+            #         # TODO: Check whether there's always only one... Why a list of dicts anyway... Pomegranate sucks
+            #         parameter = state.distribution.parameters[0]
+            #         for key in sorted(parameter.keys()):
+            #             nodevalue.append(parameter[key])
+            #     else:
+            #         parameters = state.distribution.parameters[0]
+            #         param_len = len(parameters)
+            #         node_cardinality = len(parameters[0]) - state.distribution.m
+            #
+            #         matrix = np.empty(shape=(node_cardinality, int(param_len / node_cardinality)))
+            #         for x in range(0, param_len, node_cardinality):
+            #             for y in range(0, node_cardinality):
+            #                 row = parameters[node_cardinality + y]
+            #                 matrix[y: int(x / node_cardinality)] = row[len(row) - 1]
+            #
+            #         nodevalue = matrix.tolist()
+            #
+            #     self.add_cpd(state.name, nodevalue)
 
             return pm_net
 

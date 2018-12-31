@@ -1,39 +1,51 @@
-#28/12/2018
+# 28/12/2018
 import logging
 import math
-import os
-import random
-import sys
-import copy
-import networkx as nx
-import json
-import numpy as np
-from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
-from peepo.predictive_processing.v3.utils import *
+
 import matplotlib.pyplot as plt
+import networkx as nx
 from pomegranate import *
 
 from config import ROOT_DIR
+from peepo.predictive_processing.v3.utils import *
+
+DATA = [['0', '0', '0', '0', '0', '0', '1', '0', '0'],
+        ['0', '0', '0', '1', '0', '0', '0', '1', '0'],
+        ['0', '0', '1', '0', '0', '0', '0', '0', '1'],
+        ['0', '0', '1', '1', '0', '0', '1', '0', '0'],
+        ['0', '1', '0', '0', '0', '0', '0', '1', '0'],
+        ['0', '1', '0', '1', '0', '0', '0', '0', '1'],
+        ['0', '1', '1', '0', '0', '0', '1', '0', '0'],
+        ['0', '1', '1', '1', '0', '0', '0', '1', '0'],
+        ['1', '0', '0', '0', '0', '0', '1', '0', '0'],
+        ['1', '0', '0', '1', '0', '0', '0', '1', '0'],
+        ['1', '0', '1', '0', '0', '0', '0', '0', '1'],
+        ['1', '0', '1', '1', '0', '0', '1', '0', '0'],
+        ['1', '1', '0', '0', '0', '0', '0', '1', '0'],
+        ['1', '1', '0', '1', '0', '0', '0', '0', '1'],
+        ['1', '1', '1', '0', '0', '0', '1', '0', '0'],
+        ['1', '1', '1', '1', '0', '0', '0', '1', '0']]
+
 
 class MyClass(object):
     def __init__(self, case):
         self.case = case
         self.results = []
         self.networx = nx.DiGraph()
-        self.best_error =   math.inf
+        self.best_error = math.inf
         self.best_topology = [0, 0, nx.DiGraph, 0]  # [error, entropy, networkx DiGraph, loop]
         self.nodes = []
         self.edges = {}
         self.colors_table = []
         self.colors_cpd = []
 
-    def get_my_colors(self,root_nodes):
+    def get_my_colors(self, root_nodes):
         cardinality = []
         evidence = []
         for i, node in enumerate(root_nodes):
             evidence.append(node['name'])
             cardinality.append(node['card'])
-        self.colors_table, self.colors_cpd = self.color_cpd('', 3, evidence,cardinality)
+        self.colors_table, self.colors_cpd = self.color_cpd('', 3, evidence, cardinality)
         self.number_of_colors = self.colors_table.shape[1]
 
     def color_cpd(self, var, card_var, evidence, cardinality):
@@ -64,7 +76,6 @@ class MyClass(object):
         learning_data = np.asarray(learning_data).transpose()
         return learning_data.tolist()
 
-
     def do_it(self):
         '''EXPLANATIONS'''
         with open(ROOT_DIR + '/resources/' + self.case + '.json') as json_data:
@@ -72,7 +83,7 @@ class MyClass(object):
             print(json_object)
         peepo = PeepoNetwork()
         network = peepo.from_json(json_object)
-        network.train_data = self.create_learning_data(network)
+        network.train_data = DATA
         print('learning data ')
         print(network.train_data)
         possible_topologies = get_topologies(network)
@@ -88,7 +99,7 @@ class MyClass(object):
             #     loop += 1
             #     continue
             network.edges = topology['edges']
-            network.cpds = {}#necessary as otherwise the cpds are considered as given and the from_structure() will not be called
+            network.cpds = {}  # necessary as otherwise the cpds are considered as given and the from_structure() will not be called
             network.assemble()
             # scores = []
             # for i in range(0, len(test_data)):
@@ -99,8 +110,8 @@ class MyClass(object):
             # mean_score = np.mean(np.asarray(scores))
             '''-------------- Testing the constructed topology by using an MDL typ score'''
 
-            MDL_score = math.log(len(network.train_data )) * network.pomegranate_network.state_count() / 2 \
-                        - np.mean(network.pomegranate_network.log_probability(network.train_data ))
+            MDL_score = math.log(len(network.train_data)) * network.pomegranate_network.state_count() / 2 \
+                        - np.mean(network.pomegranate_network.log_probability(network.train_data))
             print('MDL score : ', MDL_score)
             # MDL_score = mean_score
             self.results.append([entropy, MDL_score])
@@ -151,7 +162,6 @@ class MyClass(object):
                 linewidths=0.25, font_size=10, font_weight='bold', with_labels=True)
         plt.text(1, 1, 'Topology nr. : ' + str(self.best_topology[3]))
         plt.show()
-
 
 
 def main():
