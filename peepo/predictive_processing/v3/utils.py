@@ -29,9 +29,19 @@ def get_topologies(peepo_network, max_removal=None):
 
 
 def fully_connected_network(peepo_network):
-    for root in peepo_network.get_root_nodes():
-        for leaf in peepo_network.get_leaf_nodes():
-            peepo_network.add_edge((root, leaf))
+    lans = peepo_network.get_lan_nodes()
+    if len(lans) == 0:
+        for root in peepo_network.get_root_nodes():
+            for leaf in peepo_network.get_leaf_nodes():
+                peepo_network.add_edge((root, leaf))
+    else:
+        for root in peepo_network.get_root_nodes():
+            for lan in peepo_network.get_lan_nodes():
+                peepo_network.add_edge((root, lan))
+        for lan in peepo_network.get_lan_nodes():
+            for leaf in peepo_network.get_leaf_nodes():
+                peepo_network.add_edge((lan, leaf))
+
     return peepo_network
 
 
