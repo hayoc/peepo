@@ -1,0 +1,63 @@
+{
+	"header": {
+		"identification": "color_recognition.json",
+		"description": "a simple color recognition with Pomegranate",
+		"date": "30/12/2018",
+		"frozen": false,
+		"train_from": "color_recognition.txt"
+	},
+	"nodes":
+	{
+		"RON":
+		{
+			"BEL": [{
+				"name": "dummy",
+				"card": 2
+			},
+				{
+				"name": "pixel_1",
+				"card": 2
+			},
+				{
+				"name": "pixel_2",
+				"card": 2
+			},
+				{
+				"name": "pixel_3",
+				"card": 2
+			}
+			],
+			"MEM": []
+		},
+		"LAN": [{
+				"name": "lan_1",
+				"card": 2
+			},
+		{
+				"name": "lan_2",
+				"card": 2
+			}],
+		"LEN": {
+			"EXT": [{
+				"name": "warm",
+				"card": 2
+			},
+			{
+				"name": "neutral",
+				"card": 2
+			},
+				{
+				"name": "cool",
+				"card": 2
+			}
+			],
+			"INT": [],
+			"PRO": []
+		}
+	},
+	"edges": [
+
+	],
+	"cpds": {
+	}
+}

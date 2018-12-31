@@ -1,55 +1,36 @@
 from  pomegranate import *
 import random
 import numpy as np
+import itertools
 
 class CPD_P:
 
     def __init__(self):
         pass
 
-    def get_index_matrix(
-            cardinality):  # creates a matrix for the header of the contingency table (used  in create latent distribution with a fixed distibution)
-        C = int(np.prod(cardinality))
-        blocks = np.copy(cardinality)
-        B = len(blocks)
-        for b in range(1, B):
-            index = B - 1 - b
-            blocks[index] = blocks[index + 1] * cardinality[index]
-        M = np.zeros((len(cardinality), C))
-        # construct first the lowest row
-        block = np.zeros(cardinality[len(cardinality) - 1])
-        for n in range(0, len(block)):
-            block[n] = n
-        # fill M  with the right number of blocks
-        n_blocks = int(C / blocks[B - 1])
-        R = []
-        for n in range(0, n_blocks):
-            R.append(block)
-        R = np.reshape(R, n_blocks * len(block))
-        M[B - 1, :] = R
-        block_mem = int(C / blocks[B - 1])
-        # now the rest of the rows
-        for b in range(0, B - 1):
-            row = B - 2 - b
-            block = np.zeros(blocks[row])
-            block_mem /= cardinality[row]
-            n_blocks = int(block_mem)
-            # fill first the block
-            index = 0
-            index_ = 0
-            for p in range(0, len(block)):
-                block[p] = index
-                index_ += 1
-                if index_ > blocks[row + 1] - 1:
-                    index_ = 0
-                    index += 1
-            # now create an R array with the right number of blocks
-            R = []
-            for n in range(0, n_blocks):
-                R.append(block)
-            R = np.reshape(R, n_blocks * len(block))
-            M[row, :] = R
-        return M
+    def get_index_matrix(cardinality):
+        """
+         Returns the state tables of the parents of a node
+
+         :param cardinality: an array with the cardinalities of the parent
+         :returns: an array with the combination of all possible states
+         :type cardinality: array
+         :rtype : array
+
+         example:
+
+         cardinality =   [2,3,2]
+         will return:
+                         [[0 0 0 0 0 0 1 1 1 1 1 1],
+                          [0 0 1 1 2 2 0 0 1 1 2 2],
+                          [0 1 0 1 0 1 0 1 0 1 0 1 ]]
+         """
+        blocks =[]
+        for i in range(0,len(cardinality)):
+            subblock = []
+            [subblock.append(int(s)) for s in range(0,cardinality[i])]
+            blocks.append(subblock)
+        return np.transpose(np.asarray(list(itertools.product(*blocks))))
 
     def create_fixed_parent(cardinality, state=0, modus='status'):
         hi = 0.99
