@@ -1,9 +1,58 @@
 import datetime as dt
+import itertools
 import json
+import os
+from collections import OrderedDict
 
 import numpy as np
 from pomegranate.BayesianNetwork import BayesianNetwork
+from pomegranate.base import State
+from pomegranate.distributions.ConditionalProbabilityTable import ConditionalProbabilityTable
 from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
+
+from config import ROOT_DIR
+from peepo.predictive_processing.v3.utils import get_index_matrix
+
+
+def get_topologies(peepo_network, max_removal=None):
+    max_edges = fully_connected_network(peepo_network).get_edges()
+    max_removal = max_removal or len(max_edges)
+
+    topologies = []
+    for x in range(0, max_removal + 1):
+        for cmb in itertools.combinations(max_edges, x):
+            edges = list(max_edges)
+
+            for edge_to_remove in cmb:
+                edges.remove(edge_to_remove)
+
+            topologies.append({
+                'edges': edges,
+                'entropy': x
+            })
+
+    return topologies
+
+
+def fully_connected_network(peepo_network):
+    for root in peepo_network.get_root_nodes():
+        for leaf in peepo_network.get_leaf_nodes():
+            peepo_network.add_edge((root, leaf))
+    return peepo_network
+
+
+def write_to_file(name, peepo_network):
+    directory = ROOT_DIR + '/resources/'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    with open(directory + '/' + str(name) + '.json', 'w') as outfile:
+        json.dump(peepo_network.to_json(), outfile, default=str)
+
+
+def read_from_file(name):
+    with open(ROOT_DIR + '/resources/' + str(name) + '.json') as json_data:
+        return PeepoNetwork().from_json(json.load(json_data))
 
 
 class PeepoNetwork:
@@ -102,7 +151,8 @@ class PeepoNetwork:
                  int_nodes=None,
                  pro_nodes=None,
                  edges=None,
-                 cpds=None):
+                 cpds=None,
+                 cardinality_map=None):
         self.identification = identification or ''
         self.description = description or ''
         self.train_from = train_from or ''
@@ -117,6 +167,7 @@ class PeepoNetwork:
         self.pro_nodes = pro_nodes or []
         self.edges = edges or []
         self.cpds = cpds or {}
+        self.cardinality_map = cardinality_map or {}
         self.network = {}
         self.pomegranate_network = None
 
@@ -148,7 +199,43 @@ class PeepoNetwork:
 
     def to_pomegranate(self):
         if self.cpds:
-            pass  # TODO
+            distributions = OrderedDict()
+
+            for root in itertools.chain(self.bel_nodes, self.mem_nodes):
+                cpd = DiscreteDistribution(dict(enumerate(self.cpds[root['name']])))
+                distributions.update({root['name']: cpd})
+
+            for child_node in itertools.chain(self.lan_nodes, self.ext_nodes, self.int_nodes, self.pro_nodes):
+                parents = [parent for parent, child in self.edges if child == child_node['name']]
+                parent_cpds = [distributions[key] for key in parents]
+
+                cardinalities = [self.cardinality_map[key] for key in parents]
+                cardinalities.append(self.cardinality_map[child_node['name']])
+
+                states = get_index_matrix(cardinalities)
+                original_cpd = np.array(self.cpds[child_node['name']])
+                probabilities = []
+
+                for col in range(0, original_cpd.shape[1]):
+                    for row in range(0, original_cpd.shape[0]):
+                        probabilities.append(original_cpd[row, col])
+
+                cpd = ConditionalProbabilityTable(np.vstack([states, probabilities]).T.tolist(), parent_cpds)
+                distributions.update({child_node['name']: cpd})
+
+            states = OrderedDict()
+            for key, value in distributions.items():
+                states.update({key: State(value, name=key)})
+
+            pm_net = BayesianNetwork()
+            for state in states.values():
+                pm_net.add_state(state)
+            for edge in self.edges:
+                pm_net.add_edge(states[edge[0]], states[edge[1]])
+            pm_net.bake()
+
+            self.pomegranate_network = pm_net
+
         else:
             structure = []
             nodes = self.get_nodes()
@@ -158,33 +245,51 @@ class PeepoNetwork:
                     if node == edge[1]:
                         parents.append(nodes.index(edge[0]))
                 structure.append(tuple(parents))
-            pm_net = BayesianNetwork.from_structure(self.train_data, tuple(structure))
+            pm_net = BayesianNetwork.from_structure(X=self.train_data,
+                                                    structure=tuple(structure),
+                                                    state_names=nodes)
 
             for i, state in enumerate(pm_net.states):
                 state.name = nodes[i]
 
                 if isinstance(state.distribution, DiscreteDistribution):
-                    nodevalue = []
-                    # TODO: Check whether there's always only one... Why a list of dicts anyway... Pomegranate sucks
+                    cpd = []
                     parameter = state.distribution.parameters[0]
-                    for key in sorted(parameter.keys()):
-                        nodevalue.append(parameter[key])
+                    for x in range(0, self.cardinality_map[state.name]):
+                        if x in parameter:
+                            cpd.append(parameter[x])
+                        else:
+                            raise ValueError('Pomegranate dropped some values during fitting. Most likely because '
+                                             'it contains a zero probability. Check your training data.')
                 else:
+                    cardinality_values = []
+                    for key, _ in state.distribution.keymap.items():
+                        c = key[state.distribution.m]
+                        if c in cardinality_values:
+                            break
+                        cardinality_values.append(c)
+
+                    cardinality = len(cardinality_values)
+                    if cardinality != self.cardinality_map[state.name]:
+                        raise ValueError('Pomegranate cardinality does not match expected cardinality of node %s',
+                                         state.name)
+
                     parameters = state.distribution.parameters[0]
                     param_len = len(parameters)
-                    node_cardinality = len(parameters[0]) - state.distribution.m
 
-                    matrix = np.empty(shape=(node_cardinality, int(param_len / node_cardinality)))
-                    for x in range(0, param_len, node_cardinality):
-                        for y in range(0, node_cardinality):
-                            row = parameters[node_cardinality + y]
-                            matrix[y: int(x / node_cardinality)] = row[len(row) - 1]
+                    matrix = np.empty(shape=(cardinality, int(param_len / cardinality)))
+                    for x in range(0, param_len, cardinality):
+                        for y in range(0, cardinality):
+                            row = parameters[x + y]
+                            matrix[y, int(x / cardinality)] = row[len(row) - 1]
 
-                    nodevalue = matrix.tolist()
+                    cpd = matrix.tolist()
 
-                self.add_cpd(state.name, nodevalue)
+                self.add_cpd(state.name, cpd)
 
-            return pm_net
+            self.pomegranate_network = pm_net
+
+        return self.pomegranate_network
 
     def from_pomegranate(self, pm_net):
         pass
@@ -215,6 +320,20 @@ class PeepoNetwork:
 
         self.edges = obj['edges']
         self.cpds = obj['cpds']
+
+        self.cardinality_map.clear()
+        for bel in ron_nodes['BEL']:
+            self.cardinality_map.update({bel['name']: bel['card']})
+        for mem in ron_nodes['MEM']:
+            self.cardinality_map.update({mem['name']: mem['card']})
+        for lan in nodes['LAN']:
+            self.cardinality_map.update({lan['name']: lan['card']})
+        for ext in len_nodes['EXT']:
+            self.cardinality_map.update({ext['name']: ext['card']})
+        for intnode in len_nodes['INT']:
+            self.cardinality_map.update({intnode['name']: intnode['card']})
+        for pro in len_nodes['PRO']:
+            self.cardinality_map.update({pro['name']: pro['card']})
 
         return self
 

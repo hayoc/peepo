@@ -12,8 +12,7 @@ def draw_network(peepo_network):
     To view the results of the drawing, run this script separately: peepo/visualize/server.py
     and go to: http://localhost:8000/peepo.html
 
-    :param network:
-    :param block:
+    :param peepo_network:
     :return:
     """
     G = nx.DiGraph()
@@ -23,7 +22,7 @@ def draw_network(peepo_network):
 
     G.add_edges_from(peepo_network.get_edges())
 
-    d = json_graph.node_link_data(G)  # node-link format to serialize
+    d = json_graph.node_link_data(G)
 
     # write json
     json.dump(d, open(path + '/static/peepo.json', 'w'))

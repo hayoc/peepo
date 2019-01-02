@@ -81,6 +81,9 @@ d3.json("peepo.json", function(error, json) {
               .attr("fill", "none")
               .attr("marker-end", function(d) { return "url(#arrow)"; });
 
+    var drag = force.drag()
+    .on("dragstart", dragstart);
+
      var node = vis.selectAll("circle.node")
           .data(json.nodes)
           .enter().append("g")
@@ -128,7 +131,7 @@ d3.json("peepo.json", function(error, json) {
           .on('mousedown', function(){
             d3.event.stopPropagation();
           })
-          .call(force.drag);
+          .call(drag);
 
 
         //CIRCLE
@@ -177,3 +180,11 @@ d3.json("peepo.json", function(error, json) {
 
     force.start();
 });
+
+function dblclick(d) {
+  d3.select(this).classed("fixed", d.fixed = false);
+}
+
+function dragstart(d) {
+  d3.select(this).classed("fixed", d.fixed = true);
+}
