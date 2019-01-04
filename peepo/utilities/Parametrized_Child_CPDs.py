@@ -29,9 +29,9 @@ Coding comments:
   The reason I did that is because I wanted to remove the import statements you didn't use (you should do that as well,
   you can do it automatically by pressing Ctrl + Alt + O (or go to your top bar to Code > Optimize Imports). It's not
   just a matter of style but also you're importing libraries for no reason which might slow things down.
-    
-    
-    
+
+
+
 General Style Comments:
 - Try to Reformat your code once in a while, you often have style issues which PyCharm doesn't like (it will display it
     with a yellow squiggly line below it (e.g. this is a green squiggly one: fhdnkfjskdf). You can reformat your code 
@@ -67,7 +67,7 @@ def mutated_cpd(card_child, card_parents, num_check=1):
             pdf.append(pdf_row)
 
         # An example inline comment
-        total_pdf += normalize_distribution(pdf)
+        total_pdf += normalize_distribution(np.asarray(pdf))
 
     total_pdf = np.asarray(total_pdf)
     total_pdf /= num_check
@@ -82,15 +82,8 @@ def normalize_distribution(matrix):
     :param matrix:
     :return:
     """
-    R = np.size(matrix, 0)
-    C = np.size(matrix, 1)
-    for column in range(0, C):
-        factor = 0
-        for row in range(0, R):
-            factor += matrix[row][column]
-        for row in range(0, R):
-            matrix[row][column] /= factor
-    return matrix
+    factor = np.sum(matrix, axis=0)
+    return matrix / factor
 
 
 if __name__ == '__main__':
