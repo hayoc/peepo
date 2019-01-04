@@ -29,13 +29,8 @@ class GenerativeModel:
     TODO: Parallelism
     """
 
-    RON = 'RON'
-    BEN = 'BEN'
-    MEN = 'MEN'
-    LAN = 'LAN'
-    LEN = 'LEN'
-
     def __init__(self, peepo_network, sensory_input, n_jobs=1):
+        self.peepo_network = peepo_network
         self.bayesian_network = peepo_network.pomegranate_network
         self.sensory_input = sensory_input
         self.n_jobs = n_jobs
@@ -185,10 +180,10 @@ class GenerativeModel:
         return {x.name: x.distribution.mle() for x in self.get_roots()}
 
     def get_roots(self):
-        return [x for x in self.bayesian_network.states if self.RON in x.name]
+        return [x for x in self.bayesian_network.states if x.name in self.peepo_network.get_root_nodes()]
 
     def get_leaves(self):
-        return [x for x in self.bayesian_network.states if self.LEN in x.name]
+        return [x for x in self.bayesian_network.states if x.name in self.peepo_network.get_leaf_nodes()]
 
     def get_node_index(self, node_name):
         for x, state in enumerate(self.bayesian_network.states):

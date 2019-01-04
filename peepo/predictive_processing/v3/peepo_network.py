@@ -152,7 +152,8 @@ class PeepoNetwork:
                  pro_nodes=None,
                  edges=None,
                  cpds=None,
-                 cardinality_map=None):
+                 cardinality_map=None,
+                 pomegranate_network=None):
         self.identification = identification or ''
         self.description = description or ''
         self.train_from = train_from or ''
@@ -169,9 +170,13 @@ class PeepoNetwork:
         self.cpds = cpds or {}
         self.cardinality_map = cardinality_map or {}
         self.network = {}
-        self.pomegranate_network = None
+        self.pomegranate_network = pomegranate_network
 
     def assemble(self):
+        for node in itertools.chain(self.bel_nodes, self.mem_nodes, self.lan_nodes,
+                                    self.ext_nodes, self.int_nodes, self.pro_nodes):
+            self.cardinality_map.update({node['name']: node['card']})
+
         self.pomegranate_network = self.to_pomegranate()
         self.network = {
             'header': {
@@ -320,20 +325,6 @@ class PeepoNetwork:
 
         self.edges = obj['edges']
         self.cpds = obj['cpds']
-
-        self.cardinality_map.clear()
-        for bel in ron_nodes['BEL']:
-            self.cardinality_map.update({bel['name']: bel['card']})
-        for mem in ron_nodes['MEM']:
-            self.cardinality_map.update({mem['name']: mem['card']})
-        for lan in nodes['LAN']:
-            self.cardinality_map.update({lan['name']: lan['card']})
-        for ext in len_nodes['EXT']:
-            self.cardinality_map.update({ext['name']: ext['card']})
-        for intnode in len_nodes['INT']:
-            self.cardinality_map.update({intnode['name']: intnode['card']})
-        for pro in len_nodes['PRO']:
-            self.cardinality_map.update({pro['name']: pro['card']})
 
         return self
 

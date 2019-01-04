@@ -1,36 +1,34 @@
 import math
 
 import pygame as pg
-from pomegranate.BayesianNetwork import BayesianNetwork
-from pomegranate.base import State
 from pomegranate.distributions.ConditionalProbabilityTable import ConditionalProbabilityTable
-from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
 
-from peepo.playground.util.vision import collision, end_line
+from peepo.playground.wandering.vision import collision, end_line
 from peepo.playground.wandering.wandering_obstacle_avoidance_peepo import SensoryInputVirtualPeepo
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
+from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
 
 vec = pg.math.Vector2
 
 
 def single_hypo_cpd(evi):
     return ConditionalProbabilityTable(
-        [['1', '1', 0.9],
-         ['1', '0', 0.1],
-         ['0', '1', 0.1],
-         ['0', '0', 0.9]], [evi])
+        [[1, 1, 0.9],
+         [1, 0, 0.1],
+         [0, 1, 0.1],
+         [0, 0, 0.9]], [evi])
 
 
 def double_hypo_cpd(evi_1, evi_2):
     return ConditionalProbabilityTable(
-        [['1', '1', '1', 0.9],
-         ['1', '1', '0', 0.1],
-         ['1', '0', '1', 0.9],
-         ['1', '0', '0', 0.1],
-         ['0', '1', '1', 0.9],
-         ['0', '1', '0', 0.1],
-         ['0', '0', '1', 0.1],
-         ['0', '0', '0', 0.9]], [evi_1, evi_2])
+        [[1, 1, 1, 0.9],
+         [1, 1, 0, 0.1],
+         [1, 0, 1, 0.9],
+         [1, 0, 0, 0.1],
+         [0, 1, 1, 0.9],
+         [0, 1, 0, 0.1],
+         [0, 0, 1, 0.1],
+         [0, 0, 0, 0.9]], [evi_1, evi_2])
 
 
 class PeepoModel:
@@ -63,47 +61,62 @@ class PeepoModel:
                                '6': False}
 
     def create_generative_model(self):
-        d1 = DiscreteDistribution({'0': 0.9, '1': 0.1})
-        d2 = DiscreteDistribution({'0': 0.9, '1': 0.1})
-        d3 = DiscreteDistribution({'0': 0.9, '1': 0.1})
-        d4 = DiscreteDistribution({'0': 0.9, '1': 0.1})
-        d5 = double_hypo_cpd(d1, d4)
-        d6 = double_hypo_cpd(d2, d3)
-        d7 = single_hypo_cpd(d3)
-        d8 = single_hypo_cpd(d3)
-        d9 = single_hypo_cpd(d3)
-        d10 = single_hypo_cpd(d4)
-        d11 = single_hypo_cpd(d4)
-        d12 = single_hypo_cpd(d4)
+        pp_network = PeepoNetwork(
+            bel_nodes=[
+                {'name': self.WAN_LEFT, 'card': 2},
+                {'name': self.WAN_RIGHT, 'card': 2},
+                {'name': self.OBS_LEFT, 'card': 2},
+                {'name': self.OBS_RIGHT, 'card': 2}
+            ],
+            ext_nodes=[
+                {'name': self.VIS_1, 'card': 2},
+                {'name': self.VIS_2, 'card': 2},
+                {'name': self.VIS_3, 'card': 2},
+                {'name': self.VIS_4, 'card': 2},
+                {'name': self.VIS_5, 'card': 2},
+                {'name': self.VIS_6, 'card': 2}
+            ],
+            pro_nodes=[
+                {'name': self.MOT_LEFT, 'card': 2},
+                {'name': self.MOT_RIGHT, 'card': 2}
+            ],
+            edges=[
+                (self.WAN_LEFT, self.MOT_LEFT),
+                (self.WAN_RIGHT, self.MOT_RIGHT),
+                (self.OBS_LEFT, self.MOT_RIGHT),
+                (self.OBS_RIGHT, self.MOT_LEFT),
+                (self.OBS_LEFT, self.VIS_1),
+                (self.OBS_LEFT, self.VIS_2),
+                (self.OBS_LEFT, self.VIS_3),
+                (self.OBS_RIGHT, self.VIS_4),
+                (self.OBS_RIGHT, self.VIS_5),
+                (self.OBS_RIGHT, self.VIS_6),
+            ],
+            cpds={
+                self.WAN_LEFT: [0.9, 0.1],
+                self.WAN_RIGHT: [0.9, 0.1],
+                self.OBS_LEFT: [0.9, 0.1],
+                self.OBS_RIGHT: [0.9, 0.1],
+                self.VIS_1: [[0.9, 0.1],
+                             [0.1, 0.9]],
+                self.VIS_2: [[0.9, 0.1],
+                             [0.1, 0.9]],
+                self.VIS_3: [[0.9, 0.1],
+                             [0.1, 0.9]],
+                self.VIS_4: [[0.9, 0.1],
+                             [0.1, 0.9]],
+                self.VIS_5: [[0.9, 0.1],
+                             [0.1, 0.9]],
+                self.VIS_6: [[0.9, 0.1],
+                             [0.1, 0.9]],
+                self.MOT_LEFT: [[0.9, 0.1, 0.1, 0.1],
+                                [0.1, 0.9, 0.9, 0.9]],
+                self.MOT_RIGHT: [[0.9, 0.1, 0.1, 0.1],
+                                 [0.1, 0.9, 0.9, 0.9]],
+            })
+        pp_network.assemble()
 
-        s1 = State(d1, name=self.WAN_LEFT)
-        s2 = State(d2, name=self.WAN_RIGHT)
-        s3 = State(d3, name=self.OBS_LEFT)
-        s4 = State(d4, name=self.OBS_RIGHT)
-        s5 = State(d5, name=self.MOT_LEFT)
-        s6 = State(d6, name=self.MOT_RIGHT)
-        s7 = State(d7, name=self.VIS_1)
-        s8 = State(d8, name=self.VIS_2)
-        s9 = State(d9, name=self.VIS_3)
-        s10 = State(d10, name=self.VIS_4)
-        s11 = State(d11, name=self.VIS_5)
-        s12 = State(d12, name=self.VIS_6)
-
-        model = BayesianNetwork()
-        model.add_states(s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12)
-        model.add_edge(s1, s5)
-        model.add_edge(s2, s6)
-        model.add_edge(s3, s6)
-        model.add_edge(s4, s5)
-        model.add_edge(s3, s7)
-        model.add_edge(s3, s8)
-        model.add_edge(s3, s9)
-        model.add_edge(s4, s10)
-        model.add_edge(s4, s11)
-        model.add_edge(s4, s12)
-        model.bake()
-
-        return GenerativeModel(model, SensoryInputVirtualPeepo(self))
+        return GenerativeModel(pp_network, SensoryInputVirtualPeepo(self))
 
     def process(self):
         self.calculate_obstacles()
