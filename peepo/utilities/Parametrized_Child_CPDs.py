@@ -53,4 +53,7 @@ if __name__ == '__main__':
     datasets = [{"x": x, "y": np.full(len(x), row), "z": pdf[row], "colour": "blue"} for row  in range(len(omega))]
     for dataset in datasets:
         ax.plot(dataset["x"], dataset["y"], dataset["z"], color=dataset["colour"])
+    ax.set_xlabel('parents state combinations')
+    ax.set_ylabel('child states')
+    ax.set_zlabel('phi states child');
     plt.show()
