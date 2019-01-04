@@ -26,24 +26,17 @@ class Random_Child(object):
             pdf.append(pdf_row)
         '''normalize'''
 
-        return self.normalize_distribution(pdf)
+        return self.normalize_distribution(np.asarray(pdf))
 
     def normalize_distribution(self,matrix):
-        R = np.size(matrix,0)
-        C = np.size(matrix,1)
-        for column in range(0, C):
-            factor = 0
-            for row in range(0, R):
-                factor += matrix[row][column]
-            for row in range(0, R):
-                matrix[row][column] /= factor
-        return matrix
+        factor = np.sum(matrix, axis = 0)
+        return matrix/factor
 
 
 
 if __name__ == '__main__':
     '''example : 3 parents and cardinality child = 4'''
-    card_parents = [2, 3, 2]
+    card_parents = [2, 2]
     card_child = 3
     max_omega = np.dtype('d')
     max_omega =  2 * math.pi * np.prod(card_parents)
