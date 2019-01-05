@@ -7,35 +7,34 @@ import numpy as np
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 
-def ga_child_cpd(card_child, card_parents, omega):
+def ga_child_cpd(card_parents, omega):
     """
     Used in the framework of Genetic Algorithm to initialize a childs cpd and to alter it later (mutation)
     The word 'child" used here is in the context of Bayesian network and is not an offspring of a GA
 
-    :param card_child: integer = childs' cardinality
+
     :param card_parents: array containing the cardinality of the childs' parents
-    :param omega: an array of dim card_child containing the cpd's  generating parameters
+    :param omega: an array of dim cardynality of the child (card_child) containing the cpd's  generating parameters
     :return: a matrix of shape (card_child, numpy.prod(card_parents) containing the conditional probability distribution
 
     example :
 
         my_card_parents = [2, 3, 2]
-        my_card_child = 3
         max_omega = 2 * math.pi * np.prod(my_card_parents)
 
-        zero generation :
+        zero generation : (my_card_child = 3)
         my_omega = [2.0,0.1,0.9] -> only for this example. As a rule one will use
             my_omega = np.random.rand(my_card_child) * max_omega to initialize (0th generation)
             a child's cpd and
             my_omega += (0.5 - np.random.rand(my_card_child))*epsilon with espilon small (e.g. 0.05)
             when mutating the childs' cpd
 
-        my_pdf = ga_child_cpd(my_card_child, my_card_parents, my_omega)
+        my_pdf = ga_child_cpd( my_card_parents, my_omega)
 
         mutation :
         epsilon = 0.05
-        my_omega += (0.5 - np.random.rand(my_card_child))*epsilon
-        my_pdf_ = ga_child_cpd(my_card_child, my_card_parents, my_omega)
+        my_omega += (0.5 - np.random.rand(len(my_omega))*epsilon
+        my_pdf_ = ga_child_cpd( my_card_parents, my_omega)
 
         --->
             Zero generation cpd
@@ -85,13 +84,13 @@ if __name__ == '__main__':
     max_omega = 2 * math.pi * np.prod(my_card_parents)
     my_omega = np.random.rand(my_card_child) * max_omega
     # my_omega = [2.0, 0.1, 0.9]
-    my_pdf = ga_child_cpd(my_card_child, my_card_parents, my_omega)
+    my_pdf = ga_child_cpd( my_card_parents, my_omega)
     np.set_printoptions(formatter={'float': lambda my_pdf: "{0:0.2f}".format(my_pdf)})
     print('Zero generation cpd')
     print(my_pdf)
     epsilon = 0.05
     my_omega += (0.5 - np.random.rand(my_card_child))*epsilon
-    my_pdf_ = ga_child_cpd(my_card_child, my_card_parents, my_omega)
+    my_pdf_ = ga_child_cpd(my_card_parents, my_omega)
     np.set_printoptions(formatter={'float': lambda my_pdf_: "{0:0.2f}".format(my_pdf_)})
     print('\n\nZero generation cpd')
     print(my_pdf_)
