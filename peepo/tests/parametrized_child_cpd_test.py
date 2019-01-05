@@ -59,7 +59,7 @@ def ga_child_cpd(card_child, card_parents, omega):
     phase_shift = omega[0]
     n_comb = np.prod(card_parents)  # type: int
     pdf = []
-    for row, ang in enumerate(omega):
+    for ang in omega:
         pdf_row = []
         for col in range(n_comb):
             pdf_row.append(math.sin(ang * (col + 1) + phase_shift) + 1)
