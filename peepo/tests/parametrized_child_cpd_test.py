@@ -62,7 +62,7 @@ def ga_child_cpd(card_child, card_parents, omega):
     for ang in omega:
         pdf_row = []
         for col in range(n_comb):
-            pdf_row.append(math.sin(ang * (col + 1) + phase_shift) + 1)
+            pdf_row.append(math.sin(ang * (col + 1) + phase_shift) + 1.2)
         pdf.append(pdf_row)
     return normalize_distribution(np.asarray(pdf))
 
