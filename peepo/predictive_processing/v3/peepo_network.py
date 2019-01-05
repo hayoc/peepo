@@ -173,10 +173,7 @@ class PeepoNetwork:
         self.pomegranate_network = pomegranate_network
 
     def assemble(self):
-        for node in itertools.chain(self.bel_nodes, self.mem_nodes, self.lan_nodes,
-                                    self.ext_nodes, self.int_nodes, self.pro_nodes):
-            self.cardinality_map.update({node['name']: node['card']})
-
+        self.make_cardinality_map()
         self.pomegranate_network = self.to_pomegranate()
         self.network = {
             'header': {
@@ -355,6 +352,23 @@ class PeepoNetwork:
     def get_edges(self):
         return self.edges
 
+    def get_incoming_edges(self, node):
+        edges = [nod[0] for nod in self.edges if (nod[1] == node)]
+        return edges
+
+    def get_outgoing_edges(self, node):
+        edges = [nod[1] for nod in self.edges if (nod[0] == node)]
+        return edges
+
+    def make_cardinality_map(self):
+        for node in itertools.chain(self.bel_nodes, self.mem_nodes, self.lan_nodes,
+                                    self.ext_nodes, self.int_nodes, self.pro_nodes):
+            self.cardinality_map.update({node['name']: node['card']})
+
+    def get_cardinality_map(self):
+        self.make_cardinality_map()
+        return self.cardinality_map
+
     def set_edges(self, edges):
         self.edges = edges
 
@@ -363,6 +377,7 @@ class PeepoNetwork:
 
     def get_cpds(self, node=None):
         if node:
+            print('in get cpds for node ', node)
             return self.cpds[node]
         else:
             return self.cpds
