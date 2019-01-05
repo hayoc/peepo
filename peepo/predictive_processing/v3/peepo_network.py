@@ -1,4 +1,5 @@
 import datetime as dt
+<<<<<<< HEAD
 import itertools
 import json
 import os
@@ -53,6 +54,11 @@ def write_to_file(name, peepo_network):
 def read_from_file(name):
     with open(ROOT_DIR + '/resources/' + str(name) + '.json') as json_data:
         return PeepoNetwork().from_json(json.load(json_data))
+=======
+import json
+
+from pomegranate.BayesianNetwork import BayesianNetwork
+>>>>>>> origin/model_update_bernard
 
 
 class PeepoNetwork:
@@ -151,8 +157,12 @@ class PeepoNetwork:
                  int_nodes=None,
                  pro_nodes=None,
                  edges=None,
+<<<<<<< HEAD
                  cpds=None,
                  cardinality_map=None):
+=======
+                 cpds=None):
+>>>>>>> origin/model_update_bernard
         self.identification = identification or ''
         self.description = description or ''
         self.train_from = train_from or ''
@@ -167,7 +177,10 @@ class PeepoNetwork:
         self.pro_nodes = pro_nodes or []
         self.edges = edges or []
         self.cpds = cpds or {}
+<<<<<<< HEAD
         self.cardinality_map = cardinality_map or {}
+=======
+>>>>>>> origin/model_update_bernard
         self.network = {}
         self.pomegranate_network = None
 
@@ -199,6 +212,7 @@ class PeepoNetwork:
 
     def to_pomegranate(self):
         if self.cpds:
+<<<<<<< HEAD
             distributions = OrderedDict()
 
             for root in itertools.chain(self.bel_nodes, self.mem_nodes):
@@ -236,6 +250,9 @@ class PeepoNetwork:
 
             self.pomegranate_network = pm_net
 
+=======
+            pass  # TODO
+>>>>>>> origin/model_update_bernard
         else:
             structure = []
             nodes = self.get_nodes()
@@ -245,6 +262,7 @@ class PeepoNetwork:
                     if node == edge[1]:
                         parents.append(nodes.index(edge[0]))
                 structure.append(tuple(parents))
+<<<<<<< HEAD
             pm_net = BayesianNetwork.from_structure(X=self.train_data,
                                                     structure=tuple(structure),
                                                     state_names=nodes)
@@ -290,6 +308,35 @@ class PeepoNetwork:
             self.pomegranate_network = pm_net
 
         return self.pomegranate_network
+=======
+            pm_net = BayesianNetwork.from_structure(self.train_data, tuple(structure))
+
+            # for i, state in enumerate(pm_net.states):
+            #     state.name = nodes[i]
+            #
+            #     if isinstance(state.distribution, DiscreteDistribution):
+            #         nodevalue = []
+            #         # TODO: Check whether there's always only one... Why a list of dicts anyway... Pomegranate sucks
+            #         parameter = state.distribution.parameters[0]
+            #         for key in sorted(parameter.keys()):
+            #             nodevalue.append(parameter[key])
+            #     else:
+            #         parameters = state.distribution.parameters[0]
+            #         param_len = len(parameters)
+            #         node_cardinality = len(parameters[0]) - state.distribution.m
+            #
+            #         matrix = np.empty(shape=(node_cardinality, int(param_len / node_cardinality)))
+            #         for x in range(0, param_len, node_cardinality):
+            #             for y in range(0, node_cardinality):
+            #                 row = parameters[node_cardinality + y]
+            #                 matrix[y: int(x / node_cardinality)] = row[len(row) - 1]
+            #
+            #         nodevalue = matrix.tolist()
+            #
+            #     self.add_cpd(state.name, nodevalue)
+
+            return pm_net
+>>>>>>> origin/model_update_bernard
 
     def from_pomegranate(self, pm_net):
         pass
@@ -321,6 +368,7 @@ class PeepoNetwork:
         self.edges = obj['edges']
         self.cpds = obj['cpds']
 
+<<<<<<< HEAD
         self.cardinality_map.clear()
         for bel in ron_nodes['BEL']:
             self.cardinality_map.update({bel['name']: bel['card']})
@@ -335,6 +383,8 @@ class PeepoNetwork:
         for pro in len_nodes['PRO']:
             self.cardinality_map.update({pro['name']: pro['card']})
 
+=======
+>>>>>>> origin/model_update_bernard
         return self
 
     def get_nodes(self):
@@ -357,6 +407,13 @@ class PeepoNetwork:
                   [node['name'] for node in self.pro_nodes]]
         return [item for sublist in leaves for item in sublist]
 
+<<<<<<< HEAD
+=======
+    def get_lan_nodes(self):
+        lans = [[node['name'] for node in self.lan_nodes]]
+        return [item for sublist in lans for item in sublist]
+
+>>>>>>> origin/model_update_bernard
     def get_edges(self):
         return self.edges
 
@@ -382,4 +439,8 @@ class PeepoNetwork:
         return self.to_json()
 
     def __repr__(self):
+<<<<<<< HEAD
         return self.to_json()
+=======
+        return self.to_json()
+>>>>>>> origin/model_update_bernard
