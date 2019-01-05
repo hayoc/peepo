@@ -14,7 +14,7 @@ def ga_child_cpd(card_parents, omega):
 
 
     :param card_parents: array containing the cardinality of the childs' parents
-    :param omega: an array of dim cardynality of the child (card_child) containing the cpd's  generating parameters
+    :param omega: an array of dim cardinality of the child (card_child) containing the cpd's  generating parameters
     :return: a matrix of shape (card_child, numpy.prod(card_parents) containing the conditional probability distribution
 
     example :
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     my_omega += (0.5 - np.random.rand(my_card_child))*epsilon
     my_pdf_ = ga_child_cpd(my_card_parents, my_omega)
     np.set_printoptions(formatter={'float': lambda my_pdf_: "{0:0.2f}".format(my_pdf_)})
-    print('\n\nZero generation cpd')
+    print('\n\nMutated generation cpd')
     print(my_pdf_)
     print('\n\nDelta mutated cpd')
     print(my_pdf - my_pdf_)
