@@ -28,7 +28,7 @@ def get_topologies(peepo_network, max_removal=None):
 
             topologies.append({
                 'edges': edges,
-                'entropy': x
+                'entropy': len(edges)
             })
 
     return topologies
@@ -347,6 +347,10 @@ class PeepoNetwork:
                   [node['name'] for node in self.int_nodes],
                   [node['name'] for node in self.pro_nodes]]
         return [item for sublist in leaves for item in sublist]
+
+    def get_lan_nodes(self):
+        lans = [[node['name'] for node in self.lan_nodes]]
+        return [item for sublist in lans for item in sublist]
 
     def get_edges(self):
         return self.edges
