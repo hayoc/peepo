@@ -152,7 +152,6 @@ class PeepoNetwork:
                  pro_nodes=None,
                  edges=None,
                  cpds=None,
-                 cardinality_map=None,
                  pomegranate_network=None):
         self.identification = identification or ''
         self.description = description or ''
@@ -168,36 +167,14 @@ class PeepoNetwork:
         self.pro_nodes = pro_nodes or []
         self.edges = edges or []
         self.cpds = cpds or {}
-        self.cardinality_map = cardinality_map or {}
-        self.network = {}
+        self.network = self.make_network()
+        self.cardinality_map = self.make_cardinality_map()
         self.pomegranate_network = pomegranate_network
 
     def assemble(self):
-        self.make_cardinality_map()
+        self.network = self.make_network()
+        self.cardinality_map = self.make_cardinality_map()
         self.pomegranate_network = self.to_pomegranate()
-        self.network = {
-            'header': {
-                'identification': self.identification,
-                'description': self.description,
-                'frozen': self.frozen,
-                'train_from': self.train_from,
-                'date': self.date,
-            },
-            'nodes': {
-                'RON': {
-                    'BEL': self.bel_nodes,
-                    'MEM': self.mem_nodes
-                },
-                'LAN': self.lan_nodes,
-                'LEN': {
-                    'EXT': self.ext_nodes,
-                    'INT': self.int_nodes,
-                    'PRO': self.pro_nodes,
-                }
-            },
-            'edges': self.edges,
-            'cpds': self.cpds
-        }
 
     def to_pomegranate(self):
         if self.cpds:
@@ -360,15 +337,6 @@ class PeepoNetwork:
         edges = [nod[1] for nod in self.edges if (nod[0] == node)]
         return edges
 
-    def make_cardinality_map(self):
-        for node in itertools.chain(self.bel_nodes, self.mem_nodes, self.lan_nodes,
-                                    self.ext_nodes, self.int_nodes, self.pro_nodes):
-            self.cardinality_map.update({node['name']: node['card']})
-
-    def get_cardinality_map(self):
-        self.make_cardinality_map()
-        return self.cardinality_map
-
     def set_edges(self, edges):
         self.edges = edges
 
@@ -377,7 +345,6 @@ class PeepoNetwork:
 
     def get_cpds(self, node=None):
         if node:
-            print('in get cpds for node ', node)
             return self.cpds[node]
         else:
             return self.cpds
@@ -387,6 +354,38 @@ class PeepoNetwork:
 
     def add_cpd(self, node, cpd):
         self.cpds.update({node: cpd})
+
+    def make_cardinality_map(self):
+        return {node['name']: node['card'] for node in itertools.chain(self.bel_nodes, self.mem_nodes, self.lan_nodes,
+                                                                       self.ext_nodes, self.int_nodes, self.pro_nodes)}
+
+    def get_cardinality_map(self):
+        return self.cardinality_map
+
+    def make_network(self):
+        return {
+            'header': {
+                'identification': self.identification,
+                'description': self.description,
+                'frozen': self.frozen,
+                'train_from': self.train_from,
+                'date': self.date,
+            },
+            'nodes': {
+                'RON': {
+                    'BEL': self.bel_nodes,
+                    'MEM': self.mem_nodes
+                },
+                'LAN': self.lan_nodes,
+                'LEN': {
+                    'EXT': self.ext_nodes,
+                    'INT': self.int_nodes,
+                    'PRO': self.pro_nodes,
+                }
+            },
+            'edges': self.edges,
+            'cpds': self.cpds
+        }
 
     def __str__(self):
         return self.to_json()
