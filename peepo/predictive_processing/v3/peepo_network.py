@@ -152,7 +152,8 @@ class PeepoNetwork:
                  pro_nodes=None,
                  edges=None,
                  cpds=None,
-                 pomegranate_network=None):
+                 pomegranate_network=None,
+                 ga_parameters=None):
         self.identification = identification or ''
         self.description = description or ''
         self.train_from = train_from or ''
@@ -167,6 +168,7 @@ class PeepoNetwork:
         self.pro_nodes = pro_nodes or []
         self.edges = edges or []
         self.cpds = cpds or {}
+        self.ga_parameters = ga_parameters
         self.network = self.make_network()
         self.cardinality_map = self.make_cardinality_map()
         self.pomegranate_network = pomegranate_network
