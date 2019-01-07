@@ -1,6 +1,7 @@
 import datetime as dt
 import itertools
 import json
+import math
 import os
 from collections import OrderedDict
 
@@ -52,7 +53,7 @@ def write_to_file(name, peepo_network):
 
 def read_from_file(name):
     with open(ROOT_DIR + '/resources/' + str(name) + '.json') as json_data:
-        return PeepoNetwork().from_json(json.load(json_data))
+        return PeepoNetwork().from_json(json.load(json_data)).assemble()
 
 
 class PeepoNetwork:
@@ -171,12 +172,15 @@ class PeepoNetwork:
         self.ga_parameters = ga_parameters
         self.network = self.make_network()
         self.cardinality_map = self.make_cardinality_map()
+        self.omega_map = self.make_omega_map()
         self.pomegranate_network = pomegranate_network
 
     def assemble(self):
         self.network = self.make_network()
         self.cardinality_map = self.make_cardinality_map()
+        self.omega_map = self.make_omega_map()
         self.pomegranate_network = self.to_pomegranate()
+        return self
 
     def to_pomegranate(self):
         if self.cpds:
@@ -217,7 +221,7 @@ class PeepoNetwork:
 
             self.pomegranate_network = pm_net
 
-        else:
+        elif self.train_data:
             structure = []
             nodes = self.get_nodes()
             for node in nodes:
@@ -328,6 +332,14 @@ class PeepoNetwork:
         lans = [[node['name'] for node in self.lan_nodes]]
         return [item for sublist in lans for item in sublist]
 
+    def add_belief_node(self, node, cardinality):
+        self.bel_nodes.append({'name': node, 'card': cardinality})
+        self.cardinality_map.update({node: cardinality})
+
+    def add_memory_node(self, node, cardinality):
+        self.mem_nodes.append({'name': node, 'card': cardinality})
+        self.cardinality_map.update({node: cardinality})
+
     def get_edges(self):
         return self.edges
 
@@ -363,6 +375,23 @@ class PeepoNetwork:
 
     def get_cardinality_map(self):
         return self.cardinality_map
+
+    def make_omega_map(self):
+        omg_map = {}
+        for node in itertools.chain(self.bel_nodes, self.mem_nodes, self.lan_nodes,
+                                    self.ext_nodes, self.int_nodes, self.pro_nodes):
+            parents_card = [self.cardinality_map[parent] for parent in self.get_incoming_edges(node['name'])]
+            max_omega = 2 * math.pi * np.prod(parents_card)
+            omega = np.random.rand(node['card']) * max_omega
+            omg_map.update({node['name']: omega})
+
+        return omg_map
+
+    def get_omega_map(self):
+        return self.omega_map
+
+    def add_omega(self, node, omega):
+        self.omega_map.update({node: omega})
 
     def make_network(self):
         return {
