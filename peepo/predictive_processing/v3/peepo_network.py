@@ -280,7 +280,9 @@ class PeepoNetwork:
         pass
 
     def to_json(self, separators=(',', ' : '), indent=4):
-        return json.dumps(self.network, separators=separators, indent=indent)
+        for k, v in self.cpds.items():
+            self.cpds[k] = v.tolist()
+        return json.dumps(self.make_network(), separators=separators, indent=indent)
 
     def from_json(self, obj):
         header = obj['header']
@@ -340,6 +342,19 @@ class PeepoNetwork:
         self.mem_nodes.append({'name': node, 'card': cardinality})
         self.cardinality_map.update({node: cardinality})
 
+    def remove_belief_node(self, node):
+        self.bel_nodes = [n for n in self.bel_nodes if n['name'] != node]
+        self.remove_node(node)
+
+    def remove_node(self, node):
+        self.cpds.pop(node, None)
+        self.cardinality_map.pop(node, None)
+        self.omega_map.pop(node, None)
+        for parent in self.get_incoming_edges(node):
+            self.remove_edge((parent, node))
+        for child in self.get_outgoing_edges(node):
+            self.remove_edge((node, child))
+
     def get_edges(self):
         return self.edges
 
@@ -356,6 +371,9 @@ class PeepoNetwork:
 
     def add_edge(self, edge):
         self.edges.append(edge)
+
+    def remove_edge(self, edge):
+        self.edges.remove(edge)
 
     def get_cpds(self, node=None):
         if node:

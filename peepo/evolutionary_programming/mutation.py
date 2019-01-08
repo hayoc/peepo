@@ -17,7 +17,7 @@ def add_node(network, epsilon=0.05):
     :return: mutated PeepoNetwork
     """
     new_parent_node = str(uuid.uuid4())[:8]
-    child_node = random.choice(network.get_nodes())
+    child_node = random.choice(network.get_leaf_nodes())
     logging.info('Adding new node with edge to: %s to %s', new_parent_node, child_node)
 
     network.add_belief_node(new_parent_node, 2)
@@ -34,6 +34,134 @@ def add_node(network, epsilon=0.05):
 
     network.add_cpd(new_parent_node, ga_parent_cpd(omega_map[new_parent_node]))
     network.add_cpd(child_node, ga_child_cpd(parents_card, omega_map[child_node]))
+
+    return network
+
+
+def add_edge(network, epsilon=0.05):
+    """
+    Random mutation of adding a single edge between two random chosen nodes.
+
+    :param network: PeepoNetwork to mutate
+    :param epsilon: Rate of change for mutation parameters: float, default 0.05
+    :return: mutated PeepoNetwork
+    """
+    node_pool = network.get_root_nodes()
+    if not node_pool:
+        logging.warning('Model contains no valid nodes to add edge from... Adding a new node')
+        return add_node(network)
+
+    parent_node = random.choice(node_pool)
+    child_pool = np.setdiff1d(network.get_leaf_nodes(), network.get_outgoing_edges(parent_node), assume_unique=True)
+    if not child_pool.size:
+        return remove_edge(network)
+    child_node = random.choice(child_pool)
+    logging.info('Adding edge from %s to %s', parent_node, child_node)
+
+    cardinality_map = network.get_cardinality_map()
+    omega_map = network.get_omega_map()
+
+    network.add_edge((parent_node, child_node))
+
+    incoming_edges = network.get_incoming_edges(child_node)
+    parents_card = [cardinality_map[x] for x in incoming_edges]
+
+    omega_map[child_node] += (0.5 - np.random.rand(cardinality_map[child_node])) * epsilon
+    network.add_cpd(child_node, ga_child_cpd(parents_card, omega_map[child_node]))
+
+    return network
+
+
+def remove_node(network, epsilon=0.05):
+    """
+    Random mutation of removing a single node chosen randomly.
+
+    :param network: PeepoNetwork to mutate
+    :param epsilon: Rate of change for mutation parameters: float, default 0.05
+    :return: mutated PeepoNetwork
+    """
+    node_pool = network.get_root_nodes()
+    if not node_pool:
+        logging.warning('Model contains no valid nodes to remove... Adding a new node')
+        return add_node(network)
+
+    to_remove = random.choice(node_pool)
+    affected_children = network.get_outgoing_edges(to_remove)
+
+    cardinality_map = network.get_cardinality_map()
+    omega_map = network.get_omega_map()
+
+    network.remove_belief_node(to_remove)
+    logging.info('Removed %s', to_remove)
+
+    for child_node in affected_children:
+        incoming_edges = network.get_incoming_edges(child_node)
+        parents_card = [cardinality_map[x] for x in incoming_edges]
+
+        omega_map[child_node] += (0.5 - np.random.rand(cardinality_map[child_node])) * epsilon
+        network.add_cpd(child_node, ga_child_cpd(parents_card, omega_map[child_node]))
+
+    return network
+
+
+def remove_edge(network, epsilon=0.05):
+    """
+    Random mutation of removing a single edge between two random chosen nodes.
+
+    :param network: PeepoNetwork to mutate
+    :param epsilon: Rate of change for mutation parameters: float, default 0.05
+    :return: mutated PeepoNetwork
+    """
+    node_pool = network.get_root_nodes()
+    if not node_pool:
+        logging.warning('Model contains no valid nodes to remove an edge from... Adding a new node')
+        return add_node(network)
+
+    parent_node = random.choice(node_pool)
+    outgoing_edges = network.get_outgoing_edges(parent_node)
+    if not outgoing_edges:
+        logging.warning('Model contains no valid edges to remove... Choosing new mutation')
+        return random_mutation(network)
+
+    child_node = random.choice(outgoing_edges)
+
+    cardinality_map = network.get_cardinality_map()
+    omega_map = network.get_omega_map()
+
+    network.remove_edge((parent_node, child_node))
+
+    incoming_edges = network.get_incoming_edges(child_node)
+    parents_card = [cardinality_map[x] for x in incoming_edges]
+
+    omega_map[child_node] += (0.5 - np.random.rand(cardinality_map[child_node])) * epsilon
+    network.add_cpd(child_node, ga_child_cpd(parents_card, omega_map[child_node]))
+
+    return network
+
+
+def change_cpd(network, epsilon=0.05):
+    """
+    Random mutation of changing CPD of a randomly chosen node, either a root or leaf node.
+
+    :param network: PeepoNetwork to mutate
+    :param epsilon: Rate of change for mutation parameters: float, default 0.05
+    :return: mutated PeepoNetwork
+    """
+    node = random.choice(network.get_nodes())
+
+    cardinality_map = network.get_cardinality_map()
+    omega_map = network.get_omega_map()
+
+    incoming_edges = network.get_incoming_edges(node)
+    if incoming_edges:
+        parents_card = [cardinality_map[x] for x in incoming_edges]
+        omega_map[node] += (0.5 - np.random.rand(cardinality_map[node])) * epsilon
+        network.add_cpd(node, ga_child_cpd(parents_card, omega_map[node]))
+    else:
+        omega_map[node] += (0.5 - np.random.rand(cardinality_map[node])) * epsilon
+        network.add_cpd(node, ga_parent_cpd(omega_map[node]))
+
+    return network
 
 
 def ga_parent_cpd(omega):
@@ -99,9 +227,14 @@ def ga_child_cpd(card_parents, omega):
     pdf = []
     for ang in omega:
         pdf_row = []
-        for col in range(n_comb):
-            pdf_row.append(math.sin(ang * (col + 1) + phase_shift) + 1.2)
-        pdf.append(pdf_row)
+
+        try:
+            for col in range(int(n_comb)):
+                pdf_row.append(math.sin(ang * (col + 1) + phase_shift) + 1.2)
+            pdf.append(pdf_row)
+
+        except:
+            pass
     return normalize_distribution(np.asarray(pdf))
 
 
@@ -116,11 +249,30 @@ def normalize_distribution(matrix):
     return matrix / factor
 
 
+MUTATIONS = [add_node, add_edge, change_cpd, remove_node, remove_edge]
+
+
+def random_mutation(network):
+    """
+    Applies a randomly chosen mutation to the network and returns the mutated network.
+
+    :param network: PeepoNetwork to be mutated
+    :return: PeepoNetwork with a single mutation applied
+    """
+    return random.choice(MUTATIONS)(network)
+
+
 if __name__ == '__main__':
     case = 'color_recognition'
+
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
 
     pp_network = read_from_file(case)
     topologies = get_topologies(pp_network)
     pp_network.set_edges(topologies[20]['edges'])
-    add_node(pp_network)
-    print(pp_network)
+
+    for i in range(0, 1000):
+        pp_network = random_mutation(pp_network)
+
+    logging.info(pp_network)
