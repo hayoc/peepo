@@ -14,24 +14,38 @@ from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
 from config import ROOT_DIR
 from peepo.predictive_processing.v3.utils import get_index_matrix
 
+'''jan 2019: changes by Bufo:
+    1) adapted get_topologies as the previous version did allow orphan leaf nodes 
+    This genenrated problems in Pomegranate.
+        Q: keep it that way or adapt so that Pomegranete can accept orphan leaf nodes?
+    2) added a method disassemble() in class PeepoNetwork in order to facilitate the methods in GA
+        Q: OK or do it another way
+    '''
+
 
 def get_topologies(peepo_network, max_removal=None):
     max_edges = fully_connected_network(peepo_network).get_edges()
     max_removal = max_removal or len(max_edges)
+    n_root_nodes = len(peepo_network.get_root_nodes())
+    leaf_nodes = peepo_network.get_leaf_nodes()
 
     topologies = []
     for x in range(0, max_removal + 1):
         for cmb in itertools.combinations(max_edges, x):
             edges = list(max_edges)
-
+            append = True
+            for ln in leaf_nodes:
+                deleted_root_nodes = []
+                [deleted_root_nodes.append(x[0]) for x in cmb if x[1] == ln]
+                if len(deleted_root_nodes) >= n_root_nodes:
+                    append = False
             for edge_to_remove in cmb:
                 edges.remove(edge_to_remove)
-
-            topologies.append({
-                'edges': edges,
-                'entropy': len(edges)
-            })
-
+            if append:
+                topologies.append({
+                    'edges': edges,
+                    'entropy': len(edges)
+                })
     return topologies
 
 
@@ -180,6 +194,13 @@ class PeepoNetwork:
         self.cardinality_map = self.make_cardinality_map()
         self.omega_map = self.make_omega_map()
         self.pomegranate_network = self.to_pomegranate()
+        return self
+
+    def disassemble(self):
+        self.edges = []
+        self.cpds = {}
+        self.omega_map = {}
+        self.pomegranate_network = None
         return self
 
     def to_pomegranate(self):
