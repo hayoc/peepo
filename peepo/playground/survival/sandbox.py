@@ -1,4 +1,5 @@
 import json
+import logging
 import random
 
 import matplotlib.pyplot as plt
@@ -45,6 +46,9 @@ def create_population(generation, individuals, food):
 if __name__ == '__main__':
     # generate_food(30)
 
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
+
     num_individuals = 5
     num_generations = 100
     ga = GeneticAlgorithm('survival', Npop=num_individuals, max_removal=2)
@@ -54,6 +58,8 @@ if __name__ == '__main__':
     avg_fitnesses = []
     for gen in range(num_generations):
         food = read_food()
+        food.append(Food('cheat', (20, 20)))
+        print(food)
         print('*********************                     GENERATION ', gen,
               ' *****************************************')
         peepos = create_population(gen, population, food)

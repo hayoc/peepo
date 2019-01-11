@@ -1,3 +1,4 @@
+import logging
 import math
 
 import numpy as np
@@ -20,8 +21,8 @@ class Peepo:
     obstacles present in its environment.
     """
 
-    SIZE = (2, 2)
-    VIEW_DIST = 100
+    SIZE = (10, 10)
+    VIEW_DIST = 200
 
     def __init__(self, name, network, pos=(0, 0), obstacles=None):
         self.name = name
@@ -53,13 +54,13 @@ class Peepo:
             self.path.append((self.x, self.y))
 
         if self.motor[LEFT]:
-            self.x -= 1
+            self.x -= 5
         if self.motor[RIGHT]:
-            self.x += 1
+            self.x += 5
         if self.motor[UP]:
-            self.y += 1
+            self.y += 5
         if self.motor[DOWN]:
-            self.y -= 1
+            self.y -= 5
 
         if self.x < 0:
             self.x = 0
@@ -76,6 +77,7 @@ class Peepo:
             if self.x <= obstacle.x <= self.x + self.SIZE[0] and self.y <= obstacle.y <= self.y + self.SIZE[1]:
                 self.food += 1
                 self.obstacles.remove(obstacle)
+                logging.info(self.name + ' found food!')
             else:
                 distance = math.hypot(obstacle.x - self.x, obstacle.y - self.y)
                 if distance < self.VIEW_DIST:
@@ -135,3 +137,9 @@ class Food:
         self.name = name
         self.x = pos[0]
         self.y = pos[1]
+
+    def __str__(self):
+        return '[' + str(self.x) + ', ' + str(self.y) + ']'
+
+    def __repr__(self):
+        return '[' + str(self.x) + ', ' + str(self.y) + ']'
