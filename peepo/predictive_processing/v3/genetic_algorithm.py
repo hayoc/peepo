@@ -72,7 +72,7 @@ class GeneticAlgorithm:
     def evolve(self, population):
         average_fitness = 0
         #ordering self.population according the fitness
-        self.population = sorted(population, key=lambda chromo: chromo[1])
+        self.population = sorted(population, key=lambda chromo: chromo[1],reverse = True)
         # average fitness
         for n, x in enumerate(self.population):
             average_fitness += x[1]
