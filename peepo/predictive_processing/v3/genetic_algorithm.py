@@ -15,7 +15,7 @@ from peepo.predictive_processing.v3.utils import get_index_matrix
 
 class GeneticAlgorithm:
 
-    def __init__(self, source, Npop = 1000, p_mut_top = 0.02, p_mut_cpd = 0.02):
+    def __init__(self, source, Npop = 1, p_mut_top = 0.02, p_mut_cpd = 0.02, max_removal=None):
         self.npop = int(Npop)
         self.population = []
         self.p_mut_pop = p_mut_top
@@ -24,6 +24,7 @@ class GeneticAlgorithm:
         self.leaf_nodes = []
         self.cardinality_map = {}
         self.peepo = PeepoNetwork()
+        self.max_removal = max_removal
         self.initialize(source)
         self.treshold = 2
 
@@ -36,7 +37,7 @@ class GeneticAlgorithm:
         self.root_nodes = self.peepo.get_root_nodes()
         self.leaf_nodes = self.peepo.get_leaf_nodes()
         self.cardinality_map = self.peepo.make_cardinality_map()
-        topologies = get_topologies(self.peepo)
+        topologies = get_topologies(self.peepo, max_removal = self.max_removal)
         random.seed()
         indexes = []
         slope = 1
@@ -61,7 +62,7 @@ class GeneticAlgorithm:
                 self.peepo.add_cpd(node, my_cpd)
                 self.peepo.add_omega(node,my_omega)
             self.peepo.assemble()
-            my_chromosome = [self.peepo.pomegranate_network.copy(), 0, copy.copy(self.peepo)]
+            my_chromosome = [self.peepo.to_pomegranate(), 0, copy.copy(self.peepo)]
             self.population.append(my_chromosome)
             #cleaning
             self.peepo.disassemble()
@@ -267,6 +268,7 @@ class GeneticAlgorithm:
         cpds[nodes[dice]] = new_cpd
         network.cpds = cpds
         network.omega_map = omega_map
+        network.assemble()
         # print('edges after mutation  : ', network.edges)
         # print('new cpd')
         # print(network.cpds[nodes[dice]])
