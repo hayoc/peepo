@@ -1,9 +1,11 @@
+import datetime
 import datetime as dt
 import itertools
 import json
 import math
 import os
 from collections import OrderedDict
+from copy import deepcopy
 
 import numpy as np
 from pomegranate.BayesianNetwork import BayesianNetwork
@@ -69,6 +71,10 @@ def read_from_file(name):
     with open(ROOT_DIR + '/resources/' + str(name) + '.json') as json_data:
         return PeepoNetwork().from_json(json.load(json_data)).assemble()
 
+
+def converter(o):
+    if isinstance(o, datetime.datetime):
+        return o.__str__()
 
 class PeepoNetwork:
     """
@@ -167,8 +173,7 @@ class PeepoNetwork:
                  pro_nodes=None,
                  edges=None,
                  cpds=None,
-                 pomegranate_network=None,
-                 ga_parameters=None):
+                 pomegranate_network=None):
         self.identification = identification or ''
         self.description = description or ''
         self.train_from = train_from or ''
@@ -183,7 +188,6 @@ class PeepoNetwork:
         self.pro_nodes = pro_nodes or []
         self.edges = edges or []
         self.cpds = cpds or {}
-        self.ga_parameters = ga_parameters
         self.network = self.make_network()
         self.cardinality_map = self.make_cardinality_map()
         self.omega_map = self.make_omega_map()
@@ -226,7 +230,10 @@ class PeepoNetwork:
                     for row in range(0, original_cpd.shape[0]):
                         probabilities.append(original_cpd[row, col])
 
-                cpd = ConditionalProbabilityTable(np.vstack([states, probabilities]).T.tolist(), parent_cpds)
+                if len(probabilities) != states.shape[1]:
+                    print('NOOO')
+                stacjed = np.vstack([states, probabilities])
+                cpd = ConditionalProbabilityTable(stacjed.T.tolist(), parent_cpds)
                 distributions.update({child_node['name']: cpd})
 
             states = OrderedDict()
@@ -304,7 +311,7 @@ class PeepoNetwork:
         for k, v in self.cpds.items():
             if isinstance(v, np.ndarray):
                 self.cpds[k] = v.tolist()
-        return json.dumps(self.make_network(), separators=separators, indent=indent)
+        return json.dumps(self.make_network(), separators=separators, indent=indent, default=converter)
 
     def from_json(self, obj):
         header = obj['header']
@@ -457,6 +464,22 @@ class PeepoNetwork:
             'edges': self.edges,
             'cpds': self.cpds
         }
+
+    def __copy__(self):
+        return PeepoNetwork(identification=self.identification,
+                            description=self.description,
+                            train_from=self.train_from,
+                            train_data=self.train_data,
+                            frozen=self.frozen,
+                            bel_nodes=self.bel_nodes.copy(),
+                            mem_nodes=self.mem_nodes.copy(),
+                            lan_nodes=self.lan_nodes.copy(),
+                            ext_nodes=self.ext_nodes.copy(),
+                            int_nodes=self.int_nodes.copy(),
+                            pro_nodes=self.pro_nodes.copy(),
+                            edges=self.edges.copy(),
+                            cpds=deepcopy(self.cpds),
+                            pomegranate_network=None)
 
     def __str__(self):
         return self.to_json()
