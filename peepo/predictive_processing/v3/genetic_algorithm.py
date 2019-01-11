@@ -82,22 +82,22 @@ class GeneticAlgorithm:
         selected_parents, selected_offsprings = self.cross_over()
         #we now are going to mutate the ofsprings
         random.seed()
-        for s, offspring in enumerate(selected_offsprings):
+        for s, offspring_ in enumerate(selected_offsprings):
+            offspring = copy.copy(offspring_)
             mut_top = random.uniform(0,1)
             mut_cpd = random.uniform(0,1)
             #check if treshold are reached and mutate accordingly
             if mut_top < self.p_mut_pop:
-                print('  ->   Offspring nr. ', s)
                 network = self.prune_or_grow(offspring[2])
                 network.identification = 'offspring type 3'
-                offspring[2] = network
-                offspring[0] = network.to_pomegranate()
+                offspring[2] = network.assemble()
+                offspring[0] = network.pomegranate_network
                 selected_offsprings[s] = offspring
             if mut_cpd < self.p_mut_cpd:
                 network = self.mutate_cpds(offspring[2])
                 network.identification = 'offspring type 4'
-                offspring[2] = network
-                offspring[0] = network.to_pomegranate()
+                offspring[2] = network.assemble()
+                offspring[0] = network.pomegranate_network
                 selected_offsprings[s] = offspring
         #collecting parents and offsprings
         self.population = []
@@ -114,31 +114,31 @@ class GeneticAlgorithm:
         for n, chrom in enumerate(self.population):
             if (n+1 >= len(self.population)) or (len(selected_parents) + len(selected_parents) > self.npop):
                 break
-            selected_parents.append(self.population[n])
-            selected_parents.append(self.population[n + 1])
+            selected_parents.append(copy.copy(self.population[n]))
+            selected_parents.append(copy.copy(self.population[n + 1]))
             map_1 = self.get_adjency_map(self.population[n][2].get_edges())
             map_2 = self.get_adjency_map(self.population[n+1][2].get_edges())
             diff = np.abs(map_1 - map_2)
             sum = np.sum(diff)
             if sum == 0:#-> there is no difference in topology between the parents: only the cpds are swapped
-                offspring_1 = self.population[n][2]
-                offspring_2 = self.population[n+1][2]
-                offspring_1.cpds = self.population[n+1][2].cpds
-                offspring_2.cpds = self.population[n][2].cpds
-                offspring_1.omega_map = self.population[n+1][2].omega_map
-                offspring_2.omega_map = self.population[n][2].omega_map
+                offspring_1 = copy.copy(self.population[n][2])
+                offspring_2 = copy.copy(self.population[n+1][2])
+                offspring_1.cpds = copy.copy(offspring_2.cpds)
+                offspring_2.cpds = copy.copy(offspring_1.cpds)
+                offspring_1.omega_map = copy.copy(offspring_2.omega_map)
+                offspring_2.omega_map = copy.copy(offspring_1.omega_map)
 
                 offspring_1.identification = 'offspring type 0'
                 offspring_2.identification = 'offspring type 0'
 
                 offspring_1.assemble()
                 offspring_2.assemble()
-                selected_offsprings.append([offspring_1.pomegranate_network.copy(), 0, copy.copy(offspring_1)])
-                selected_offsprings.append([offspring_2.pomegranate_network.copy(), 0, copy.copy(offspring_1)])
+                selected_offsprings.append([offspring_1.pomegranate_network, 0, offspring_1])
+                selected_offsprings.append([offspring_2.pomegranate_network, 0, offspring_2])
                 continue
             if sum > self.treshold:#the difference between parents is too big. We assume cloning of the  parents (candidate to mutation)
-                selected_offsprings.append(self.population[n])
-                selected_offsprings.append(self.population[n+1])
+                selected_offsprings.append(copy.copy(self.population[n]))
+                selected_offsprings.append(copy.copy(self.population[n+1]))
                 continue
             ''' we now construct offsprings:
                 if there are q positions in the two adjency matrices, we will then  have 2^q - 2 offsprings
@@ -183,7 +183,7 @@ class GeneticAlgorithm:
                     a_peepo.add_omega(node, my_omega)
                 a_peepo.identification = 'offspring type 2'
                 a_peepo.assemble()
-                my_chromosome = [a_peepo.pomegranate_network.copy(), 0, copy.copy(a_peepo)]
+                my_chromosome = [a_peepo.pomegranate_network, 0, a_peepo]
                 selected_offsprings.append(my_chromosome)
         return selected_parents, selected_offsprings
 
@@ -237,41 +237,43 @@ class GeneticAlgorithm:
         # leaf_nodes = network.get_leaf_nodes()
         dice = random.randint(len(root_nodes), len(nodes)-1 )
         incoming_edges = network.get_incoming_edges(nodes[dice])
-        print('node : ', nodes[dice])
+        # print('\n\n\nMUTATING node : ', nodes[dice])
         # print('cpd')
         # print(network.cpds[nodes[dice]])
-        print('edges before mutation : ', edges)
+        # print('edges before mutation : ', edges)
         # outgoing_edges = network.get_outgoing_edges(nodes[dice])
+        parents_card = [self.cardinality_map[x] for x in incoming_edges]
+        # print('card par BEFORE : ', parents_card)
+
         cpds = network.cpds
         omega_map = network.omega_map
         network.disassemble()
         random.shuffle(incoming_edges)
         new_edges = edges
         if len(incoming_edges) == len(root_nodes):
-            new_edges = [x for x in new_edges if x != (incoming_edges[0], nodes[dice])]
-            # print('PRUNED - > new edges  : ', new_edges)
+            new_edges = [x for x in edges if x != (incoming_edges[0], nodes[dice])]
         else:
             candidate_nodes = [x for x in root_nodes if not x in incoming_edges]
             random.shuffle(candidate_nodes)
             new_edges.append((candidate_nodes[0], nodes[dice]))
-            # print('GROWNED - > new edges  : ', new_edges)
 
         network.edges = new_edges
+        network.pomegranate_network = None
         incoming_edges = network.get_incoming_edges(nodes[dice])
         # print('incoming edges after mutation : ', incoming_edges)
         parents_card = [self.cardinality_map[x] for x in incoming_edges]
-        # print('card par : ', parents_card)
+        # print('card par AFTER : ', parents_card)
         new_cpd = self.ga_child_cpd(parents_card, omega_map[nodes[dice]])
         cpds[nodes[dice]] = new_cpd
         network.cpds = cpds
         network.omega_map = omega_map
-        print('edges after mutation  : ', network.edges)
+        # print('edges after mutation  : ', network.edges)
         # print('new cpd')
         # print(network.cpds[nodes[dice]])
         '''
         TO CHECK: the edges order are not ordered anymore -> problem ? or not
         '''
-        return copy.copy(network)
+        return network
 
     def mutate_cpds(self, network):
         leafs = network.get_leaf_nodes()
@@ -360,24 +362,17 @@ class GeneticAlgorithm:
 
 if __name__ == '__main__':
     case = 'color_recognition'
-    ga = GeneticAlgorithm(case, Npop = 100, p_mut_cpd= 0.9, p_mut_top= 0.99)
+    ga = GeneticAlgorithm(case, Npop = 100, p_mut_cpd= 0.9, p_mut_top= 0.9)
     chromosomes = ga.get_population()
     #test
-    for loop in range(2):
+
+    for loop in range(20):
         print('------------------------- LOOP ', loop+1, ' ---------------------------------------')
         for i in range(len(chromosomes)):
             chromosomes[i][1] = random.randint(0,1000)
 
         av_fitness, chromosomes = ga.evolve(chromosomes)
+
         print('average fitness : ', av_fitness)
 
-
-    '''PROBLEM
-    when trying to print the results for check the following comman 
-    [print('peepo ',i,'\n',str(c[2])) for i, c in enumerate(chromosomes)]
-    which print the Peeponetwork content gives an error.
-    
-    the error occcurs in the Peeponetwork method to_json() called by _str_ ()
-    ??
-    '''
 
