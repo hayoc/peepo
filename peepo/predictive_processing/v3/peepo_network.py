@@ -363,6 +363,10 @@ class PeepoNetwork:
         lans = [[node['name'] for node in self.lan_nodes]]
         return [item for sublist in lans for item in sublist]
 
+    def get_pro_nodes(self):
+        pros = [[node['name'] for node in self.pro_nodes]]
+        return [item for sublist in pros for item in sublist]
+
     def add_belief_node(self, node, cardinality):
         self.bel_nodes.append({'name': node, 'card': cardinality})
         self.cardinality_map.update({node: cardinality})

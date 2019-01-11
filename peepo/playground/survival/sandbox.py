@@ -56,16 +56,15 @@ if __name__ == '__main__':
         food = read_food()
         print('*********************                     GENERATION ', gen,
               ' *****************************************')
+        peepos = create_population(gen, population, food)
         for age in range(max_age):
             print(' ----------- AGE OF PEEPOS ', age, ' --------------')
-            peepos = create_population(gen, population, food)
             for ind, peepo in enumerate(peepos):
-                peepo.generative_model.process()
                 peepo.update()
                 population[ind][1] = peepo.food
-            avg_fitness, population = ga.evolve(population)
-            print(avg_fitness)
-            avg_fitnesses.append(avg_fitness)
+        avg_fitness, population = ga.evolve(population)
+        print(avg_fitness)
+        avg_fitnesses.append(avg_fitness)
 
     t = np.arange(0.0, len(avg_fitnesses), 1)
     ax = plt.subplots()

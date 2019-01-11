@@ -47,6 +47,8 @@ class Peepo:
         self.generative_model = GenerativeModel(network, SensoryInputPeepo(self))
 
     def update(self):
+        print(self.name + ' : ' + str(self.x) + ' - ' + str(self.y))
+        self.generative_model.process()
         if self.loop % 10 == 0:
             self.path.append((self.x, self.y))
 
@@ -58,6 +60,15 @@ class Peepo:
             self.y += 1
         if self.motor[DOWN]:
             self.y -= 1
+
+        if self.x < 0:
+            self.x = 0
+        if self.y < 0:
+            self.y = 0
+        if self.x > 800:
+            self.x = 800
+        if self.y > 800:
+            self.y = 800
 
         self.view = {x: False for x in self.view}
 

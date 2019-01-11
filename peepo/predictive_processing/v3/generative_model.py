@@ -161,7 +161,7 @@ class GenerativeModel:
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        if "motor" in node_name:
+        if node_name in self.peepo_network.get_pro_nodes():
             self.sensory_input.action(node_name, prediction)
         else:
             evidence = {node_name: np.argmax(prediction_error + prediction)}
