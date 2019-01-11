@@ -302,7 +302,8 @@ class PeepoNetwork:
 
     def to_json(self, separators=(',', ' : '), indent=4):
         for k, v in self.cpds.items():
-            self.cpds[k] = v.tolist()
+            if isinstance(v, np.ndarray):
+                self.cpds[k] = v.tolist()
         return json.dumps(self.make_network(), separators=separators, indent=indent)
 
     def from_json(self, obj):
