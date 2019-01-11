@@ -1,29 +1,36 @@
 {
   "header": {
-    "identification": "survival with genetic algorithm",
+    "identification": "",
     "description": "",
     "frozen": false,
     "train_from": "",
     "date": "2018-12-23 13:42:01.218775"
   },
-
   "nodes": {
     "RON": {
       "BEL": [
         {
-          "name": "WAN_LEFT",
+          "name": "BENS_0",
           "card": 2
         },
         {
-          "name": "WAN_RIGHT",
+          "name": "BENS_1",
           "card": 2
         },
         {
-          "name": "OBS_LEFT",
+          "name": "BENS_2",
           "card": 2
         },
         {
-          "name": "OBS_RIGHT",
+          "name": "BENS_3",
+          "card": 2
+        },
+        {
+          "name": "BENS_4",
+          "card": 2
+        },
+        {
+          "name": "BENS_5",
           "card": 2
         }
       ],
@@ -33,27 +40,41 @@
     "LEN": {
       "EXT": [
         {
-          "name": "VIS_1",
+          "name": "VISION_LEFT",
           "card": 2
         },
         {
-          "name": "VIS_2",
+          "name": "VISION_RIGHT",
           "card": 2
         },
         {
-          "name": "VIS_3",
+          "name": "VISION_UP",
+          "card": 2
+        },
+        {
+          "name": "VISION_DOWN",
           "card": 2
         }
       ],
       "INT": [],
-      "PRO": [        {
-          "name": "MOT_LEFT",
+      "PRO": [
+        {
+          "name": "MOTOR_LEFT",
           "card": 2
         },
         {
-          "name": "MOT_RIGHT",
+          "name": "MOTOR_RIGHT",
           "card": 2
-        }]
+        },
+        {
+          "name": "MOTOR_UP",
+          "card": 2
+        },
+        {
+          "name": "MOTOR_DOWN",
+          "card": 2
+        }
+      ]
     }
   },
   "edges": [],

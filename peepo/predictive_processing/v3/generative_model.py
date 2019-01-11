@@ -31,7 +31,7 @@ class GenerativeModel:
 
     def __init__(self, peepo_network, sensory_input, n_jobs=1):
         self.peepo_network = peepo_network
-        self.bayesian_network = peepo_network.pomegranate_network
+        self.bayesian_network = peepo_network.to_pomegranate()
         self.sensory_input = sensory_input
         self.n_jobs = n_jobs
 

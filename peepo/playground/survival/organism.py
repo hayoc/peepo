@@ -5,13 +5,13 @@ import numpy as np
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
 
-LEFT = 'left'
-RIGHT = 'right'
-UP = 'up'
-DOWN = 'down'
+LEFT = 'LEFT'
+RIGHT = 'RIGHT'
+UP = 'UP'
+DOWN = 'DOWN'
 
-VISION = 'vision'
-MOTOR = 'motor'
+VISION = 'VISION'
+MOTOR = 'MOTOR'
 
 
 class Peepo:
