@@ -12,11 +12,13 @@ class GenerativeModel:
     This is a generative model, implemented as a Bayesian Causal Network. The three functions
     prediction, prediction error and prediction error minimization are defined for this model.
 
-    :param bayesian_network : Bayesian Causal Network. Causes are hypothesis variables, effects are observational variables.
+    :param peepo_network : PeepoNetwork representing the Bayesian Causal Network. Causes are hypothesis variables,
+    effects are observational variables. PeepoNetwork.to_pomegranate() will be called upon initialization to fetch
+    the pomegranate network upon which all the computations are done.
     :param sensory_input : Mutable dictionary containing the current sensory inputs
     :param n_jobs : Number of process to spawn for multiprocessing. By default 1 = no additional processes spawned
 
-    :type bayesian_network : [BayesianModel]
+    :type peepo_network : PeepoNetwork
     :type sensory_input : SensoryInput
     :type n_jobs : int
 
@@ -54,6 +56,7 @@ class GenerativeModel:
         for index, node in enumerate(self.predict()):
             node_name = self.bayesian_network.states[index].name
             if self.is_leaf(index):
+
                 prediction = np.array([x[1] for x in sorted(node.items(), key=lambda tup: tup[0])])
                 observation = self.sensory_input.value(node_name)
                 prediction_error = self.error(prediction, observation)
@@ -70,6 +73,7 @@ class GenerativeModel:
                                             precision=precision,
                                             prediction_error=prediction_error,
                                             prediction=prediction)
+
         return total_prediction_error_size
 
     def predict(self):

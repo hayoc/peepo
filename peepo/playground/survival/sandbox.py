@@ -56,20 +56,21 @@ if __name__ == '__main__':
     peepos = []
     max_age = 100
     avg_fitnesses = []
+
     for gen in range(num_generations):
         food = read_food()
         food.append(Food('cheat', (20, 20)))
-        print(food)
-        print('*********************                     GENERATION ', gen,
-              ' *****************************************')
+
+        logging.info('*********************                     GENERATION ', gen,
+                     ' *****************************************')
         peepos = create_population(gen, population, food)
         for age in range(max_age):
-            print(' ----------- AGE OF PEEPOS ', age, ' --------------')
+            logging.info(' ----------- AGE OF PEEPOS ', age, ' --------------')
             for ind, peepo in enumerate(peepos):
                 peepo.update()
                 population[ind][1] = peepo.food
         avg_fitness, population = ga.evolve(population)
-        print(avg_fitness)
+        logging.info('Average fitness: %d', avg_fitness)
         avg_fitnesses.append(avg_fitness)
 
     t = np.arange(0.0, len(avg_fitnesses), 1)
