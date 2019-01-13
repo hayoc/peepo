@@ -46,7 +46,7 @@ def create_population(generation, individuals, food):
 def minimum_normalized_fitness_score(average_fitness,population):
     population = sorted(population, key=lambda chromo: chromo[0], reverse=True)
     non_zero_pop = []
-    [non_zero_pop.append[x[0]] for x in population if population[0] > average_fitness]
+    [non_zero_pop.append[x] for x in population if x[0] > average_fitness]
     return np.mean(non_zero_pop)
 
 
