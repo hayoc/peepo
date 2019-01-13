@@ -48,7 +48,7 @@ class Peepo:
         self.generative_model = GenerativeModel(network, SensoryInputPeepo(self))
 
     def update(self):
-        logging.info(self.name + ' : ' + str(self.x) + ' - ' + str(self.y))
+        logging.info(self.name + ' : ' + str(self.x) + ' - ' + str(self.y)+ '  food gathered : ' +  str(self.food))
 
         self.generative_model.process()
         if self.loop % 10 == 0:
