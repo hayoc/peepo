@@ -78,6 +78,10 @@ if __name__ == '__main__':
                 population[ind][0] = peepo.food
 
         avg_fitness, population = ga.evolve(population, treshold)
+        if  avg_fitness < 0:
+            logging.info(' population collapsed :-( ')
+            break
+
         ''' PROPOSAL FOR NORMALIZE FITNESS FOR THIS CASE          '''
         treshold = minimum_normalized_fitness_score(avg_fitness, population)
 
