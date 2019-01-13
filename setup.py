@@ -12,7 +12,7 @@ setup(
     description='Personhood through Predictive Processing.',
     long_description=open('README.md').read(),
     install_requires=['scipy', 'numpy', 'matplotlib', 'pgmpy', 'pandas', 'wrapt', 'networkx', 'pygame', 'flask',
-                      'cython', 'pomegranate'],
+                      'cython', 'pomegranate', 'pathos'],
     setup_requires=[]
 )
 

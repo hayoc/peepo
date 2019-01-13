@@ -172,8 +172,7 @@ class PeepoNetwork:
                  int_nodes=None,
                  pro_nodes=None,
                  edges=None,
-                 cpds=None,
-                 pomegranate_network=None):
+                 cpds=None):
         self.identification = identification or ''
         self.description = description or ''
         self.train_from = train_from or ''
@@ -191,20 +190,17 @@ class PeepoNetwork:
         self.network = self.make_network()
         self.cardinality_map = self.make_cardinality_map()
         self.omega_map = self.make_omega_map()
-        self.pomegranate_network = pomegranate_network
 
     def assemble(self):
         self.network = self.make_network()
         self.cardinality_map = self.make_cardinality_map()
         self.omega_map = self.make_omega_map()
-        self.pomegranate_network = self.to_pomegranate()
         return self
 
     def disassemble(self):
         self.edges = []
         self.cpds = {}
         self.omega_map = {}
-        self.pomegranate_network = None
         return self
 
     def to_pomegranate(self):
@@ -247,7 +243,7 @@ class PeepoNetwork:
                 pm_net.add_edge(states[edge[0]], states[edge[1]])
             pm_net.bake()
 
-            self.pomegranate_network = pm_net
+            return pm_net
 
         elif self.train_data:
             structure = []
@@ -300,9 +296,7 @@ class PeepoNetwork:
 
                 self.add_cpd(state.name, cpd)
 
-            self.pomegranate_network = pm_net
-
-        return self.pomegranate_network
+            return pm_net
 
     def from_pomegranate(self, pm_net):
         pass
@@ -482,8 +476,7 @@ class PeepoNetwork:
                             int_nodes=self.int_nodes.copy(),
                             pro_nodes=self.pro_nodes.copy(),
                             edges=self.edges.copy(),
-                            cpds=deepcopy(self.cpds),
-                            pomegranate_network=None)
+                            cpds=deepcopy(self.cpds))
 
     def __str__(self):
         return self.to_json()
