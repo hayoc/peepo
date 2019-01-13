@@ -6,6 +6,7 @@ import math
 import numpy as np
 from config import ROOT_DIR
 import copy
+from itertools import combinations_with_replacement
 
 from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
 from peepo.predictive_processing.v3.peepo_network import get_topologies
@@ -15,9 +16,10 @@ from peepo.predictive_processing.v3.utils import get_index_matrix
 
 class GeneticAlgorithm:
 
-    def __init__(self, source, Npop = 1, p_mut_top = 0.02, p_mut_cpd = 0.02, max_removal=None):
+    def __init__(self, source, Npop = 1, min_fitness_score = 0.5,  p_mut_top = 0.02, p_mut_cpd = 0.02, max_removal=None):
         self.npop = int(Npop)
         self.population = []
+        self.selected_parents = []
         self.p_mut_pop = p_mut_top
         self.p_mut_cpd = p_mut_cpd
         self.root_nodes = []
@@ -27,6 +29,7 @@ class GeneticAlgorithm:
         self.max_removal = max_removal
         self.initialize(source)
         self.treshold = 2
+        self.min_fitness_score = min_fitness_score
 
 
 
@@ -62,7 +65,7 @@ class GeneticAlgorithm:
                 self.peepo.add_cpd(node, my_cpd)
                 self.peepo.add_omega(node,my_omega)
             self.peepo.assemble()
-            my_chromosome = [self.peepo.to_pomegranate(), 0, copy.copy(self.peepo)]
+            my_chromosome = [0, copy.copy(self.peepo)]
             self.population.append(my_chromosome)
             #cleaning
             self.peepo.disassemble()
@@ -70,17 +73,22 @@ class GeneticAlgorithm:
     def get_population(self):
         return self.population
 
-    def evolve(self, population):
+    def evolve(self, population, min_fitness_score):
+        self.min_fitness_score = min_fitness_score
         average_fitness = 0
         #ordering self.population according the fitness
-        self.population = sorted(population, key=lambda chromo: chromo[1],reverse = True)
-        # average fitness
-        for n, x in enumerate(self.population):
-            average_fitness += x[1]
-            self.population[n][1] = 0.
+        self.population = sorted(population, key=lambda chromo: chromo[0],reverse = True)
+        if(len(self.population) == 0):
+            return -1, self.population
+        self.selected_parents = []
+        # selected_parents and average fitness
+        for x in self.population:
+            if x[0] >= self.min_fitness_score:
+                self.selected_parents.append(x)
+            average_fitness += x[0]
         average_fitness /= len(self.population)
         #cross-over
-        selected_parents, selected_offsprings = self.cross_over()
+        selected_offsprings = self.cross_over()
         #we now are going to mutate the ofsprings
         random.seed()
         for s, offspring_ in enumerate(selected_offsprings):
@@ -89,41 +97,41 @@ class GeneticAlgorithm:
             mut_cpd = random.uniform(0,1)
             #check if treshold are reached and mutate accordingly
             if mut_top < self.p_mut_pop:
-                network = self.prune_or_grow(offspring[2])
+                network = self.prune_or_grow(offspring[1])
                 network.identification = 'offspring type 3'
-                offspring[2] = network.assemble()
-                offspring[0] = network.pomegranate_network
+                offspring[1] = network.assemble()
                 selected_offsprings[s] = offspring
             if mut_cpd < self.p_mut_cpd:
-                network = self.mutate_cpds(offspring[2])
+                network = self.mutate_cpds(offspring[1])
                 network.identification = 'offspring type 4'
-                offspring[2] = network.assemble()
-                offspring[0] = network.pomegranate_network
+                offspring[1] = network.assemble()
                 selected_offsprings[s] = offspring
         #collecting parents and offsprings
+        random.shuffle(selected_offsprings)
         self.population = []
-        [self.population.append(par) for par in selected_parents]
+        [self.population.append(par) for par in self.selected_parents]
         [self.population.append(off) for off in selected_offsprings]
-        random.shuffle(self.population)
-        #prune the population
+
+        #prune the population to Npop
         self.population  = self.population[0:self.npop]
         return average_fitness, self.population
 
     def cross_over(self):
-        selected_parents = []
         selected_offsprings = []
-        for n, chrom in enumerate(self.population):
-            if (n+1 >= len(self.population)) or (len(selected_parents) + len(selected_parents) > self.npop):
-                break
-            selected_parents.append(copy.copy(self.population[n]))
-            selected_parents.append(copy.copy(self.population[n + 1]))
-            map_1 = self.get_adjency_map(self.population[n][2].get_edges())
-            map_2 = self.get_adjency_map(self.population[n+1][2].get_edges())
+        mating_couples = list(combinations_with_replacement(self.selected_parents,2))
+        #to control exponential grow which can occur in some cases, we limit the number of combinations to Npop
+        if len(mating_couples)> self.npop:
+            random.shuffle(mating_couples)
+            # prune the population
+            mating_couples  = mating_couples[0:self.npop]
+        for n, chrom in enumerate(mating_couples):
+            map_1 = self.get_adjency_map(chrom[0][1].get_edges())
+            map_2 = self.get_adjency_map(chrom[1][1].get_edges())
             diff = np.abs(map_1 - map_2)
             sum = np.sum(diff)
             if sum == 0:#-> there is no difference in topology between the parents: only the cpds are swapped
-                offspring_1 = copy.copy(self.population[n][2])
-                offspring_2 = copy.copy(self.population[n+1][2])
+                offspring_1 = copy.copy(chrom[0][1])
+                offspring_2 = copy.copy(chrom[1][1])
                 offspring_1.cpds = copy.copy(offspring_2.cpds)
                 offspring_2.cpds = copy.copy(offspring_1.cpds)
                 offspring_1.omega_map = copy.copy(offspring_2.omega_map)
@@ -134,14 +142,14 @@ class GeneticAlgorithm:
 
                 offspring_1.assemble()
                 offspring_2.assemble()
-                selected_offsprings.append([offspring_1.pomegranate_network, 0, offspring_1])
-                selected_offsprings.append([offspring_2.pomegranate_network, 0, offspring_2])
+                selected_offsprings.append([0, offspring_1])
+                selected_offsprings.append([0, offspring_2])
                 continue
             if sum > self.treshold:#the difference between parents is too big. We assume cloning of the  parents (candidate to mutation)
-                selected_offsprings.append(copy.copy(self.population[n]))
-                selected_offsprings.append(copy.copy(self.population[n+1]))
+                selected_offsprings.append(copy.copy(chrom[0]))
+                selected_offsprings.append(copy.copy(chrom[1]))
                 continue
-            ''' we now construct offsprings:
+            ''' we now construct offsprings for all other cases:
                 if there are q positions in the two adjency matrices, we will then  have 2^q - 2 offsprings
             '''
             indices = np.argwhere(diff == 1)#this contains the tupples of the matrix position where there is a difference
@@ -184,9 +192,9 @@ class GeneticAlgorithm:
                     a_peepo.add_omega(node, my_omega)
                 a_peepo.identification = 'offspring type 2'
                 a_peepo.assemble()
-                my_chromosome = [a_peepo.pomegranate_network, 0, a_peepo]
+                my_chromosome = [0, a_peepo]
                 selected_offsprings.append(my_chromosome)
-        return selected_parents, selected_offsprings
+        return selected_offsprings
 
 
     def adjency_to_edges(self,map):
@@ -211,14 +219,13 @@ class GeneticAlgorithm:
     def prune_or_grow(self,network):
         """
         Used in the framework of Genetic Algorithm to mutate the topology of a given chromosome
-        by pruning (if enough incoming edges arz present i.e. the maximum possible incoming nodes)
+        by pruning (if enough incoming edges are present i.e. the maximum possible incoming nodes)
         or by adding a possible parent node not yet incoming in the node choosen.
         Both the node to be pruned/grown and the parent to be rejected/adopted are
         selected randomly.
         This is thus a pure random game approach.
         TO DO : lan node are not yet possible
-        TO DO : how to reconstruct the cpd for the nodes affected
-        --> this is simple provided that the omega-parameters can be retrieved from the network
+
 
 
         :param :network :  PeepoNetwork object containing all the necessary information (node,edges, cpd)
@@ -269,9 +276,6 @@ class GeneticAlgorithm:
         network.cpds = cpds
         network.omega_map = omega_map
         network.assemble()
-        # print('edges after mutation  : ', network.edges)
-        # print('new cpd')
-        # print(network.cpds[nodes[dice]])
         '''
         TO CHECK: the edges order are not ordered anymore -> problem ? or not
         '''
@@ -364,17 +368,21 @@ class GeneticAlgorithm:
 
 if __name__ == '__main__':
     case = 'color_recognition'
-    ga = GeneticAlgorithm(case, Npop = 100, p_mut_cpd= 0.9, p_mut_top= 0.9)
+    ga = GeneticAlgorithm(case, Npop = 100, min_fitness_score= 900, p_mut_cpd= 0.9, p_mut_top= 0.9)
     chromosomes = ga.get_population()
     #test
 
     for loop in range(20):
         print('------------------------- LOOP ', loop+1, ' ---------------------------------------')
         for i in range(len(chromosomes)):
-            chromosomes[i][1] = random.randint(0,1000)
+            chromosomes[i][0] = random.randint(0,1000)
 
         av_fitness, chromosomes = ga.evolve(chromosomes)
 
+
         print('average fitness : ', av_fitness)
+        if av_fitness < 0:
+            print('populations dessiminated')
+            break
 
 
