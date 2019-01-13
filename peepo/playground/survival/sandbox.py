@@ -35,7 +35,7 @@ def create_population(generation, individuals, food):
     pop = []
     for i, idv in enumerate(individuals):
         peepo = Peepo(name='peepo_' + str(generation) + '_' + str(i),
-                      network=idv[2],
+                      network=idv[1],
                       pos=(5, 5),
                       obstacles=food)
         pop.append(peepo)
@@ -43,19 +43,26 @@ def create_population(generation, individuals, food):
     return pop
 
 
+def minimum_normalized_fitness_score(average_fitness,population):
+    population = sorted(population, key=lambda chromo: chromo[0], reverse=True)
+    non_zero_pop = []
+    [non_zero_pop.append[x] for x in population if population[0] > average_fitness]
+    return np.mean(non_zero_pop)
+
+
 if __name__ == '__main__':
-    # generate_food(30)
+    generate_food(300)
 
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
-
-    num_individuals = 5
-    num_generations = 100
-    ga = GeneticAlgorithm('survival', Npop=num_individuals, max_removal=2)
+    num_individuals = 30
+    num_generations = 50
+    ga = GeneticAlgorithm('survival', min_fitness_score = 0.8, p_mut_top = 0.2, p_mut_cpd = 0.2,Npop=num_individuals, max_removal=2)
     population = ga.get_population()
     peepos = []
     max_age = 100
     avg_fitnesses = []
+    treshold = 0
 
     for gen in range(num_generations):
         food = read_food()
@@ -68,8 +75,13 @@ if __name__ == '__main__':
             logging.info(' ----------- AGE OF PEEPOS ', age, ' --------------')
             for ind, peepo in enumerate(peepos):
                 peepo.update()
-                population[ind][1] = peepo.food
-        avg_fitness, population = ga.evolve(population)
+                population[ind][0] = peepo.food
+
+        avg_fitness, population = ga.evolve(population, treshold)
+        ''' PROPOSAL FOR NORMALIZE FITNESS FOR THIS CASE          '''
+        treshold = minimum_normalized_fitness_score(avg_fitness, population)
+
+
         logging.info('Average fitness: %d', avg_fitness)
         avg_fitnesses.append(avg_fitness)
 
