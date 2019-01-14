@@ -1,0 +1,50 @@
+{
+  "header": {
+    "identification": "test case for genetic algorithm",
+    "description": "",
+    "frozen": false,
+    "train_from": "",
+    "date": "2019-01-14"
+  },
+
+  "nodes": {
+    "RON": {
+      "BEL": [
+        {
+          "name": "GREEN_CAT",
+          "card": 2
+        },
+        {
+          "name": "GREEN_DOG",
+          "card": 2
+        },
+        {
+          "name": "DUMMY",
+          "card": 2
+        }
+      ],
+      "MEM": []
+    },
+    "LAN": [],
+    "LEN": {
+      "EXT": [
+        {
+          "name": "VISION_GREEN",
+          "card": 2
+        },
+        {
+          "name": "VISION_CAT",
+          "card": 2
+        },
+        {
+          "name": "VISION_DOG",
+          "card": 2
+        }
+      ],
+      "INT": [],
+      "PRO": []
+    }
+  },
+  "edges": [],
+  "cpds": {}
+}
