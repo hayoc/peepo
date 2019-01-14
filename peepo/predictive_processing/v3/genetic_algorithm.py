@@ -16,7 +16,7 @@ from peepo.predictive_processing.v3.utils import get_index_matrix
 
 class GeneticAlgorithm:
 
-    def __init__(self, source, Npop = 1, min_fitness_score = 0.5,  p_mut_top = 0.02, p_mut_cpd = 0.02, max_removal=None):
+    def __init__(self, source, Npop = 1, min_fitness_score = 0.0,  p_mut_top = 0.02, p_mut_cpd = 0.02, max_removal=None):
         self.npop = int(Npop)
         self.population = []
         self.selected_parents = []
@@ -77,15 +77,16 @@ class GeneticAlgorithm:
         self.min_fitness_score = min_fitness_score
         average_fitness = 0
         #ordering self.population according the fitness
-        self.population = sorted(population, key=lambda chromo: chromo[0],reverse = True)
+        #self.population = sorted(population, key=lambda chromo: chromo[0],reverse = True)
         if(len(self.population) == 0):
             return -1, self.population
         self.selected_parents = []
         # selected_parents and average fitness
         for x in self.population:
-            if x[0] >= self.min_fitness_score:
-                self.selected_parents.append(x)
             average_fitness += x[0]
+            if x[0] >= self.min_fitness_score:
+                x[0] = 0
+                self.selected_parents.append(x)
         average_fitness /= len(self.population)
         #cross-over
         selected_offsprings = self.cross_over()
