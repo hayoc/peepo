@@ -135,14 +135,6 @@ def get_optimal_network(population):
 
 
 
-
-def minimum_normalized_fitness_score(average_fitness,popul):
-    # populations = sorted(population, key=lambda chromo: chromo[0], reverse=True)
-    non_zero_pop = []
-    [non_zero_pop.append(x[0]) for x in popul if x[0] >= average_fitness]
-    return np.mean(non_zero_pop)
-
-
 def create_population(generation, individuals):
     pop = []
     for i, idv in enumerate(individuals):
@@ -157,10 +149,9 @@ if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
     num_individuals = 70
-    num_generations = 20
+    num_generations = 10
     ga = GeneticAlgorithm('green_cat', min_fitness_score = 0.0, p_mut_top = 0.2, p_mut_cpd = 0.2,Npop=num_individuals, max_removal=2)
     population = ga.get_population()
-    treshold = 0
     avg_fitnesses = []
     final_network = []
     for gen in range(num_generations):
@@ -172,9 +163,7 @@ if __name__ == '__main__':
             peepo.update()
             population[ind][0] = peepo.food
             final_population.append([peepo.food, population[ind][1]])
-        avg_fitness, population = ga.evolve(population, treshold)
-        ''' PROPOSAL FOR NORMALIZE FITNESS FOR THIS CASE          '''
-        treshold = minimum_normalized_fitness_score(avg_fitness, final_population)
+        avg_fitness, population = ga.evolve(population)
         if  avg_fitness < 0:
             # logging.info(' population collapsed :-( ')
             print(' population collapsed :-( ')
