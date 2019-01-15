@@ -4,7 +4,7 @@ import random
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pathos.multiprocessing import ProcessPool
+import copy
 
 from peepo.playground.survival.organism import Peepo, Food
 from peepo.predictive_processing.v3.genetic_algorithm import GeneticAlgorithm
@@ -43,70 +43,84 @@ def create_population(generation, individuals, food):
 
     return pop
 
+def get_optimal_network(population):
+    pop = []
+    for x in population:
+        n_edges = len(x[1].edges)
+        pop.append([x[0],x[1], n_edges])
+    pop = sorted(pop, key=lambda chromo: chromo[0], reverse=True)
+    best_population = []
+    best_score = pop[0][0]
+    for x in pop:
+        if x[0] != best_score:
+            break
+        best_population.append(x)
+    best_population = sorted(best_population, key=lambda chromo: chromo[2])
+    return best_population[0]
 
-def minimum_normalized_fitness_score(average_fitness, population):
-    population = sorted(population, key=lambda chromo: chromo[0], reverse=True)
-    non_zero_pop = [x[0] for x in population if x[0] > average_fitness]
+
+
+
+
+def minimum_normalized_fitness_score(average_fitness,popul):
+    # populations = sorted(population, key=lambda chromo: chromo[0], reverse=True)
+    non_zero_pop = []
+    [non_zero_pop.append(x[0]) for x in popul if x[0] >= average_fitness]
     return np.mean(non_zero_pop)
 
 
-def process_parallel(params):
-    index, peepo, population = params
-    peepo.update()
-    population[index][1] = peepo.food
-
-
-def main():
+if __name__ == '__main__':
     # generate_food(300)
-    cpu_processes = 4
-    num_individuals = 30
-    num_generations = 50
-    ga = GeneticAlgorithm('survival',
-                          min_fitness_score=0.0,
-                          p_mut_top=0.2,
-                          p_mut_cpd=0.2,
-                          Npop=num_individuals,
-                          max_removal=2)
-    population = ga.get_population()
-    max_age = 100
-    avg_fitnesses = []
-    treshold = 0
+    # generate_food(3000)
 
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
+    num_individuals = 60
+    num_generations = 30
+    ga = GeneticAlgorithm('survival', min_fitness_score = 0.0, p_mut_top = 0.2, p_mut_cpd = 0.2,Npop=num_individuals, max_removal=2)
+    population = ga.get_population()
+    treshold = 0
+    peepos = []
+    max_age = 50
+    avg_fitnesses = []
+    final_population = []
     for gen in range(num_generations):
         food = read_food()
         food.append(Food('cheat', (20, 20)))
-
-        print('************************* GENERATION ', gen, ' *************************')
-
+        #
+        # logging.info('*********************                     GENERATION ', gen,
+        #              ' *****************************************')
         peepos = create_population(gen, population, food)
         for age in range(max_age):
-            print('-----------> AGE OF PEEPOS ', age, ' <-----------')
-
-            ProcessPool(nodes=cpu_processes).map(
-                process_parallel, [(index, peepo, population) for index, peepo in enumerate(peepos)])
-
+            # logging.info('**  GENERATION ' ,gen , ' -----------> AGE OF PEEPOS ' ,  age, ' --------------')
+            print('**  GENERATION ' ,gen , ' -----------> AGE OF THE ',len(population) , ' PEEPOS = ' ,  age, ' --------------')
+            final_population = []
+            for ind, peepo in enumerate(peepos):
+                peepo.update()
+                population[ind][0] = peepo.food
+                final_population.append([peepo.food, population[ind][1]])
         avg_fitness, population = ga.evolve(population, treshold)
-        if avg_fitness < 0:
-            print('population collapsed :-( ')
+        if  avg_fitness < 0:
+            # logging.info(' population collapsed :-( ')
+            print(' population collapsed :-( ')
             break
+        ''' PROPOSAL FOR NORMALIZE FITNESS FOR THIS CASE          '''
+        treshold = minimum_normalized_fitness_score(avg_fitness, final_population)
+        print('treshold : ', treshold)
 
-        ''' PROPOSAL FOR NORMALIZE FITNESS FOR THIS CASE '''
-        treshold = minimum_normalized_fitness_score(avg_fitness, population)
-
+        # logging.info('Average fitness: %d', avg_fitness)
         print('Average fitness: ', avg_fitness)
-
         avg_fitnesses.append(avg_fitness)
-
+    final_network = get_optimal_network(final_population)
+    print('\n\nFINAL NETWORK')
+    print('________________\n\n')
+    print(final_network[1].edges)
+    '''TO DO perhaps : 
+    browse through the final networks and make predictions and compare with expected to get the best and simpliest network?'''
     t = np.arange(0.0, len(avg_fitnesses), 1)
-    f, ax = plt.subplots()
+    fig, ax = plt.subplots()
     ax.plot(t, avg_fitnesses)
     ax.set(xlabel='generation', ylabel='average fitness',
            title='Survival with genetic algorithm')
     ax.grid()
     plt.show()
-
-
-if __name__ == '__main__':
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.INFO)
-    main()
