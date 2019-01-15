@@ -20,6 +20,7 @@ class GeneticAlgorithm:
         self.npop = int(Npop)
         self.population = []
         self.selected_parents = []
+        self.population_fitness_score = min_fitness_score#controls how the best parents are selected (fitness > min_fitness_score)
         self.p_mut_pop = p_mut_top
         self.p_mut_cpd = p_mut_cpd
         self.root_nodes = []
@@ -28,12 +29,20 @@ class GeneticAlgorithm:
         self.peepo = PeepoNetwork()
         self.max_removal = max_removal
         self.initialize(source)
-        self.treshold = 2
-        self.min_fitness_score = min_fitness_score
+        self.treshold = 2#controls the allowed distance of the parents (i.e. how much edges they differ from each other)
+
 
 
 
     def initialize(self, source):
+        """
+                 Initializes the object members and generates the 0th generation  population array
+
+                 :param source: a string of the form 'filename' with_out extension (.json expected)
+
+                 :return :  class object
+
+         """
         with open(ROOT_DIR + '/resources/' + source + '.json') as json_data:
             json_object = json.load(json_data)
         self.peepo.from_json(json_object)
@@ -42,6 +51,10 @@ class GeneticAlgorithm:
         self.cardinality_map = self.peepo.make_cardinality_map()
         topologies = get_topologies(self.peepo, max_removal = self.max_removal)
         random.seed()
+        ''' indexes is a temporary array containing Npop indexes op the topologies
+            the indexes are linearly distributed according to 
+               index[i] = slope*i  with slope being calculated so only the upper half
+                of topologies are considered (i.e. we discard the too simple topologies'''
         indexes = []
         slope = 1
         if self.npop < len(topologies)/2:
@@ -49,6 +62,7 @@ class GeneticAlgorithm:
         if len(topologies) <= self.npop:
             self.npop = len(topologies)
         [indexes.append(slope*x) for x in range(0, self.npop)]
+        #browse through the selected topologies and genarte the 0th population
         for t in indexes:
             self.peepo.edges = topologies[t]['edges']
             for node in self.peepo.get_nodes():
@@ -73,22 +87,60 @@ class GeneticAlgorithm:
     def get_population(self):
         return self.population
 
-    def evolve(self, population, min_fitness_score):
-        self.population = population
-        self.min_fitness_score = min_fitness_score
-        average_fitness = 0
-        #ordering self.population according the fitness
-        #self.population = sorted(population, key=lambda chromo: chromo[0],reverse = True)
-        if(len(self.population) == 0):
-            return -1, self.population
-        self.selected_parents = []
-        # selected_parents and average fitness
+    def global_fitness_score(self):
+        self.population = sorted(self.population, key=lambda chromo: chromo[0], reverse=True)
+        best_parents = []
+        mean = 0
         for x in self.population:
-            average_fitness += x[0]
-            if x[0] >= self.min_fitness_score:
+            if x[0] >= self.population_fitness_score:
+                mean += x[0]
                 x[0] = 0
-                self.selected_parents.append(x)
-        average_fitness /= len(self.population)
+                best_parents.append(x)
+        if len(best_parents) > 0:
+            mean /= len(best_parents)
+        else:
+            mean = -1.
+        return mean, best_parents
+
+    def evolve(self, population):
+        """
+                 Generates the new population array based on the fitness score contained
+                 in the returned parameter population
+
+                 :param population: an array of shape (Npop,2) with
+                        population[i][0] = fitness score returned from the calling function
+                        population[i][1] = the BN-network
+
+                 :param min_fitness_score: a treshold by which the best parents will be selected
+
+                 :return avg_fitness:  a global score for the received population
+
+                 :return population: an array of shape (Npop,2) with
+                        population[i][0] = 0
+                        population[i][1] = the BN-network with the best parents and their offsprings
+
+         """
+        self.population = population
+        #self.min_fitness_score = self.population_fitness_score
+        average_fitness = 0
+
+        if(len(self.population) == 0):#check if the population has not collapsed
+            return -1, self.population
+        average_fitness, self.selected_parents = self.global_fitness_score()
+        # self.min_fitness_score = self.population_fitness_score
+        self.population_fitness_score =  average_fitness
+        if average_fitness < 0:  # check if there is no best population
+            return -1, self.population
+        # # selected_parents and average fitness
+        # for x in self.population:
+        #     # average_fitness += x[0]
+        #     if x[0] >= self.min_fitness_score:
+        #         average_fitness += x[0]
+        #         x[0] = 0
+        #         self.selected_parents.append(x)
+        # # average_fitness /= len(self.population)
+        # average_fitness /= len(self.selected_parents)
+
         #cross-over
         selected_offsprings = self.cross_over()
         #we now are going to mutate the ofsprings
@@ -98,12 +150,12 @@ class GeneticAlgorithm:
             n_chrom = len(self.selected_parents) + len(selected_offsprings)
             if n_chrom >= self.npop:
                 break
-            [selected_offsprings.append(x) for x in self.selected_parents]
+            [selected_offsprings.append([x[0],x[1],1.,1.]) for x in self.selected_parents]#those parent enter the offsprings pool which can mutate!
         #go for mutation
         for s, offspring_ in enumerate(selected_offsprings):
             offspring = copy.copy(offspring_)
-            mut_top = random.uniform(0,1)
-            mut_cpd = random.uniform(0,1)
+            mut_top = offspring_[2]
+            mut_cpd = offspring_[3]
             #check if treshold are reached and mutate accordingly
             if mut_top < self.p_mut_pop:
                 network = self.prune_or_grow(offspring[1])
@@ -119,16 +171,28 @@ class GeneticAlgorithm:
         random.shuffle(selected_offsprings)
         self.population = []
         [self.population.append(par) for par in self.selected_parents]
-        [self.population.append(off) for off in selected_offsprings]
+        [self.population.append([off[0],off[1]]) for off in selected_offsprings]
 
         #prune the population to Npop
         self.population  = self.population[0:self.npop]
         return average_fitness, self.population
 
     def cross_over(self):
+        """
+                Generates the offsprings array based on the selected_parents
+
+                :param : self object
+
+                :return: an array of size Qx4 with Q (variable) the number of offsprings and
+                            selected_offsprings[0] = 0
+                            selected_offsprings[1] = the BN-network
+                            selected_offsprings[2] = the topology probablity mutation
+                            selected_offsprings[3] = the cpd probablity mutation
+
+        """
         selected_offsprings = []
         mating_couples = list(combinations_with_replacement(self.selected_parents,2))
-        #to control exponential grow which can occur in some cases, we limit the number of combinations to Npop
+        #to control exponential growth, which can occur in some cases, we limit the number of combinations to Npop
         if len(mating_couples)> self.npop:
             random.shuffle(mating_couples)
             # prune the population
@@ -138,6 +202,8 @@ class GeneticAlgorithm:
             map_2 = self.get_adjency_map(chrom[1][1].get_edges())
             diff = np.abs(map_1 - map_2)
             sum = np.sum(diff)
+            mut_top = random.uniform(0,1)
+            mut_cpd = random.uniform(0,1)
             if sum == 0:#-> there is no difference in topology between the parents: only the cpds are swapped
                 offspring_1 = copy.copy(chrom[0][1])
                 offspring_2 = copy.copy(chrom[1][1])
@@ -151,12 +217,12 @@ class GeneticAlgorithm:
 
                 offspring_1.assemble()
                 offspring_2.assemble()
-                selected_offsprings.append([0, offspring_1])
-                selected_offsprings.append([0, offspring_2])
+                selected_offsprings.append([0, offspring_1, mut_top, mut_cpd])
+                selected_offsprings.append([0, offspring_2, mut_top, mut_cpd])
                 continue
-            if sum > self.treshold:#the difference between parents is too big. We assume cloning of the  parents (candidate to mutation)
-                selected_offsprings.append(copy.copy(chrom[0]))
-                selected_offsprings.append(copy.copy(chrom[1]))
+            if sum > self.treshold:#the difference between parents is too big. We assume cloning of the  parents (will be mutated!)
+                selected_offsprings.append([chrom[0][0],copy.copy(chrom[0][1]),1.,1.])
+                selected_offsprings.append([chrom[1][0],copy.copy(chrom[1][1]),1.,1.])
                 continue
             ''' we now construct offsprings for all other cases:
                 if there are q positions in the two adjency matrices, we will then  have 2^q - 2 offsprings
@@ -201,12 +267,31 @@ class GeneticAlgorithm:
                     a_peepo.add_omega(node, my_omega)
                 a_peepo.identification = 'offspring type 2'
                 a_peepo.assemble()
-                my_chromosome = [0, a_peepo]
+                mut_top = random.uniform(0, 1)
+                mut_cpd = random.uniform(0, 1)
+                #check whether the combination is a cloning of one parent, if YES mutation will occur
+                if np.array_equal(comb[0],comb[1]):
+                    mut_top = 1.
+                    mut_cpd = 1.
+                else:
+                    mut_top = random.uniform(0, 1)
+                    mut_cpd = random.uniform(0, 1)
+
+                my_chromosome = [0, a_peepo, mut_top,mut_cpd]
                 selected_offsprings.append(my_chromosome)
         return selected_offsprings
 
 
     def adjency_to_edges(self,map):
+        """
+                Returns array containing the tuples of the edges from a (pseudo)-adjency list of the topology
+                i.e. a len(leaf_nodes)xlen(root_nodes) matrix with
+                0 and 1's
+
+                :param map: a matrix of shape (len(leaf_nodes),len(root_nodes)) containing the adjency matrixa
+
+                :return: array containing the tuples of the edges
+        """
         edges = []
         for col, root in enumerate(self.root_nodes):
             for row, leaf in enumerate(self.leaf_nodes):
@@ -215,6 +300,15 @@ class GeneticAlgorithm:
         return edges
 
     def get_adjency_map(self, edges):
+        """
+                Returns a (pseudo)-adjency list of the topology
+                i.e. a len(leaf_nodes)xlen(root_nodes) matrix with
+                0 and 1's
+
+                :param edges: array containing the tuples of the edges
+
+                :return: a matrix of shape (len(leaf_nodes),len(root_nodes)) containing the adjency matrix
+        """
         map = np.zeros((len(self.leaf_nodes), len(self.root_nodes)))
         for i, root in enumerate(self.root_nodes):
             for k, leaf in enumerate(self.leaf_nodes):
@@ -235,16 +329,8 @@ class GeneticAlgorithm:
         This is thus a pure random game approach.
         TO DO : lan node are not yet possible
 
-
-
         :param :network :  PeepoNetwork object containing all the necessary information (node,edges, cpd)
-        :return: a fully mutated PeepoNetwork object
-
-        example :
-
-
-
-            --->
+        :return: a fully topology wise, mutated PeepoNetwork object
 
         """
         nodes = network.get_nodes()
@@ -254,14 +340,6 @@ class GeneticAlgorithm:
         # leaf_nodes = network.get_leaf_nodes()
         dice = random.randint(len(root_nodes), len(nodes)-1 )
         incoming_edges = network.get_incoming_edges(nodes[dice])
-        # print('\n\n\nMUTATING node : ', nodes[dice])
-        # print('cpd')
-        # print(network.cpds[nodes[dice]])
-        # print('edges before mutation : ', edges)
-        # outgoing_edges = network.get_outgoing_edges(nodes[dice])
-        parents_card = [self.cardinality_map[x] for x in incoming_edges]
-        # print('card par BEFORE : ', parents_card)
-
         cpds = network.cpds
         omega_map = network.omega_map
         network.disassemble()
@@ -273,13 +351,11 @@ class GeneticAlgorithm:
             candidate_nodes = [x for x in root_nodes if not x in incoming_edges]
             random.shuffle(candidate_nodes)
             new_edges.append((candidate_nodes[0], nodes[dice]))
-
         network.edges = new_edges
         network.pomegranate_network = None
         incoming_edges = network.get_incoming_edges(nodes[dice])
         # print('incoming edges after mutation : ', incoming_edges)
         parents_card = [self.cardinality_map[x] for x in incoming_edges]
-        # print('card par AFTER : ', parents_card)
         new_cpd = self.ga_child_cpd(parents_card, omega_map[nodes[dice]])
         cpds[nodes[dice]] = new_cpd
         network.cpds = cpds
@@ -363,7 +439,7 @@ class GeneticAlgorithm:
             pdf.append(pdf_row)
         return self.normalize_distribution(np.asarray(pdf))
 
-    def normalize_distribution(self,matrix):
+    def normalize_distribution(self, matrix):
         """
         Normalizes the columns of a matrix (i.e. sum matrix[:,i] = 1
 
