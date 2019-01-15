@@ -74,6 +74,7 @@ class GeneticAlgorithm:
         return self.population
 
     def evolve(self, population, min_fitness_score):
+        self.population = population
         self.min_fitness_score = min_fitness_score
         average_fitness = 0
         #ordering self.population according the fitness
@@ -92,6 +93,13 @@ class GeneticAlgorithm:
         selected_offsprings = self.cross_over()
         #we now are going to mutate the ofsprings
         random.seed()
+        #check how much chromosomes are left and add parents if necessary
+        while True:
+            n_chrom = len(self.selected_parents) + len(selected_offsprings)
+            if n_chrom >= self.npop:
+                break
+            [selected_offsprings.append(x) for x in self.selected_parents]
+        #go for mutation
         for s, offspring_ in enumerate(selected_offsprings):
             offspring = copy.copy(offspring_)
             mut_top = random.uniform(0,1)
@@ -168,7 +176,7 @@ class GeneticAlgorithm:
                 for s in check_map:
                     if s == 0:
                         skip = True
-                #check i this combination is equal to one of the parents,if yes we set skip to True and skip this combination
+                #check if this combination is equal to one of the parents,if yes we set skip to True and skip this combination
                 if np.array_equal(map,map_1) or np.array_equal(map,map_2):
                     skip = True
                 if skip:
