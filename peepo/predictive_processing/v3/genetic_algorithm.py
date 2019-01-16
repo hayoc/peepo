@@ -29,7 +29,7 @@ class GeneticAlgorithm:
         self.peepo = PeepoNetwork()
         self.max_removal = max_removal
         self.initialize(source)
-        self.treshold = 2#controls the allowed distance of the parents (i.e. how much edges they differ from each other)
+        self.treshold = 3#controls the allowed distance of the parents (i.e. how much edges they differ from each other)
 
 
 
@@ -121,59 +121,43 @@ class GeneticAlgorithm:
 
          """
         self.population = population
-        #self.min_fitness_score = self.population_fitness_score
-        average_fitness = 0
-
         if(len(self.population) == 0):#check if the population has not collapsed
             return -1, self.population
         average_fitness, self.selected_parents = self.global_fitness_score()
-        # self.min_fitness_score = self.population_fitness_score
         self.population_fitness_score =  average_fitness
         if average_fitness < 0:  # check if there is no best population
             return -1, self.population
-        # # selected_parents and average fitness
-        # for x in self.population:
-        #     # average_fitness += x[0]
-        #     if x[0] >= self.min_fitness_score:
-        #         average_fitness += x[0]
-        #         x[0] = 0
-        #         self.selected_parents.append(x)
-        # # average_fitness /= len(self.population)
-        # average_fitness /= len(self.selected_parents)
-
-        #cross-over
+        #-cross-over
         selected_offsprings = self.cross_over()
-        #we now are going to mutate the ofsprings
+        #-mutate the ofsprings
         random.seed()
-        #check how much chromosomes are left and add parents if necessary
+        #-check how much chromosomes are left and add parents if necessary
         while True:
             n_chrom = len(self.selected_parents) + len(selected_offsprings)
             if n_chrom >= self.npop:
                 break
             [selected_offsprings.append([x[0],x[1],1.,1.]) for x in self.selected_parents]#those parent enter the offsprings pool which can mutate!
-        #go for mutation
+        #-mutation
         for s, offspring_ in enumerate(selected_offsprings):
             offspring = copy.copy(offspring_)
             mut_top = offspring_[2]
             mut_cpd = offspring_[3]
-            #check if treshold are reached and mutate accordingly
+            #-check if treshold are reached and mutate accordingly
             if mut_top < self.p_mut_pop:
                 network = self.prune_or_grow(offspring[1])
-                network.identification = 'offspring type 3'
                 offspring[1] = network.assemble()
                 selected_offsprings[s] = offspring
             if mut_cpd < self.p_mut_cpd:
                 network = self.mutate_cpds(offspring[1])
-                network.identification = 'offspring type 4'
                 offspring[1] = network.assemble()
                 selected_offsprings[s] = offspring
-        #collecting parents and offsprings
+        #-collecting parents and offsprings
         random.shuffle(selected_offsprings)
         self.population = []
         [self.population.append(par) for par in self.selected_parents]
         [self.population.append([off[0],off[1]]) for off in selected_offsprings]
 
-        #prune the population to Npop
+        #-prune the population to Npop
         self.population  = self.population[0:self.npop]
         return average_fitness, self.population
 
@@ -211,10 +195,6 @@ class GeneticAlgorithm:
                 offspring_2.cpds = copy.copy(offspring_1.cpds)
                 offspring_1.omega_map = copy.copy(offspring_2.omega_map)
                 offspring_2.omega_map = copy.copy(offspring_1.omega_map)
-
-                offspring_1.identification = 'offspring type 0'
-                offspring_2.identification = 'offspring type 0'
-
                 offspring_1.assemble()
                 offspring_2.assemble()
                 selected_offsprings.append([0, offspring_1, mut_top, mut_cpd])
@@ -230,7 +210,7 @@ class GeneticAlgorithm:
             indices = np.argwhere(diff == 1)#this contains the tupples of the matrix position where there is a difference
             combinations = [[1, 0],[0,1]]
             if len(indices) > 1:
-                combo = np.full(len(indices),2)
+                combo = np.full(len(indices),2).tolist()
                 combinations = np.transpose(get_index_matrix(combo))
             for comb in combinations:
                 map = copy.copy(map_1)
@@ -265,7 +245,6 @@ class GeneticAlgorithm:
                         my_cpd = self.ga_child_cpd(my_card_parents, my_omega)
                     a_peepo.add_cpd(node, my_cpd)
                     a_peepo.add_omega(node, my_omega)
-                a_peepo.identification = 'offspring type 2'
                 a_peepo.assemble()
                 mut_top = random.uniform(0, 1)
                 mut_cpd = random.uniform(0, 1)
@@ -370,7 +349,7 @@ class GeneticAlgorithm:
         leafs = network.get_leaf_nodes()
         omega_map = network.omega_map
         cardinality_map = network.get_cardinality_map()
-        epsilon = 0.05
+        epsilon = random.uniform(0.05, 0.75)
         for leaf in leafs:
             incoming_edges = network.get_incoming_edges(leaf)
             parents_card = [cardinality_map[x] for x in incoming_edges]
