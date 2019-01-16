@@ -105,8 +105,9 @@ if __name__ == '__main__':
     print('\n\nFINAL NETWORK')
     print('________________\n\n')
     print(final_network[1].edges)
-    '''TO DO perhaps : 
-    browse through the final networks and make predictions and compare with expected to get the best and simpliest network?'''
+    my_json = final_network.to_json()
+    with open('best_survival_network.json', 'w') as outfile:
+        json.dump(my_json, outfile)
     t = np.arange(0.0, len(avg_fitnesses), 1)
     fig, ax = plt.subplots()
     ax.plot(t, avg_fitnesses)
