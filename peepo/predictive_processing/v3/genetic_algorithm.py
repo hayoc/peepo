@@ -1,9 +1,10 @@
-#15/01/2019
+#18/01/2019
 import json
 import random
 import math
 
 import numpy as np
+
 from config import ROOT_DIR
 import copy
 from itertools import combinations_with_replacement
@@ -12,14 +13,16 @@ from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
 from peepo.predictive_processing.v3.peepo_network import get_topologies
 from peepo.predictive_processing.v3.utils import get_index_matrix
 
-
+NUMBER_OF_PARENTS_RATIO = 1./5.
 
 class GeneticAlgorithm:
 
-    def __init__(self, source, Npop = 1, min_fitness_score = 0.0,  p_mut_top = 0.02, p_mut_cpd = 0.02, max_removal=None):
+    def __init__(self, source, fast = False, convergence_period = 100000, convergence_sensitivity_percent = 5., Npop = 1, min_fitness_score = 0.0,  p_mut_top = 0.02, p_mut_cpd = 0.02, max_removal=None):
+        self.fast = fast
         self.npop = int(Npop)
         self.population = []
         self.selected_parents = []
+        self.number_of_parents = int(self.npop*NUMBER_OF_PARENTS_RATIO)
         self.population_fitness_score = min_fitness_score#controls how the best parents are selected (fitness > min_fitness_score)
         self.p_mut_pop = p_mut_top
         self.p_mut_cpd = p_mut_cpd
@@ -28,10 +31,13 @@ class GeneticAlgorithm:
         self.cardinality_map = {}
         self.peepo = PeepoNetwork()
         self.max_removal = max_removal
-        self.initialize(source)
         self.treshold = 3#controls the allowed distance of the parents (i.e. how much edges they differ from each other)
-
-
+        self.best_chromosome = None
+        self.last_generation= [0.0,[]]
+        self.convergence_period  = convergence_period
+        self.convergence_history = []
+        self.convergence_sensitivity = convergence_sensitivity_percent/100.
+        self.initialize(source)
 
 
     def initialize(self, source):
@@ -51,16 +57,17 @@ class GeneticAlgorithm:
         self.cardinality_map = self.peepo.make_cardinality_map()
         topologies = get_topologies(self.peepo, max_removal = self.max_removal)
         random.seed()
-        ''' indexes is a temporary array containing Npop indexes op the topologies
+        ''' indexes is a temporary array containing Npop indexes of the topologies,
             the indexes are linearly distributed according to 
                index[i] = slope*i  with slope being calculated so only the upper half
-                of topologies are considered (i.e. we discard the too simple topologies'''
+                of topologies are considered (i.e. we discard the too simple topologies)'''
         indexes = []
         slope = 1
         if self.npop < len(topologies)/2:
             slope = int(len(topologies)/2/self.npop)
         if len(topologies) <= self.npop:
             self.npop = len(topologies)
+            self.number_of_parents = int(self.npop*NUMBER_OF_PARENTS_RATIO)
         [indexes.append(slope*x) for x in range(0, self.npop)]
         #browse through the selected topologies and genarte the 0th population
         for t in indexes:
@@ -85,22 +92,122 @@ class GeneticAlgorithm:
             self.peepo.disassemble()
 
     def get_population(self):
+        self.best_chromosome = self.population[0]
+        self.last_generation= [0.0, copy.copy(self.population)]
         return self.population
 
-    def global_fitness_score(self):
+    def get_parents(self):
+        """
+                   Selects which parent will ba allowed to create offsprings
+
+                   :param object:
+
+                   :return :  None
+
+           """
+        self.selected_parents = []
         self.population = sorted(self.population, key=lambda chromo: chromo[0], reverse=True)
-        best_parents = []
-        mean = 0
-        for x in self.population:
-            if x[0] >= self.population_fitness_score:
-                mean += x[0]
-                x[0] = 0
-                best_parents.append(x)
-        if len(best_parents) > 0:
-            mean /= len(best_parents)
+        # check for the best chromosome yet
+        if self.population[0][0] >= self.best_chromosome[0]:
+            self.best_chromosome = [self.population[0][0], copy.copy(self.population[0][1])]
+        #calculate the fitness score over the best (len(self.number_of_parents)) best performing chromosomes
+        self.population_fitness_score = 0
+        for i in range(self.number_of_parents):
+            self.population_fitness_score += self.population[i][0]
+        self.population_fitness_score /= self.number_of_parents
+
+        if self.fast:
+            # self.population = sorted(self.population, key=lambda chromo: chromo[0], reverse=True)
+            # best_parents = []
+            # mean = 0
+            # for x in self.population:
+            #     if x[0] >= self.population_fitness_score:
+            #         mean += x[0]
+            #         x[0] = 0
+            #         best_parents.append(x)
+            # if len(best_parents) > 0:
+            #     mean /= len(best_parents)
+            # else:
+            #     mean = -1.
+            # return mean, best_parents
+
+            self.selected_parents = self.population[0:self.number_of_parents]
+            for i in range(self.number_of_parents):
+                self.selected_parents[i][0] = 0.0
+            self.selected_parents = self.copy_parents(self.selected_parents)
+            random.shuffle(self.selected_parents)
+
         else:
-            mean = -1.
-        return mean, best_parents
+            pool = []
+            npop = len(self.population)
+            for index in range(npop):
+                repeat = npop - index
+                for rep in range(repeat):
+                    pool.append(index)
+            random.shuffle(pool)
+            for draw in range(self.number_of_parents):
+                pool_index = random.randint(0, len(pool)-1)
+                parent_index = pool[pool_index]
+                self.population[parent_index][0] = 0
+                self.selected_parents.append([0,copy.copy(self.population[parent_index][1])])
+            random.shuffle(self.selected_parents)
+
+    def get_optimal_network(self):
+        """
+                 Returns the best network over all generation with it's fitness score
+
+                 :param object:
+
+                 :return PeepoNetwork:  The best network over all generations
+
+                 :return float:  The fitness score for the best network
+
+         """
+        return self.best_chromosome[1], self.best_chromosome[0]
+
+    def check_convergence(self):
+        """
+                 Keeps tracks of the performance over the generations.
+                 If the actual fitness score is less then the previous one,
+                 replace the initial selected parents (see get_parents())
+                 by a mix of the actual selected parents and the selected parents of the previous generation.
+                 Returns True when the convergence criteria is reached
+
+                 :param object:
+
+                 :return boolean:  True or False
+
+         """
+        if len(self.convergence_history) <= self.convergence_period :
+            self.convergence_history.append(self.population_fitness_score)
+        else:
+            self.convergence_history.append(self.population_fitness_score)
+            self.convergence_history.pop(0)
+            mean = np.mean(self.convergence_history, dtype=np.float64)
+            std = np.std(self.convergence_history, dtype=np.float64)
+            acceptable_std = mean * self.convergence_sensitivity/2.
+            if std < acceptable_std:
+                return True
+
+        prev_fitness   = self.last_generation[0]
+        actual_fitness = self.population_fitness_score
+
+        if actual_fitness < prev_fitness:
+            actual_fitness = (prev_fitness+actual_fitness)/2
+            prev_parents = self.copy_parents(self.last_generation[1])
+            actual_parents =self.copy_parents(self.selected_parents)
+            self.selected_parents = np.concatenate((prev_parents, actual_parents), axis=0)
+            random.shuffle(self.selected_parents)
+            self.selected_parents = self.copy_parents(self.selected_parents[0:self.number_of_parents])
+
+        self.last_generation[0] =  actual_fitness
+        self.last_generation[1] = copy.copy(self.selected_parents)
+        return False
+
+    def copy_parents(self, parents):
+        a_copy = []
+        [a_copy.append([copy.copy(par[0]), copy.copy(par[1])]) for par in parents]
+        return a_copy
 
     def evolve(self, population):
         """
@@ -117,18 +224,22 @@ class GeneticAlgorithm:
 
                  :return population: an array of shape (Npop,2) with
                         population[i][0] = 0
-                        population[i][1] = the BN-network with the best parents and their offsprings
+                        population[i][1] = the BN-network with the best parents and their offsprings,
+
+                 :return boolean: True if a certain convergence criteria has been reached otherwise returns False
 
          """
         self.population = population
         if(len(self.population) == 0):#check if the population has not collapsed
-            return -1, self.population
-        average_fitness, self.selected_parents = self.global_fitness_score()
-        self.population_fitness_score =  average_fitness
-        if average_fitness < 0:  # check if there is no best population
-            return -1, self.population
+            return -1, self.population, False
+        self.get_parents()
+        converging = self.check_convergence()
+        if converging:
+            return self.population_fitness_score, self.population, True
+        if self.population_fitness_score < 0:  # check if there is no best population
+            return -1, self.population, False
         #-cross-over
-        selected_offsprings = self.cross_over()
+        selected_offsprings = self.cross_over()#a member of the offspring array has the shape [0, network, P_mut_top (float), _mut_cpd (float)]
         #-mutate the ofsprings
         random.seed()
         #-check how much chromosomes are left and add parents if necessary
@@ -159,7 +270,7 @@ class GeneticAlgorithm:
 
         #-prune the population to Npop
         self.population  = self.population[0:self.npop]
-        return average_fitness, self.population
+        return self.population_fitness_score, self.population, False
 
     def cross_over(self):
         """
@@ -176,11 +287,13 @@ class GeneticAlgorithm:
         """
         selected_offsprings = []
         mating_couples = list(combinations_with_replacement(self.selected_parents,2))
+        #filter  out the couples of same chromosomes
+        mating_couples= list(filter(lambda x: x[0][1] != x[1][1], mating_couples))
         #to control exponential growth, which can occur in some cases, we limit the number of combinations to Npop
         if len(mating_couples)> self.npop:
             random.shuffle(mating_couples)
             # prune the population
-            mating_couples  = mating_couples[0:self.npop]
+            mating_couples  = mating_couples[0:int(self.npop/2.)]
         for n, chrom in enumerate(mating_couples):
             map_1 = self.get_adjency_map(chrom[0][1].get_edges())
             map_2 = self.get_adjency_map(chrom[1][1].get_edges())
@@ -208,7 +321,7 @@ class GeneticAlgorithm:
                 if there are q positions in the two adjency matrices, we will then  have 2^q - 2 offsprings
             '''
             indices = np.argwhere(diff == 1)#this contains the tupples of the matrix position where there is a difference
-            combinations = [[1, 0],[0,1]]
+            combinations = [[1, 0],[0,1]]#this is the possible combinations when we have only 1 difference
             if len(indices) > 1:
                 combo = np.full(len(indices),2).tolist()
                 combinations = np.transpose(get_index_matrix(combo))
@@ -246,8 +359,7 @@ class GeneticAlgorithm:
                     a_peepo.add_cpd(node, my_cpd)
                     a_peepo.add_omega(node, my_omega)
                 a_peepo.assemble()
-                mut_top = random.uniform(0, 1)
-                mut_cpd = random.uniform(0, 1)
+
                 #check whether the combination is a cloning of one parent, if YES mutation will occur
                 if np.array_equal(comb[0],comb[1]):
                     mut_top = 1.
@@ -429,24 +541,5 @@ class GeneticAlgorithm:
         return matrix / factor
 
 
-
-if __name__ == '__main__':
-    case = 'color_recognition'
-    ga = GeneticAlgorithm(case, Npop = 100, min_fitness_score= 900, p_mut_cpd= 0.9, p_mut_top= 0.9)
-    chromosomes = ga.get_population()
-    #test
-
-    for loop in range(20):
-        print('------------------------- LOOP ', loop+1, ' ---------------------------------------')
-        for i in range(len(chromosomes)):
-            chromosomes[i][0] = random.randint(0,1000)
-
-        av_fitness, chromosomes = ga.evolve(chromosomes)
-
-
-        print('average fitness : ', av_fitness)
-        if av_fitness < 0:
-            print('populations dessiminated')
-            break
 
 
