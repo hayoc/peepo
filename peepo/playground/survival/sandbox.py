@@ -44,20 +44,20 @@ def create_population(generation, individuals, food):
 
     return pop
 
-def get_optimal_network(population):
-    pop = []
-    for x in population:
-        n_edges = len(x[1].edges)
-        pop.append([x[0],x[1], n_edges])
-    pop = sorted(pop, key=lambda chromo: chromo[0], reverse=True)
-    best_population = []
-    best_score = pop[0][0]
-    for x in pop:
-        if x[0] != best_score:
-            break
-        best_population.append(x)
-    best_population = sorted(best_population, key=lambda chromo: chromo[2])
-    return best_population[0]
+# def get_optimal_network(population):
+#     pop = []
+#     for x in population:
+#         n_edges = len(x[1].edges)
+#         pop.append([x[0],x[1], n_edges])
+#     pop = sorted(pop, key=lambda chromo: chromo[0], reverse=True)
+#     best_population = []
+#     best_score = pop[0][0]
+#     for x in pop:
+#         if x[0] != best_score:
+#             break
+#         best_population.append(x)
+#     best_population = sorted(best_population, key=lambda chromo: chromo[2])
+#     return best_population[0]
 
 
 
@@ -72,13 +72,21 @@ if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
     num_individuals = 20
-    num_generations = 10
-    ga = GeneticAlgorithm('survival', min_fitness_score = 0.0, p_mut_top = 0.2, p_mut_cpd = 0.2,Npop=num_individuals, max_removal=2)
+    num_generations = 40
+    max_age = 20  # 50
+    ga = GeneticAlgorithm('survival',
+                          convergence_period = 10,
+                          convergence_sensitivity_percent = 5.,
+                          min_fitness_score = 0.0,
+                          p_mut_top = 0.2,
+                          p_mut_cpd = 0.2,
+                          Npop=num_individuals,
+                          max_removal=2)
     population = ga.get_population()
     peepos = []
-    max_age = 30#50
     avg_fitnesses = []
     final_population = []
+    converging = False
     for gen in range(num_generations):
         food = read_food()
         food.append(Food('cheat', (20, 20)))
@@ -94,7 +102,9 @@ if __name__ == '__main__':
                 peepo.update()
                 population[ind][0] = peepo.food
                 final_population.append([peepo.food, population[ind][1]])
-        avg_fitness, population = ga.evolve(population)
+        avg_fitness, population, converging = ga.evolve(population)
+        if converging:
+            break
         if  avg_fitness < 0:
             # logging.info(' population collapsed :-( ')
             print(' population collapsed :-( ')
@@ -102,10 +112,10 @@ if __name__ == '__main__':
         # logging.info('Average fitness: %d', avg_fitness)
         print('Average fitness: ', avg_fitness)
         avg_fitnesses.append(avg_fitness)
-    final_network = get_optimal_network(final_population)
-    print('\n\nFINAL NETWORK')
+    final_network, best_fitness = ga.get_optimal_network()
+    print('\n\nFINAL NETWORK has a fitness of ', best_fitness)
     print('________________\n\n')
-    print(final_network[1].edges)
+    print(final_network.edges)
     my_json = final_network.to_json()
     with open('best_survival_network.json', 'w') as outfile:
         json.dump(my_json, outfile)
