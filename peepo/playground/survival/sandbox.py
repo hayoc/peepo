@@ -5,10 +5,10 @@ import random
 
 import matplotlib.pyplot as plt
 import numpy as np
-import copy
 
 from peepo.playground.survival.organism import Peepo, Food
 from peepo.predictive_processing.v3.genetic_algorithm import GeneticAlgorithm
+from peepo.predictive_processing.v3.peepo_network import write_to_file
 
 MAP_SIZE = (800, 800)
 
@@ -116,9 +116,8 @@ if __name__ == '__main__':
     print('\n\nFINAL NETWORK has a fitness of ', best_fitness)
     print('________________\n\n')
     print(final_network.edges)
-    my_json = final_network.to_json()
-    with open('best_survival_network.json', 'w') as outfile:
-        json.dump(my_json, outfile)
+    write_to_file('best_survival_network', final_network)
+
     t = np.arange(0.0, len(avg_fitnesses), 1)
     fig, ax = plt.subplots()
     ax.plot(t, avg_fitnesses)
