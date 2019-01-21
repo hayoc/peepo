@@ -1,6 +1,7 @@
 import math
 
 import numpy as np
+import pygame as pg
 
 from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepo.predictive_processing.v3.sensory_input import SensoryInput
@@ -13,6 +14,8 @@ DOWN = 'DOWN'
 VISION = 'VISION'
 MOTOR = 'MOTOR'
 
+TRANSPARENT = (0, 0, 0, 0)
+
 
 class Peepo:
     """
@@ -24,10 +27,13 @@ class Peepo:
     VIEW_DIST = 200
 
     def __init__(self, name, network, pos=(0, 0), obstacles=None):
+        self.rect = pg.Rect((0, 0), Peepo.SIZE)
+        self.rect.center = pos
+        self.image = self.make_image()
+        self.image_original = self.image.copy()
+
         self.name = name
         self.network = network
-        self.x = pos[0]
-        self.y = pos[1]
         self.obstacles = obstacles or []
         self.food = 0
         self.motor = {
@@ -42,44 +48,44 @@ class Peepo:
             UP: False,
             DOWN: False
         }
-        self.path = []
-        self.loop = 0
         self.generative_model = GenerativeModel(network, SensoryInputPeepo(self), n_jobs=1)
 
     def update(self):
+        self.rect = self.image.get_rect(center=self.rect.center)
+
         self.generative_model.process()
 
-        if self.loop % 10 == 0:
-            self.path.append((self.x, self.y))
-
         if self.motor[LEFT]:
-            self.x -= 5
+            self.rect.x -= 5
         elif self.motor[RIGHT]:
-            self.x += 5
+            self.rect.x += 5
         elif self.motor[UP]:
-            self.y += 5
+            self.rect.y += 5
         elif self.motor[DOWN]:
-            self.y -= 5
+            self.rect.y -= 5
 
-        if self.x < 0 or self.y < 0 or self.x > 800 or self.y > 800:
-            self.x, self.y = 400, 400
+        if self.rect.x < 0 or self.rect.y < 0 or self.rect.x > 800 or self.rect.y > 800:
+            self.rect.x, self.rect.y = 400, 400
 
         self.view = {x: False for x in self.view}
 
         for obstacle in self.obstacles:
-            if self.x <= obstacle.x <= self.x + self.SIZE[0] and self.y <= obstacle.y <= self.y + self.SIZE[1]:
+            if self.rect.x <= obstacle.x <= self.rect.x + self.SIZE[0] and self.rect.y <= obstacle.y <= self.rect.y + \
+                    self.SIZE[1]:
                 self.food += 1
+                print(len(self.obstacles))
                 self.obstacles.remove(obstacle)
                 print(self.name + ' found food!')
+                print(len(self.obstacles))
             else:
-                distance = math.hypot(obstacle.x - self.x, obstacle.y - self.y)
+                distance = math.hypot(obstacle.x - self.rect.x, obstacle.y - self.rect.y)
                 if distance < self.VIEW_DIST:
-                    v1_up = (self.x - self.x + 1, self.y - self.y + 1)
-                    v2_up = (obstacle.x - self.x + 1, obstacle.y - self.y + 1)
+                    v1_up = (self.rect.x - self.rect.x + 1, self.rect.y - self.rect.y + 1)
+                    v2_up = (obstacle.x - self.rect.x + 1, obstacle.y - self.rect.y + 1)
                     cross_product_up = v1_up[0] * v2_up[1] - v1_up[1] * v2_up[0]
 
-                    v1_down = (self.x - 1 - self.x, self.y + 1 - self.y)
-                    v2_down = (self.x - 1 - obstacle.x, self.y + 1 - obstacle.y)
+                    v1_down = (self.rect.x - 1 - self.rect.x, self.rect.y + 1 - self.rect.y)
+                    v2_down = (self.rect.x - 1 - obstacle.x, self.rect.y + 1 - obstacle.y)
                     cross_product_down = v1_down[0] * v2_down[1] - v1_down[1] * v2_down[0]
 
                     if cross_product_up <= 0 and cross_product_down < 0:
@@ -91,8 +97,54 @@ class Peepo:
                     elif cross_product_up < 0 and cross_product_down >= 0:
                         self.view[RIGHT] = True
 
-        self.loop += 1
-        # print(self.name + ' : ' + str(self.x) + ' - ' + str(self.y))
+        # print(self.name + ' : ' + str(self.rect.x) + ' - ' + str(self.rect.y))
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+
+    def make_image(self):
+        image = pg.Surface(self.rect.size).convert_alpha()
+        image.fill(TRANSPARENT)
+        image_rect = image.get_rect()
+        pg.draw.rect(image, pg.Color("black"), image_rect)
+        pg.draw.rect(image, pg.Color("green"), image_rect.inflate(-2, -2))
+        return image
+
+
+class Food:
+    """
+    This organism represents food. It is an inanimate object and therefore only takes a position parameter. A position
+    at which it stays until it is eaten.
+    """
+    SIZE = (10, 10)
+
+    def __init__(self, name, pos=(0, 0)):
+        self.rect = pg.Rect((0, 0), Food.SIZE)
+        self.x = pos[0]
+        self.y = pos[1]
+        self.rect.center = pos
+        self.image = self.make_image()
+        self.id = name
+
+    def make_image(self):
+        image = pg.Surface(self.rect.size).convert_alpha()
+        image.fill(TRANSPARENT)
+        image_rect = image.get_rect()
+        pg.draw.rect(image, pg.Color("black"), image_rect)
+        pg.draw.rect(image, pg.Color("pink"), image_rect.inflate(-2, -2))
+        return image
+
+    def update(self):
+        pass
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+
+    def __str__(self):
+        return '[' + str(self.rect.x) + ', ' + str(self.rect.y) + ']'
+
+    def __repr__(self):
+        return '[' + str(self.rect.x) + ', ' + str(self.rect.y) + ']'
 
 
 class SensoryInputPeepo(SensoryInput):
@@ -119,21 +171,3 @@ class SensoryInputPeepo(SensoryInput):
             if direction in name:
                 return direction
         raise ValueError('Unexpected node name %s, could not find LEFT, RIGHT, UP or DOWN', name)
-
-
-class Food:
-    """
-    This organism represents food. It is an inanimate object and therefore only takes a position parameter. A position
-    at which it stays until it is eaten.
-    """
-
-    def __init__(self, name, pos=(0, 0)):
-        self.name = name
-        self.x = pos[0]
-        self.y = pos[1]
-
-    def __str__(self):
-        return '[' + str(self.x) + ', ' + str(self.y) + ']'
-
-    def __repr__(self):
-        return '[' + str(self.x) + ', ' + str(self.y) + ']'

@@ -31,7 +31,7 @@ class GenerativeModel:
     TODO: Parallelism
     """
 
-    def __init__(self, name, peepo_network, sensory_input, n_jobs=1):
+    def __init__(self, peepo_network, sensory_input, n_jobs=1):
         self.peepo_network = peepo_network
         self.bayesian_network = None
         self.sensory_input = sensory_input

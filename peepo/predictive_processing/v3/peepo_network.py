@@ -64,7 +64,7 @@ def write_to_file(name, peepo_network):
         os.makedirs(directory)
 
     with open(directory + '/' + str(name) + '.json', 'w') as outfile:
-        json.dump(peepo_network.to_json(), outfile, default=str)
+        outfile.write(peepo_network.to_json())
 
 
 def read_from_file(name):
@@ -75,6 +75,7 @@ def read_from_file(name):
 def converter(o):
     if isinstance(o, datetime.datetime):
         return o.__str__()
+
 
 class PeepoNetwork:
     """
