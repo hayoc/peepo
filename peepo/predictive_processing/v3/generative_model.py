@@ -33,7 +33,7 @@ class GenerativeModel:
 
     def __init__(self, peepo_network, sensory_input, n_jobs=1):
         self.peepo_network = peepo_network
-        self.bayesian_network = None
+        self.bayesian_network = self.peepo_network.to_pomegranate()
         self.sensory_input = sensory_input
         self.n_jobs = n_jobs
 
@@ -51,8 +51,6 @@ class GenerativeModel:
         be used for learning the structure of a module, by manually setting the hypothesis and comparing errors of
         different toplogies.
         """
-        self.bayesian_network = self.peepo_network.to_pomegranate()
-
         total_prediction_error_size = 0
 
         for index, node in enumerate(self.predict()):
