@@ -37,7 +37,7 @@ class GenerativeModel:
         self.sensory_input = sensory_input
         self.n_jobs = n_jobs
 
-        # draw_network(bayesian_network)
+        # draw_network(peepo_network)
 
     def process(self, structure_learning=False):
         """
