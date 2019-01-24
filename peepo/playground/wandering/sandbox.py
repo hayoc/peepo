@@ -107,7 +107,7 @@ def verification():
 
     max_age = 500
     obstacles = read_obstacles(graphical)
-    peepos = [Peepo('peepo', read_from_file('wandering'), graphical, (5, 400), obstacles)]
+    peepos = [Peepo('peepo', read_from_file('best_wandering_network'), graphical, (5, 400), obstacles)]
     world = World(graphical, peepos, obstacles)
 
     world.main_loop(max_age)
@@ -180,5 +180,5 @@ def evolution():
 
 
 if __name__ == '__main__':
-    evolution()
-    # verification
+    # evolution()
+    verification()
