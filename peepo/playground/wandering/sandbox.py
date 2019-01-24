@@ -23,7 +23,7 @@ def create_population(graphical, generation, individuals, food):
         peepo = Peepo(name='peepo_' + str(generation) + '_' + str(i),
                       network=idv[1],
                       graphical=graphical,
-                      pos=(5, 5),
+                      pos=(5, 400),
                       obstacles=food)
         pop.append(peepo)
 
@@ -90,14 +90,15 @@ class World(object):
             if loop % 10 == 0:
                 print('Age ' + str(loop) + ' out of ' + str(max_age))
             if loop > max_age:
+                for peepo in self.peepos:
+                    print(peepo.health)
                 break
 
 
-def verification():
+def verification(graphical):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
     # generate_obstacles(400)
-    graphical = True
 
     os.environ['SDL_VIDEO_CENTERED'] = '1'
     if graphical:
@@ -117,11 +118,10 @@ def verification():
     sys.exit()
 
 
-def evolution():
+def evolution(graphical):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
     # generate_obstacles(400)
-    graphical = False
 
     os.environ['SDL_VIDEO_CENTERED'] = '1'
     if graphical:
@@ -129,9 +129,9 @@ def evolution():
         pg.display.set_caption(CAPTION)
         pg.display.set_mode(SCREEN_SIZE)
 
-    max_age = 100
-    num_individuals = 5
-    num_generations = 2
+    max_age = 400
+    num_individuals = 10
+    num_generations = 20
 
     ga = GeneticAlgorithm('wandering',
                           convergence_period=10,
@@ -180,5 +180,5 @@ def evolution():
 
 
 if __name__ == '__main__':
-    # evolution()
-    verification()
+    # evolution(False)
+    verification(True)
