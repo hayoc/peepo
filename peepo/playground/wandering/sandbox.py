@@ -87,17 +87,17 @@ class World(object):
                 self.render()
                 self.clock.tick(self.fps)
             loop += 1
-            print('Age ' + str(loop) + ' out of ' + str(max_age))
+            if loop % 10 == 0:
+                print('Age ' + str(loop) + ' out of ' + str(max_age))
             if loop > max_age:
                 break
 
 
-def graphical_run():
+def verification():
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
     # generate_obstacles(400)
     graphical = True
-    max_age = 500
 
     os.environ['SDL_VIDEO_CENTERED'] = '1'
     if graphical:
@@ -105,6 +105,7 @@ def graphical_run():
         pg.display.set_caption(CAPTION)
         pg.display.set_mode(SCREEN_SIZE)
 
+    max_age = 500
     obstacles = read_obstacles(graphical)
     peepos = [Peepo('peepo', read_from_file('wandering'), graphical, (5, 400), obstacles)]
     world = World(graphical, peepos, obstacles)
@@ -116,13 +117,19 @@ def graphical_run():
     sys.exit()
 
 
-def non_graphical_run():
+def evolution():
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
     # generate_obstacles(400)
     graphical = False
 
-    max_age = 500
+    os.environ['SDL_VIDEO_CENTERED'] = '1'
+    if graphical:
+        pg.init()
+        pg.display.set_caption(CAPTION)
+        pg.display.set_mode(SCREEN_SIZE)
+
+    max_age = 100
     num_individuals = 5
     num_generations = 2
 
@@ -155,6 +162,7 @@ def non_graphical_run():
             print(' population collapsed :-(')
             break
         print('Average fitness: ', avg_fitness)
+        print('----------------------------------------------------------')
         avg_fitnesses.append(avg_fitness)
     final_network, best_fitness = ga.get_optimal_network()
     print('\n\nFINAL NETWORK has a fitness of ', best_fitness)
@@ -172,4 +180,5 @@ def non_graphical_run():
 
 
 if __name__ == '__main__':
-    non_graphical_run()
+    evolution()
+    # verification
