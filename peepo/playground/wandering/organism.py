@@ -122,7 +122,8 @@ class Peepo:
                 std_x = np.std(self.traject_x, dtype=np.float64)
                 mean_y = np.mean(self.traject_y, dtype=np.float64)
                 std_y = np.std(self.traject_y, dtype=np.float64)
-                penalty =  1.0/((std_x/mean_x) - (std_y/mean_y))
+                # penalty =  1.0/((std_x/mean_x) - (std_y/mean_y))
+                penalty = 1.0 / (1000.0*abs((std_x  - std_y )))
                 self.health = 1.0/(1.0 + self.collisions + penalty)
                 # ----------------------------
 
