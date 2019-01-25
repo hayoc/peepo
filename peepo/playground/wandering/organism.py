@@ -39,14 +39,9 @@ class Peepo:
             self.image = self.make_image()
             self.image_original = self.image.copy()
 
-        self.health = 1000
-        # ----------------------------                 added by bufo
-        self.health = 1.0
-        self.collisions = 0.0
-        self.traject_x = np.random.rand(10)
-        self.traject_y =  np.random.rand(10)
+        self.health = 0
+
         self.obstacles = obstacles or []
-        # ----------------------------
         self.motor = {
             LEFT: False,
             RIGHT: False
@@ -66,16 +61,6 @@ class Peepo:
 
         self.rect.x += Peepo.SPEED * math.cos(math.radians(self.rotation))
         self.rect.y += Peepo.SPEED * math.sin(math.radians(self.rotation))
-
-        # ----------------------------                 added by bufo
-        np.append(self.traject_x,self.rect.x/400)
-        np.append(self.traject_y,self.rect.y/400)
-        np.delete(self.traject_x,0)
-        np.delete(self.traject_y,0)
-        # ------------------------------
-
-
-
 
         if self.motor[LEFT]:
             self.rotation -= 10
@@ -115,17 +100,9 @@ class Peepo:
         self.view = {x: False for x in self.view}
         for obstacle in self.obstacles:
             if self.rect.colliderect(obstacle.rect):
-                # self.health -= 1
-                # ----------------------------                 added by bufo
-                self.collisions += 1
-                mean_x = np.mean(self.traject_x, dtype=np.float64)
-                std_x = np.std(self.traject_x, dtype=np.float64)
-                mean_y = np.mean(self.traject_y, dtype=np.float64)
-                std_y = np.std(self.traject_y, dtype=np.float64)
-                # penalty =  1.0/((std_x/mean_x) - (std_y/mean_y))
-                penalty = 1.0 / (1000.0*abs((std_x  - std_y )))
-                self.health = 1.0/(1.0 + self.collisions + penalty)
-                # ----------------------------
+                self.health += 1
+                self.obstacles.remove(obstacle)
+
 
             peepo_vec = pg.math.Vector2(self.rect.center)
             if collision(obstacle.rect, peepo_vec, self.edge_left, self.edge_right, Peepo.RADIUS):
