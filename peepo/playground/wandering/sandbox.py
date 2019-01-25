@@ -12,7 +12,7 @@ from peepo.playground.wandering.organism import Obstacle, Peepo
 from peepo.predictive_processing.v3.genetic_algorithm import GeneticAlgorithm
 from peepo.predictive_processing.v3.peepo_network import read_from_file, write_to_file
 
-CAPTION = "Survival"
+CAPTION = "survival"
 SCREEN_SIZE = (800, 800)
 SCREEN_CENTER = (400, 400)
 
@@ -130,13 +130,13 @@ def evolution(graphical):
         pg.display.set_mode(SCREEN_SIZE)
 
     max_age = 400
-    num_individuals = 10
+    num_individuals = 20
     num_generations = 20
 
     ga = GeneticAlgorithm('wandering',
                           convergence_period=10,
                           convergence_sensitivity_percent=5.,
-                          min_fitness_score=0.0,
+                          fast = True,
                           p_mut_top=0.2,
                           p_mut_cpd=0.2,
                           Npop=num_individuals,
@@ -145,14 +145,15 @@ def evolution(graphical):
 
     avg_fitnesses = []
     for gen in range(num_generations):
-        print('Generation ' + str(gen) + ' out of ' + str(num_generations))
-        print('----------------------------------------------------------')
         obstacles = read_obstacles(graphical)
         peepos = create_population(graphical, gen, population, obstacles)
+        print('Generation ' + str(gen) + ' out of ' + str(num_generations), '  with ', len(peepos) , ' peepos')
+        print('-------------------------------------------------------------------------------------------------')
 
         world = World(graphical, peepos, obstacles)
         world.main_loop(max_age)
         for idx, peepo in enumerate(peepos):
+
             population[idx][0] = peepo.health
 
         avg_fitness, population, converging = ga.evolve(population)
