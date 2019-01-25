@@ -17,13 +17,13 @@ NUMBER_OF_PARENTS_RATIO = 1./5.
 
 class GeneticAlgorithm:
 
-    def __init__(self, source, fast = False, convergence_period = 100000, convergence_sensitivity_percent = 5., Npop = 1, min_fitness_score = 0.0,  p_mut_top = 0.02, p_mut_cpd = 0.02, max_removal=None):
+    def __init__(self, source, fast = False, convergence_period = 100000, convergence_sensitivity_percent = 5., Npop = 1,  p_mut_top = 0.02, p_mut_cpd = 0.02, max_removal=None):
         self.fast = fast
         self.npop = int(Npop)
         self.population = []
         self.selected_parents = []
         self.number_of_parents = int(self.npop*NUMBER_OF_PARENTS_RATIO)
-        self.population_fitness_score = min_fitness_score#controls how the best parents are selected (fitness > min_fitness_score)
+        self.population_fitness_score = 0#min_fitness_score#controls how the best parents are selected (fitness > min_fitness_score)
         self.p_mut_pop = p_mut_top
         self.p_mut_cpd = p_mut_cpd
         self.root_nodes = []
@@ -38,6 +38,14 @@ class GeneticAlgorithm:
         self.convergence_history = []
         self.convergence_sensitivity = convergence_sensitivity_percent/100.
         self.initialize(source)
+
+
+
+
+    def get_population(self):
+        self.best_chromosome = self.population[0]
+        self.last_generation= [0.0, copy.copy(self.population)]
+        return self.population
 
 
     def initialize(self, source):
@@ -69,7 +77,7 @@ class GeneticAlgorithm:
             self.npop = len(topologies)
             self.number_of_parents = int(self.npop*NUMBER_OF_PARENTS_RATIO)
         [indexes.append(slope*x) for x in range(0, self.npop)]
-        #browse through the selected topologies and genarte the 0th population
+        #browse through the selected topologies and generate the 0th population
         for t in indexes:
             self.peepo.edges = topologies[t]['edges']
             for node in self.peepo.get_nodes():
@@ -91,20 +99,14 @@ class GeneticAlgorithm:
             #cleaning
             self.peepo.disassemble()
 
-    def get_population(self):
-        self.best_chromosome = self.population[0]
-        self.last_generation= [0.0, copy.copy(self.population)]
-        return self.population
-
     def get_parents(self):
+        """        Selects which parent will ba allowed to create offsprings
+
+                :param object:
+
+                :return :  None
+
         """
-                   Selects which parent will ba allowed to create offsprings
-
-                   :param object:
-
-                   :return :  None
-
-           """
         self.selected_parents = []
         self.population = sorted(self.population, key=lambda chromo: chromo[0], reverse=True)
         # check for the best chromosome yet
@@ -117,19 +119,6 @@ class GeneticAlgorithm:
         self.population_fitness_score /= self.number_of_parents
 
         if self.fast:
-            # self.population = sorted(self.population, key=lambda chromo: chromo[0], reverse=True)
-            # best_parents = []
-            # mean = 0
-            # for x in self.population:
-            #     if x[0] >= self.population_fitness_score:
-            #         mean += x[0]
-            #         x[0] = 0
-            #         best_parents.append(x)
-            # if len(best_parents) > 0:
-            #     mean /= len(best_parents)
-            # else:
-            #     mean = -1.
-            # return mean, best_parents
 
             self.selected_parents = self.population[0:self.number_of_parents]
             for i in range(self.number_of_parents):
@@ -142,8 +131,7 @@ class GeneticAlgorithm:
             npop = len(self.population)
             for index in range(npop):
                 repeat = npop - index
-                for rep in range(repeat):
-                    pool.append(index)
+                [pool.append(index) for rep in range(repeat)]
             random.shuffle(pool)
             for draw in range(self.number_of_parents):
                 pool_index = random.randint(0, len(pool)-1)
