@@ -98,6 +98,8 @@ class GeneticAlgorithm:
             self.population.append(my_chromosome)
             #cleaning
             self.peepo.disassemble()
+            if self.number_of_parents ==0:
+                self.number_of_parents = 1
 
     def get_parents(self):
         """        Selects which parent will ba allowed to create offsprings
