@@ -10,14 +10,6 @@
     "RON": {
       "BEL": [
         {
-          "name": "RON_wandering_left",
-          "card": 2
-        },
-        {
-          "name": "RON_wandering_right",
-          "card": 2
-        },
-        {
           "name": "RON_obstacle_left",
           "card": 2
         },
