@@ -4,33 +4,25 @@
     "description": "",
     "frozen": false,
     "train_from": "",
-    "date": "2018-12-23 13:42:01.218775"
+    "date": "2019-01-23 19:28:09.727316"
   },
   "nodes": {
     "RON": {
       "BEL": [
         {
-          "name": "BENS_0",
+          "name": "RON_wandering_left",
           "card": 2
         },
         {
-          "name": "BENS_1",
+          "name": "RON_wandering_right",
           "card": 2
         },
         {
-          "name": "BENS_2",
+          "name": "RON_obstacle_left",
           "card": 2
         },
         {
-          "name": "BENS_3",
-          "card": 2
-        },
-        {
-          "name": "BENS_4",
-          "card": 2
-        },
-        {
-          "name": "BENS_5",
+          "name": "RON_obstacle_right",
           "card": 2
         }
       ],
@@ -40,38 +32,38 @@
     "LEN": {
       "EXT": [
         {
-          "name": "VISION_LEFT",
+          "name": "LEN_vision_1",
           "card": 2
         },
         {
-          "name": "VISION_RIGHT",
+          "name": "LEN_vision_2",
           "card": 2
         },
         {
-          "name": "VISION_UP",
+          "name": "LEN_vision_3",
           "card": 2
         },
         {
-          "name": "VISION_DOWN",
+          "name": "LEN_vision_4",
+          "card": 2
+        },
+        {
+          "name": "LEN_vision_5",
+          "card": 2
+        },
+        {
+          "name": "LEN_vision_6",
           "card": 2
         }
       ],
       "INT": [],
       "PRO": [
         {
-          "name": "MOTOR_LEFT",
+          "name": "LEN_motor_left",
           "card": 2
         },
         {
-          "name": "MOTOR_RIGHT",
-          "card": 2
-        },
-        {
-          "name": "MOTOR_UP",
-          "card": 2
-        },
-        {
-          "name": "MOTOR_DOWN",
+          "name": "LEN_motor_right",
           "card": 2
         }
       ]
