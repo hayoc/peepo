@@ -11,6 +11,7 @@ import pygame as pg
 from peepo.playground.wandering.organism import Obstacle, Peepo
 from peepo.predictive_processing.v3.genetic_algorithm import GeneticAlgorithm
 from peepo.predictive_processing.v3.peepo_network import read_from_file, write_to_file
+from peepo.visualize.graph import draw_network
 
 CAPTION = "survival"
 SCREEN_SIZE = (800, 800)
@@ -108,7 +109,10 @@ def verification(graphical):
 
     max_age = 500
     obstacles = read_obstacles(graphical)
-    peepos = [Peepo('peepo', read_from_file('best_wandering_network'), graphical, (5, 400), obstacles)]
+    peepo_network = read_from_file('best_wandering_network')
+    draw_network(peepo_network)
+
+    peepos = [Peepo('peepo', peepo_network, graphical, (5, 400), obstacles)]
     world = World(graphical, peepos, obstacles)
 
     world.main_loop(max_age)
@@ -136,7 +140,7 @@ def evolution(graphical):
     ga = GeneticAlgorithm('wandering',
                           convergence_period=10,
                           convergence_sensitivity_percent=5.,
-                          fast = True,
+                          fast=True,
                           p_mut_top=0.2,
                           p_mut_cpd=0.2,
                           Npop=num_individuals,
@@ -147,13 +151,12 @@ def evolution(graphical):
     for gen in range(num_generations):
         obstacles = read_obstacles(graphical)
         peepos = create_population(graphical, gen, population, obstacles)
-        print('Generation ' + str(gen) + ' out of ' + str(num_generations), '  with ', len(peepos) , ' peepos')
+        print('Generation ' + str(gen) + ' out of ' + str(num_generations), '  with ', len(peepos), ' peepos')
         print('-------------------------------------------------------------------------------------------------')
 
         world = World(graphical, peepos, obstacles)
         world.main_loop(max_age)
         for idx, peepo in enumerate(peepos):
-
             population[idx][0] = peepo.health
 
         avg_fitness, population, converging = ga.evolve(population)

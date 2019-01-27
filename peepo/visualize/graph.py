@@ -7,6 +7,11 @@ from networkx.readwrite import json_graph
 path = os.path.dirname(os.path.realpath(__file__))
 
 
+def pretty_str(cpd):
+    result = ',\n'.join(str(sublist) for sublist in cpd)
+    return result
+
+
 def draw_network(peepo_network):
     """
     To view the results of the drawing, run this script separately: peepo/visualize/server.py
@@ -18,7 +23,7 @@ def draw_network(peepo_network):
     G = nx.DiGraph()
 
     for node in peepo_network.get_nodes():
-        G.add_node(node, name=node, cpd=str(peepo_network.get_cpds(node)))
+        G.add_node(node, name=node, cpd=pretty_str(peepo_network.get_cpds(node)))
 
     G.add_edges_from(peepo_network.get_edges())
 

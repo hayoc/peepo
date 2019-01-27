@@ -1,5 +1,5 @@
 import math
-import random
+
 import numpy as np
 import pygame as pg
 
@@ -102,7 +102,6 @@ class Peepo:
             if self.rect.colliderect(obstacle.rect):
                 self.health += 1
                 self.obstacles.remove(obstacle)
-
 
             peepo_vec = pg.math.Vector2(self.rect.center)
             if collision(obstacle.rect, peepo_vec, self.edge_left, self.edge_right, Peepo.RADIUS):
