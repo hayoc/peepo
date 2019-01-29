@@ -23,11 +23,14 @@ class GenerativeModel:
     :type n_jobs : int
 
     TODO: Model Update, e.g. through: self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters]
+
     TODO: Integrate PRECISION BASED WEIGHTING on prediction errors. E.g. prediction error minimization should only
-    happen if the prediction errors have enough weight assigned to them. This can depend on context, the organism's
-    goal, or other ways.
+    TODO: happen if the prediction errors have enough weight assigned to them. This can depend on context,
+    TODO: the organism's goal, or other ways.
+
     TODO: Implement a custom BayesianNetwork so we can distinguish between action and perception nodes. Instead of
-    distinguishing them by checking for 'motor' in the name.
+    TODO: distinguishing them by checking for 'motor' in the name.
+
     TODO: Parallelism
     """
 
@@ -36,8 +39,6 @@ class GenerativeModel:
         self.bayesian_network = self.peepo_network.to_pomegranate()
         self.sensory_input = sensory_input
         self.n_jobs = n_jobs
-
-        # draw_network(peepo_network)
 
     def process(self, structure_learning=False):
         """

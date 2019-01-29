@@ -1,116 +1,172 @@
-#15/01/2019
 import json
 import logging
+import os
 import random
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pygame as pg
 
-from peepo.playground.survival.organism import Peepo, Food
+from peepo.playground.survival.organism import Obstacle, Peepo
 from peepo.predictive_processing.v3.genetic_algorithm import GeneticAlgorithm
-from peepo.predictive_processing.v3.peepo_network import write_to_file
+from peepo.predictive_processing.v3.peepo_network import read_from_file, write_to_file
+from peepo.visualize.graph import draw_network
 
-MAP_SIZE = (800, 800)
-
-
-def generate_food(num, offset=20):
-    objects = []
-    for x in range(0, num):
-        objects.append({
-            'name': 'food_' + str(x),
-            'x': random.randint(offset, MAP_SIZE[0] - offset),
-            'y': random.randint(offset, MAP_SIZE[1] - offset)
-        })
-    with open('food.json', 'w') as outfile:
-        json.dump(objects, outfile)
+CAPTION = "survival"
+SCREEN_SIZE = (800, 800)
+SCREEN_CENTER = (400, 400)
 
 
-def read_food():
-    food_stuff = []
-    with open('food.json') as json_data:
-        for f in json.load(json_data):
-            food_stuff.append(Food(f['name'], (f['x'], f['y'])))
-    return food_stuff
-
-
-def create_population(generation, individuals, food):
+def create_population(graphical, generation, individuals, food):
     pop = []
     for i, idv in enumerate(individuals):
         peepo = Peepo(name='peepo_' + str(generation) + '_' + str(i),
                       network=idv[1],
-                      pos=(5, 5),
+                      graphical=graphical,
+                      pos=(5, 400),
                       obstacles=food)
         pop.append(peepo)
 
     return pop
 
-# def get_optimal_network(population):
-#     pop = []
-#     for x in population:
-#         n_edges = len(x[1].edges)
-#         pop.append([x[0],x[1], n_edges])
-#     pop = sorted(pop, key=lambda chromo: chromo[0], reverse=True)
-#     best_population = []
-#     best_score = pop[0][0]
-#     for x in pop:
-#         if x[0] != best_score:
-#             break
-#         best_population.append(x)
-#     best_population = sorted(best_population, key=lambda chromo: chromo[2])
-#     return best_population[0]
+
+def generate_obstacles(num):
+    objects = []
+    for x in range(0, num):
+        objects.append({
+            'id': 'obj_' + str(x),
+            'x': random.randint(20, SCREEN_SIZE[0] - 20),
+            'y': random.randint(20, SCREEN_SIZE[1] - 20)
+        })
+    with open('obstacles.json', 'w') as outfile:
+        json.dump(objects, outfile)
 
 
+def read_obstacles(graphical):
+    obstacles = []
+    with open('obstacles.json') as json_data:
+        for f in json.load(json_data):
+            obstacles.append(Obstacle(f['id'], (f['x'], f['y']), graphical))
+    return obstacles
 
 
+class World(object):
+
+    def __init__(self, graphical, peepos, obstacles):
+        if graphical:
+            self.screen = pg.display.get_surface()
+            self.screen_rect = self.screen.get_rect()
+        self.graphical = graphical
+        self.clock = pg.time.Clock()
+        self.fps = 60
+        self.done = False
+        self.peepos = peepos
+        self.obstacles = obstacles
+
+    def event_loop(self):
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                self.done = True
+
+    def render(self):
+        self.screen.fill(pg.Color("white"))
+        for obj in self.obstacles:
+            obj.draw(self.screen)
+        for peepo in self.peepos:
+            peepo.draw(self.screen)
+
+        pg.display.update()
+
+    def main_loop(self, max_age):
+        loop = 0
+        while not self.done:
+            for peepo in self.peepos:
+                peepo.update()
+            if self.graphical:
+                self.event_loop()
+                self.render()
+                self.clock.tick(self.fps)
+            loop += 1
+            if loop % 10 == 0:
+                print('Age ' + str(loop) + ' out of ' + str(max_age))
+            if loop > max_age:
+                for peepo in self.peepos:
+                    print(peepo.health)
+                break
 
 
-
-if __name__ == '__main__':
-    # generate_food(300)
-    # generate_food(3000)
-
+def verification(graphical):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
+    # generate_obstacles(400)
+
+    os.environ['SDL_VIDEO_CENTERED'] = '1'
+    if graphical:
+        pg.init()
+        pg.display.set_caption(CAPTION)
+        pg.display.set_mode(SCREEN_SIZE)
+
+    max_age = 500
+    obstacles = read_obstacles(graphical)
+    peepo_network = read_from_file('best_survival_network')
+    draw_network(peepo_network)
+
+    peepos = [Peepo('peepo', peepo_network, graphical, (5, 400), obstacles)]
+    world = World(graphical, peepos, obstacles)
+
+    world.main_loop(max_age)
+    print(peepos[0].health)
+
+    pg.quit()
+    sys.exit()
+
+
+def evolution(graphical):
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
+    # generate_obstacles(400)
+
+    os.environ['SDL_VIDEO_CENTERED'] = '1'
+    if graphical:
+        pg.init()
+        pg.display.set_caption(CAPTION)
+        pg.display.set_mode(SCREEN_SIZE)
+
+    max_age = 400
     num_individuals = 20
-    num_generations = 40
-    max_age = 20  # 50
+    num_generations = 20
+
     ga = GeneticAlgorithm('survival',
-                          convergence_period = 10,
-                          convergence_sensitivity_percent = 5.,
-                          min_fitness_score = 0.0,
-                          p_mut_top = 0.2,
-                          p_mut_cpd = 0.2,
+                          convergence_period=10,
+                          convergence_sensitivity_percent=5.,
+                          fast=True,
+                          p_mut_top=0.2,
+                          p_mut_cpd=0.2,
                           Npop=num_individuals,
                           max_removal=2)
     population = ga.get_population()
-    peepos = []
+
     avg_fitnesses = []
-    final_population = []
-    converging = False
     for gen in range(num_generations):
-        food = read_food()
-        food.append(Food('cheat', (20, 20)))
-        #
-        # logging.info('*********************                     GENERATION ', gen,
-        #              ' *****************************************')
-        peepos = create_population(gen, population, food)
-        for age in range(max_age):
-            # logging.info('**  GENERATION ' ,gen , ' -----------> AGE OF PEEPOS ' ,  age, ' --------------')
-            print('**  GENERATION ' ,gen , ' -----------> AGE OF THE ',len(population) , ' PEEPOS = ' ,  age, ' --------------')
-            final_population = []
-            for ind, peepo in enumerate(peepos):
-                peepo.update()
-                population[ind][0] = peepo.food
-                final_population.append([peepo.food, population[ind][1]])
+        obstacles = read_obstacles(graphical)
+        peepos = create_population(graphical, gen, population, obstacles)
+        print('Generation ' + str(gen) + ' out of ' + str(num_generations), '  with ', len(peepos), ' peepos')
+        print('-------------------------------------------------------------------------------------------------')
+
+        world = World(graphical, peepos, obstacles)
+        world.main_loop(max_age)
+        for idx, peepo in enumerate(peepos):
+            population[idx][0] = peepo.health
+
         avg_fitness, population, converging = ga.evolve(population)
         if converging:
             break
-        if  avg_fitness < 0:
-            # logging.info(' population collapsed :-( ')
-            print(' population collapsed :-( ')
+        if avg_fitness < 0:
+            print(' population collapsed :-(')
             break
-        # logging.info('Average fitness: %d', avg_fitness)
         print('Average fitness: ', avg_fitness)
+        print('----------------------------------------------------------')
         avg_fitnesses.append(avg_fitness)
     final_network, best_fitness = ga.get_optimal_network()
     print('\n\nFINAL NETWORK has a fitness of ', best_fitness)
@@ -125,3 +181,8 @@ if __name__ == '__main__':
            title='Survival with genetic algorithm')
     ax.grid()
     plt.show()
+
+
+if __name__ == '__main__':
+    # evolution(False)
+    verification(True)
