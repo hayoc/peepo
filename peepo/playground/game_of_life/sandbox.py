@@ -111,6 +111,7 @@ class World(object):
         while not self.done:
             for peepo in self.peepos:
                 peepo.update()
+                self.food = peepo.food
                 self.traject.append(peepo.rect)
                 if peepo.stomach > last_food:
                     last_food = peepo.stomach
@@ -131,6 +132,8 @@ class World(object):
                 for peepo in self.peepos:
                     print('Food items : ',  peepo.stomach, ' and ', peepo.bang , ' bruises.')
                 break
+
+
         if self.graphical:
             self.screen.fill(pg.Color("white"))
             for obj in self.ennemies:
@@ -156,10 +159,10 @@ def verification(graphical):
         pg.display.set_caption(CAPTION)
         pg.display.set_mode(SCREEN_SIZE)
 
-    max_age = 2000
+    max_age = 400#2000
     ennemies = read_ennemies(graphical)
     food = read_food(graphical)
-    peepos = [Peepo('peepo', read_from_file('best_life_game_network'), graphical, (5, 400), ennemies, food)]
+    peepos = [Peepo('peepo', read_from_file('best_life_game_network'), graphical, (5, 400), ennemies = ennemies, food = food)]
     world = World(graphical, peepos, ennemies, food)
 
     world.main_loop(max_age,True)
@@ -182,8 +185,8 @@ def evolution(graphical, enemy_wheight):
     num_individuals = 20
     num_generations = 20
 
-    ga = GeneticAlgorithm('wandering',
-                          convergence_period=10,
+    ga = GeneticAlgorithm('game_of_life',
+                          convergence_period=5,
                           convergence_sensitivity_percent=5.,
                           fast = True,
                           p_mut_top=0.2,
@@ -204,7 +207,7 @@ def evolution(graphical, enemy_wheight):
         world.main_loop(max_age)
         for idx, peepo in enumerate(peepos):
 
-            population[idx][0] = peepo.stomach*(1.-enemy_wheight) - peepo.bang*enemy_wheight
+            population[idx][0] = (1.0+peepo.stomach*(1.-enemy_wheight))/(1.0+ peepo.bang*enemy_wheight)
 
         avg_fitness, population, converging = ga.evolve(population)
         if converging:
@@ -225,14 +228,14 @@ def evolution(graphical, enemy_wheight):
     fig, ax = plt.subplots()
     ax.plot(t, avg_fitnesses)
     ax.set(xlabel='generation', ylabel='average fitness',
-           title='Life game with genetic algorithm')
+           title='Game of life game with genetic algorithm')
     ax.grid()
     plt.show()
 
 
 if __name__ == '__main__':
     enemy_wheight = 0.5
-    generate_ennemies(100)
-    generate_food(600)
+    # generate_ennemies(200)
+    # generate_food(200)
     # evolution(False,enemy_wheight)
     verification(True)
