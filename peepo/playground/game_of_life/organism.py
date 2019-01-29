@@ -202,7 +202,7 @@ class Ennemies:
         image.fill(TRANSPARENT)
         image_rect = image.get_rect()
         pg.draw.rect(image, pg.Color("black"), image_rect)
-        pg.draw.rect(image, pg.Color("orange"), image_rect.inflate(-2, -2))
+        pg.draw.rect(image, pg.Color("darkgrey"), image_rect.inflate(-2, -2))
         return image
 
     def draw(self, surface):
@@ -234,7 +234,7 @@ class Food:
         image.fill(TRANSPARENT)
         image_rect = image.get_rect()
         pg.draw.rect(image, pg.Color("black"), image_rect)
-        pg.draw.rect(image, pg.Color("pink"), image_rect.inflate(-2, -2))
+        pg.draw.rect(image, pg.Color("palegreen"), image_rect.inflate(-2, -2))
         return image
 
     def draw(self, surface):
