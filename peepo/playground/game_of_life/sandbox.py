@@ -130,7 +130,7 @@ class World(object):
                 print('Age ' + str(loop) + ' out of ' + str(max_age))
             if loop > max_age:
                 for peepo in self.peepos:
-                    print('Food items : ',  peepo.stomach, ' and ', peepo.bang , ' bruises.')
+                    print('Peepo got ', peepo.stomach, ' food items  and ', peepo.bang , ' injuries.')
                 break
 
 
