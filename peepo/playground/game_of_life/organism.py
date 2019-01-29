@@ -12,7 +12,8 @@ RIGHT = 'right'
 
 VISION = 'vision'
 MOTOR = 'motor'
-IDENTIFICATION = 'identification'
+ID_ENNEMY = 'ennemy'
+ID_FOOD = 'food'
 TRANSPARENT = (0, 0, 0, 0)
 
 
@@ -59,14 +60,15 @@ class Peepo:
             '5': False,
             '6': False,
         }
-        self.is_an_ennemy = False
+        self.is_an_enemy = False
+        self.is_food = False
         self.generative_model = GenerativeModel(network, SensoryInputPeepo(self), n_jobs=1)
 
     def assemble_obstacles(self):
         for i,x in enumerate(self.food):
-            self.obstacles.append((x,0,i))
+            self.obstacles.append([x,0,i])
         for i,x in enumerate(self.ennemies):
-            self.obstacles.append((x,1,i))
+            self.obstacles.append([x,1,i])
 
     def update(self):
         self.generative_model.process()
@@ -110,13 +112,14 @@ class Peepo:
 
     def calculate_obstacles(self):
         self.view = {x: False for x in self.view}
-        self.is_an_ennemy = False
-        for obstacle in self.obstacles:
+        self.is_an_enemy = False
+        self.is_food = False
+        observations = self.obstacles
+        for obstacle in observations:
             if self.rect.colliderect(obstacle[0].rect):
                 if obstacle[1] == 0:
                     self.stomach += 1
                     self.obstacles.remove(obstacle)
-                    self.food.pop(obstacle[2])
                 else:
                     self.bang += 1
 
@@ -137,8 +140,11 @@ class Peepo:
                 self.view['5'] = collision(obstacle[0].rect, peepo_vec, edge5, edge6, Peepo.RADIUS)
                 self.view['6'] = collision(obstacle[0].rect, peepo_vec, edge6, edge7, Peepo.RADIUS)
                 if obstacle[1] == 1:
-                    self.is_an_ennemy = True
-
+                    self.is_an_enemy = True
+                if obstacle[1] == 0:
+                    self.is_food = True
+        self.food = []
+        [self.food.append(x[0]) for x in self.obstacles if x[1] == 0]
 
 class SensoryInputPeepo(SensoryInput):
 
@@ -151,8 +157,10 @@ class SensoryInputPeepo(SensoryInput):
             return [0.1, 0.9] if self.peepo.view[self.get_quadrant(name)] else [0.9, 0.1]
         if MOTOR.lower() in name.lower():
             return [0.1, 0.9] if self.peepo.motor[self.get_direction(name)] else [0.9, 0.1]
-        if IDENTIFICATION.lower() in name.lower():
+        if ID_ENNEMY.lower() in name.lower():
             return [0.1, 0.9] if self.peepo.is_an_enemy else [0.9, 0.1]
+        if ID_FOOD.lower() in name.lower():
+            return [0.1, 0.9] if self.peepo.is_food else [0.9, 0.1]
 
     def action(self, node, prediction):
         if np.argmax(prediction) == 0:
