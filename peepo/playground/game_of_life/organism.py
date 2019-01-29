@@ -12,8 +12,10 @@ RIGHT = 'right'
 
 VISION = 'vision'
 MOTOR = 'motor'
+
 ID_ENNEMY = 'ennemy'
 ID_FOOD = 'food'
+
 TRANSPARENT = (0, 0, 0, 0)
 
 
@@ -122,6 +124,7 @@ class Peepo:
                     self.obstacles.remove(obstacle)
                 else:
                     self.bang += 1
+                    # self.obstacles.remove(obstacle)
 
             peepo_vec = pg.math.Vector2(self.rect.center)
             if collision(obstacle[0].rect, peepo_vec, self.edge_left, self.edge_right, Peepo.RADIUS):
@@ -145,6 +148,8 @@ class Peepo:
                     self.is_food = True
         self.food = []
         [self.food.append(x[0]) for x in self.obstacles if x[1] == 0]
+        # self.ennemies = []
+        # [self.ennemies.append(x[0]) for x in self.obstacles if x[1] == 1]
 
 class SensoryInputPeepo(SensoryInput):
 
