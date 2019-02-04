@@ -130,6 +130,8 @@ class Peepo:
                     # self.obstacles.remove(obstacle)
         self.food = []
         [self.food.append(x[0]) for x in self.obstacles if x[1] == 0]
+        # self.ennemies = []
+        # [self.ennemies.append(x[0]) for x in self.obstacles if x[1] == 1]
         self.assemble_obstacles()
         observations = self.obstacles
         edge1 = end_line(Peepo.RADIUS, self.rotation - 30, self.rect.center)
