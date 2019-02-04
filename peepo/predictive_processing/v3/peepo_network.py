@@ -51,6 +51,36 @@ def get_topologies(peepo_network, max_removal=None):
     return topologies
 
 
+def get_topologies2(peepo_network, simple_first=False, max_topologies=None, max_removal=None):
+    max_edges = fully_connected_network(peepo_network).get_edges()
+    max_removal = max_removal if max_removal and max_removal < len(max_edges) else len(max_edges)
+
+    topologies = []
+
+    if simple_first:
+        for x in range(0, max_removal + 1):
+            for cmb in itertools.combinations(max_edges, x):
+                topologies.append({
+                    'edges': list(cmb),
+                    'entropy': len(cmb)
+                })
+
+                if max_topologies and len(topologies) >= max_topologies:
+                    return topologies
+    else:
+        for x in range(len(max_edges), len(max_edges) - max_removal, -1):
+            for cmb in itertools.combinations(max_edges, x):
+                topologies.append({
+                    'edges': list(cmb),
+                    'entropy': len(cmb)
+                })
+
+                if max_topologies and len(topologies) >= max_topologies:
+                    return topologies
+
+    return topologies
+
+
 def fully_connected_network(peepo_network):
     for root in peepo_network.get_root_nodes():
         for leaf in peepo_network.get_leaf_nodes():
@@ -208,30 +238,28 @@ class PeepoNetwork:
         if self.cpds:
             distributions = OrderedDict()
 
-            for root in itertools.chain(self.bel_nodes, self.mem_nodes):
-                cpd = DiscreteDistribution(dict(enumerate(self.cpds[root['name']])))
-                distributions.update({root['name']: cpd})
+            for node in self.get_nodes():
+                if len(self.get_incoming_edges(node)) == 0:
+                    cpd = DiscreteDistribution(dict(enumerate(self.cpds[node])))
+                    distributions.update({node: cpd})
+                else:
+                    parents = [parent for parent, child in self.edges if child == node]
+                    parent_cpds = [distributions[key] for key in parents]
 
-            for child_node in itertools.chain(self.lan_nodes, self.ext_nodes, self.int_nodes, self.pro_nodes):
-                parents = [parent for parent, child in self.edges if child == child_node['name']]
-                parent_cpds = [distributions[key] for key in parents]
+                    cardinalities = [self.cardinality_map[key] for key in parents]
+                    cardinalities.append(self.cardinality_map[node])
 
-                cardinalities = [self.cardinality_map[key] for key in parents]
-                cardinalities.append(self.cardinality_map[child_node['name']])
+                    states = get_index_matrix(cardinalities)
+                    original_cpd = np.array(self.cpds[node])
+                    probabilities = []
 
-                states = get_index_matrix(cardinalities)
-                original_cpd = np.array(self.cpds[child_node['name']])
-                probabilities = []
+                    for col in range(0, original_cpd.shape[1]):
+                        for row in range(0, original_cpd.shape[0]):
+                            probabilities.append(original_cpd[row, col])
 
-                for col in range(0, original_cpd.shape[1]):
-                    for row in range(0, original_cpd.shape[0]):
-                        probabilities.append(original_cpd[row, col])
-
-                if len(probabilities) != states.shape[1]:
-                    print('NOOO')
-                stacjed = np.vstack([states, probabilities])
-                cpd = ConditionalProbabilityTable(stacjed.T.tolist(), parent_cpds)
-                distributions.update({child_node['name']: cpd})
+                    stacked = np.vstack([states, probabilities])
+                    cpd = ConditionalProbabilityTable(stacked.T.tolist(), parent_cpds)
+                    distributions.update({node: cpd})
 
             states = OrderedDict()
             for key, value in distributions.items():
@@ -464,7 +492,7 @@ class PeepoNetwork:
             'cpds': self.cpds
         }
 
-    def __copy__(self):
+    def copy(self):
         return PeepoNetwork(identification=self.identification,
                             description=self.description,
                             train_from=self.train_from,
@@ -478,6 +506,9 @@ class PeepoNetwork:
                             pro_nodes=self.pro_nodes.copy(),
                             edges=self.edges.copy(),
                             cpds=deepcopy(self.cpds))
+
+    def __copy__(self):
+        return self.copy()
 
     def __str__(self):
         return self.to_json()

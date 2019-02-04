@@ -9,14 +9,6 @@
   "nodes": {
     "RON": {
       "BEL": [
-        {
-          "name": "RON_obstacle_left",
-          "card": 2
-        },
-        {
-          "name": "RON_obstacle_right",
-          "card": 2
-        }
       ],
       "MEM": []
     },

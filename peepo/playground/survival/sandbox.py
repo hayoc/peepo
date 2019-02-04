@@ -9,7 +9,7 @@ import numpy as np
 import pygame as pg
 
 from peepo.playground.survival.organism import Obstacle, Peepo
-from peepo.predictive_processing.v3.genetic_algorithm import GeneticAlgorithm
+from peepo.predictive_processing.v3.genetic_algorithm2 import GeneticAlgorithm
 from peepo.predictive_processing.v3.peepo_network import read_from_file, write_to_file
 from peepo.visualize.graph import draw_network
 
@@ -22,7 +22,7 @@ def create_population(graphical, generation, individuals, food):
     pop = []
     for i, idv in enumerate(individuals):
         peepo = Peepo(name='peepo_' + str(generation) + '_' + str(i),
-                      network=idv[1],
+                      network=idv.network,
                       graphical=graphical,
                       pos=(5, 400),
                       obstacles=food)
@@ -107,7 +107,7 @@ def verification(graphical):
         pg.display.set_caption(CAPTION)
         pg.display.set_mode(SCREEN_SIZE)
 
-    max_age = 500
+    max_age = 100000
     obstacles = read_obstacles(graphical)
     peepo_network = read_from_file('best_survival_network')
     draw_network(peepo_network)
@@ -116,7 +116,7 @@ def verification(graphical):
     world = World(graphical, peepos, obstacles)
 
     world.main_loop(max_age)
-    print(peepos[0].health)
+    # print(peepos[0].health)
 
     pg.quit()
     sys.exit()
@@ -133,19 +133,19 @@ def evolution(graphical):
         pg.display.set_caption(CAPTION)
         pg.display.set_mode(SCREEN_SIZE)
 
-    max_age = 400
-    num_individuals = 20
-    num_generations = 20
+    max_age = 500
+    num_individuals = 30
+    num_generations = 40
 
     ga = GeneticAlgorithm('survival',
+                          fast_convergence=True,
                           convergence_period=10,
-                          convergence_sensitivity_percent=5.,
-                          fast=True,
+                          convergence_sensitivity=5.,
                           p_mut_top=0.2,
                           p_mut_cpd=0.2,
-                          Npop=num_individuals,
+                          n_pop=num_individuals,
                           max_removal=2)
-    population = ga.get_population()
+    population = ga.first_generation()
 
     avg_fitnesses = []
     for gen in range(num_generations):
@@ -157,10 +157,11 @@ def evolution(graphical):
         world = World(graphical, peepos, obstacles)
         world.main_loop(max_age)
         for idx, peepo in enumerate(peepos):
-            population[idx][0] = peepo.health
+            population[idx].fitness = peepo.health
 
         avg_fitness, population, converging = ga.evolve(population)
         if converging:
+            print('Converged')
             break
         if avg_fitness < 0:
             print(' population collapsed :-(')
@@ -168,11 +169,11 @@ def evolution(graphical):
         print('Average fitness: ', avg_fitness)
         print('----------------------------------------------------------')
         avg_fitnesses.append(avg_fitness)
-    final_network, best_fitness = ga.get_optimal_network()
-    print('\n\nFINAL NETWORK has a fitness of ', best_fitness)
+    best_individual = ga.get_optimal_network()
+    print('\n\nFINAL NETWORK has a fitness of ', best_individual.fitness)
     print('________________\n\n')
-    print(final_network.edges)
-    write_to_file('best_survival_network', final_network)
+    print(best_individual.network.edges)
+    write_to_file('best_survival_network', best_individual.network)
 
     t = np.arange(0.0, len(avg_fitnesses), 1)
     fig, ax = plt.subplots()
