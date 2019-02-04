@@ -68,6 +68,7 @@ class Peepo:
         self.generative_model = GenerativeModel(network, SensoryInputPeepo(self), n_jobs=1)
 
     def assemble_obstacles(self):
+        self.obstacles = []
         for i, x in enumerate(self.food):
             self.obstacles.append([x, 0, i])
         for i, x in enumerate(self.ennemies):
@@ -106,6 +107,7 @@ class Peepo:
         pg.draw.line(surface, pg.Color("red"), self.rect.center, self.edge_right, 2)
         pg.draw.line(surface, pg.Color("green"), self.rect.center, self.edge_left, 2)
         pg.draw.line(surface, pg.Color("blue"), self.rect.center, self.edge_middle, 4)
+        pg.draw.circle(surface, pg.Color("grey"), self.rect.center, Peepo.RADIUS, 2)
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
@@ -119,8 +121,7 @@ class Peepo:
         self.view = {x: False for x in self.view}
         self.is_an_enemy = False
         self.is_food = False
-        observations = self.obstacles
-        for obstacle in observations:
+        for obstacle in self.obstacles:
             if self.rect.colliderect(obstacle[0].rect):
                 if obstacle[1] == 0:
                     self.stomach += 1
@@ -133,7 +134,11 @@ class Peepo:
         # self.ennemies = []
         # [self.ennemies.append(x[0]) for x in self.obstacles if x[1] == 1]
         self.assemble_obstacles()
-        observations = self.obstacles
+        observations = []
+        for obstacle in self.obstacles:
+            distance = math.sqrt((obstacle[0].rect.center[0] - self.rect.center[0])**2 +(obstacle[0].rect.center[1] - self.rect.center[1])**2)
+            if distance <= Peepo.RADIUS:
+                observations.append(obstacle)
         edge1 = end_line(Peepo.RADIUS, self.rotation - 30, self.rect.center)
         edge2 = end_line(Peepo.RADIUS, self.rotation - 20, self.rect.center)
         edge3 = end_line(Peepo.RADIUS, self.rotation - 10, self.rect.center)
