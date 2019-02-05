@@ -60,8 +60,6 @@ class Peepo:
             '2': False,
             '3': False,
             '4': False,
-            '5': False,
-            '6': False,
         }
         self.is_an_enemy = False
         self.is_food = False
@@ -128,11 +126,11 @@ class Peepo:
                     self.obstacles.remove(obstacle)
                 else:
                     self.bang += 1
-                    # self.obstacles.remove(obstacle)
+                    self.obstacles.remove(obstacle)
         self.food = []
         [self.food.append(x[0]) for x in self.obstacles if x[1] == 0]
-        # self.ennemies = []
-        # [self.ennemies.append(x[0]) for x in self.obstacles if x[1] == 1]
+        self.ennemies = []
+        [self.ennemies.append(x[0]) for x in self.obstacles if x[1] == 1]
         self.assemble_obstacles()
         observations = []
         for obstacle in self.obstacles:
@@ -140,13 +138,11 @@ class Peepo:
             if distance <= Peepo.RADIUS:
                 observations.append(obstacle)
         edge1 = end_line(Peepo.RADIUS, self.rotation - 30, self.rect.center)
-        edge2 = end_line(Peepo.RADIUS, self.rotation - 20, self.rect.center)
-        edge3 = end_line(Peepo.RADIUS, self.rotation - 10, self.rect.center)
-        edge4 = end_line(Peepo.RADIUS, self.rotation, self.rect.center)
-        edge5 = end_line(Peepo.RADIUS, self.rotation + 10, self.rect.center)
-        edge6 = end_line(Peepo.RADIUS, self.rotation + 20, self.rect.center)
-        edge7 = end_line(Peepo.RADIUS, self.rotation + 30, self.rect.center)
-        sectors = [[edge1, edge2], [edge2, edge3], [edge3, edge4], [edge4, edge5], [edge5, edge6], [edge6, edge7]]
+        edge2 = end_line(Peepo.RADIUS, self.rotation - 15, self.rect.center)
+        edge3 = end_line(Peepo.RADIUS, self.rotation, self.rect.center)
+        edge4 = end_line(Peepo.RADIUS, self.rotation + 15, self.rect.center)
+        edge5 = end_line(Peepo.RADIUS, self.rotation + 30, self.rect.center)
+        sectors = [[edge1, edge2], [edge2, edge3], [edge3, edge4], [edge4, edge5]]
         peepo_vec = pg.math.Vector2(self.rect.center)
         relevant_sector = ["0", self.rect.center, Peepo.RADIUS]
         closest_distance = 10000.
@@ -176,17 +172,14 @@ class Peepo:
         if only_true == '0':
             sight_angle = self.rotation
         if only_true == '1':
-            sight_angle = self.rotation - 25
+            sight_angle = self.rotation -22.5
         if only_true == '2':
-            sight_angle = self.rotation - 15
+            sight_angle = self.rotation - 7.5
         if only_true == '3':
-            sight_angle = self.rotation - 5
+            sight_angle = self.rotation +7.5
         if only_true == '4':
-            sight_angle = self.rotation + 5
-        if only_true == '5':
-            sight_angle = self.rotation + 15
-        if only_true == '6':
-            sight_angle = self.rotation + 25
+            sight_angle = self.rotation + 22.5
+
         self.edge_middle = end_line(relevant_sector[2] / 20, sight_angle, relevant_sector[1])
 
 
@@ -214,10 +207,10 @@ class SensoryInputPeepo(SensoryInput):
 
     @staticmethod
     def get_quadrant(name):
-        for quad in ['1', '2', '3', '4', '5', '6']:
+        for quad in ['1', '2', '3', '4']:
             if quad.lower() in name.lower():
                 return quad
-        raise ValueError('Unexpected node name %s, could not find 1,2,3,4,5,6', name)
+        raise ValueError('Unexpected node name %s, could not find 1,2,3,4', name)
 
     @staticmethod
     def get_direction(name):
