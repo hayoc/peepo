@@ -1,19 +1,11 @@
 #14/01/2019
-import json
 import logging
-import random
-import matplotlib
+
 import matplotlib.pyplot as plt
 import numpy as np
-import copy
 
-from peepo.predictive_processing.v3.genetic_algorithm import GeneticAlgorithm
-from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
-
-from peepo.predictive_processing.v3.generative_model import GenerativeModel
-from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
-from peepo.predictive_processing.v3.sensory_input import SensoryInput
-from peepo.predictive_processing.v3.utils import get_index_matrix
+from peepo.pp.v3.genetic_algorithm import GeneticAlgorithm
+from peepo.pp.v3.utils import get_index_matrix
 
 LEFT = 'LEFT'
 RIGHT = 'RIGHT'

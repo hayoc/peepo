@@ -1,11 +1,11 @@
 import math
-import random
+
 import numpy as np
 import pygame as pg
+from peepo.pp.v3.sensory_input import SensoryInput
 
 from peepo.playground.game_of_life.vision import collision, end_line
-from peepo.predictive_processing.v3.generative_model import GenerativeModel
-from peepo.predictive_processing.v3.sensory_input import SensoryInput
+from peepo.pp.v3.generative_model import GenerativeModel
 
 LEFT = 'left'
 RIGHT = 'right'

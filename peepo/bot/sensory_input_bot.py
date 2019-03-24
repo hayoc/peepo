@@ -1,6 +1,6 @@
 import numpy as np
 
-from peepo.predictive_processing.v3.sensory_input import SensoryInput
+from peepo.pp.v3.sensory_input import SensoryInput
 
 
 class SensoryInputBot(SensoryInput):

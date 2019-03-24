@@ -20,7 +20,7 @@ import logging
 import peepo.playground.baby_in_crib.model as md
 from peepo.playground.baby_in_crib.crib import Crib
 from peepo.playground.baby_in_crib.sensory_input import SensoryInputCribBaby
-from peepo.predictive_processing.v3.generative_model import GenerativeModel
+from peepo.pp.v3.generative_model import GenerativeModel
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)

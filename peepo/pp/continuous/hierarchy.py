@@ -1,7 +1,7 @@
 import numpy as np
 
-from peepo.predictive_processing.continuous import dataload
-from peepo.predictive_processing.continuous.region import Region
+from peepo.pp.continuous import dataload
+from peepo.pp.continuous.region import Region
 
 
 class Hierarchy:

@@ -1,5 +1,6 @@
 import logging
 import uuid
+
 import numpy as np
 from scipy.stats import entropy
 

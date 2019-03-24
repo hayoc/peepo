@@ -1,9 +1,10 @@
-import numpy as np
 import logging
 
-from peepo.predictive_processing.discrete.level import Level
-from peepo.predictive_processing.discrete.module import Module
-from peepo.predictive_processing.discrete.node import Node
+import numpy as np
+
+from peepo.pp.discrete.level import Level
+from peepo.pp.discrete.module import Module
+from peepo.pp.discrete.node import Node
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)

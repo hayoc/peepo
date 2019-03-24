@@ -1,15 +1,12 @@
 #5/01/2019
-import random
 import json
-
-import numpy as np
-
+import random
 
 from config import ROOT_DIR
-from peepo.predictive_processing.v3.utils import get_index_matrix
-from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
-from peepo.predictive_processing.v3.peepo_network import get_topologies
-from peepo.tests.parametrized_child_cpd_test import ga_child_cpd   #TO CHANGE
+from peepo.pp.v3.peepo_network import PeepoNetwork
+from peepo.pp.v3.peepo_network import get_topologies
+from peepo.tests.parametrized_child_cpd_test import ga_child_cpd  # TO CHANGE
+
 
 def prune_or_grow(network):
     """

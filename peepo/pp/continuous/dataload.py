@@ -1,5 +1,5 @@
-from sklearn.datasets import load_svmlight_file
 import numpy as np
+from sklearn.datasets import load_svmlight_file
 
 
 def load(path):

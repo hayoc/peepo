@@ -1,11 +1,11 @@
 import logging
 
 import numpy as np
+from peepo.pp.v3.sensory_input import SensoryInput
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 
-from peepo.predictive_processing.v3.generative_model import GenerativeModel
-from peepo.predictive_processing.v3.sensory_input import SensoryInput
+from peepo.pp.v3.generative_model import GenerativeModel
 from peepo.visualize.graph import draw_network
 
 

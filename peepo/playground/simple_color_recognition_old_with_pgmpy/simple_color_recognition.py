@@ -1,20 +1,19 @@
 #versie 219/12/2018
 import math
-import os
-import random
-import sys
-import pandas as pd
+
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import pandas as pd
+from peepo.pp.v3.sensory_input import SensoryInput
 from pgmpy.estimators import BayesianEstimator
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
-from peepo.playground.simple_color_recognition_old_with_pgmpy.utilities.utilities import  Utilities
-from peepo.playground.simple_color_recognition_old_with_pgmpy.utilities.lattices import  Lattices
+
 from peepo.playground.simple_color_recognition_old_with_pgmpy.CeePeeDees import CPD
-from peepo.predictive_processing.v3.generative_model import GenerativeModel
-from peepo.predictive_processing.v3.sensory_input import SensoryInput
-import matplotlib.pyplot as plt
+from peepo.playground.simple_color_recognition_old_with_pgmpy.utilities.lattices import Lattices
+from peepo.playground.simple_color_recognition_old_with_pgmpy.utilities.utilities import Utilities
+from peepo.pp.v3.generative_model import GenerativeModel
 
 
 class SensoryInputVirtualPeepo(SensoryInput):

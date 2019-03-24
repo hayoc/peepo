@@ -2,9 +2,8 @@ import random
 
 import numpy as np
 import pygame as pg
+from peepo.pp.v3.sensory_input import SensoryInput
 from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
-
-from peepo.predictive_processing.v3.sensory_input import SensoryInput
 
 
 def change_distribution(old, new_values):

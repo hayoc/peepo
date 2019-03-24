@@ -1,17 +1,16 @@
 #18/01/2019
+import copy
 import json
-import random
 import math
+import random
+from itertools import combinations_with_replacement
 
 import numpy as np
 
 from config import ROOT_DIR
-import copy
-from itertools import combinations_with_replacement
-
-from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
-from peepo.predictive_processing.v3.peepo_network import get_topologies
-from peepo.predictive_processing.v3.utils import get_index_matrix
+from peepo.pp.v3.peepo_network import PeepoNetwork
+from peepo.pp.v3.peepo_network import get_topologies
+from peepo.pp.v3.utils import get_index_matrix
 
 NUMBER_OF_PARENTS_RATIO = 1./5.
 
