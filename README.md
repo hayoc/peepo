@@ -7,3 +7,21 @@
 For more info [peepo.ai](https://peepo.ai) or follow our project board [taiga](https://tree.taiga.io/project/hayoc-peepo/backlog)
 
 This version is the prototype of peepo. The real version, written in C++, can be found here: https://github.com/hayoc/peepo
+
+## Installation
+```bash
+python setup.py install
+```
+
+## Usage
+The repository consists of multiple experiments which have been implemented.
+
+- `peepo\bot` 
+    * Requirements: [(LEGO MINDSTORMS EV3)](https://www.lego.com/en-us/mindstorms/products/mindstorms-ev3-31313) and [(ev3dev)](https://www.ev3dev.org) 
+- `peepo\playground`
+    * `survival` contains a _peepo_ implementation searching for food in a virtual world. Video: https://www.youtube.com/watch?v=aOjK5MW6E-U
+    * `wandering` contains a _peepo_ implementation avoiding obstacles. Video: https://www.youtube.com/watch?v=kMOr368zJ-g
+    * `hawk` contains a _peepo_ implementation capturing a prey using target interception. Video: https://www.youtube.com/watch?v=WT0A4p6W8os 
+    
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
