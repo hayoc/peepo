@@ -4,8 +4,8 @@ from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 
 from peepo.bot.peepo_bot import PeepoBot
-from peepo.predictive_processing.v3.generative_model import GenerativeModel
 from peepo.bot.sensory_input_bot import SensoryInput
+from peepo.predictive_processing.v3.generative_model import GenerativeModel
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
