@@ -30,7 +30,6 @@ class SurvivalPeepo(Peepo):
 
         self.graphical = graphical
         self.name = name
-        self.network = network
         self.rect = pg.Rect(pos, SurvivalPeepo.SIZE)
         self.rect.center = pos
         self.rotation = 0

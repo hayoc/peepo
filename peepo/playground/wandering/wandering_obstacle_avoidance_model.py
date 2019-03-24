@@ -1,11 +1,14 @@
 import math
+import random
 
+import numpy as np
 import pygame as pg
 from pomegranate.distributions.ConditionalProbabilityTable import ConditionalProbabilityTable
+from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
 
 from peepo.playground.wandering.vision import collision, end_line
-from peepo.playground.wandering.wandering_obstacle_avoidance_peepo import SensoryInputVirtualPeepo
 from peepo.pp.generative_model import GenerativeModel
+from peepo.pp.peepo import Peepo
 from peepo.pp.peepo_network import PeepoNetwork
 
 vec = pg.math.Vector2
@@ -31,7 +34,14 @@ def double_hypo_cpd(evi_1, evi_2):
          [0, 0, 0, 0.9]], [evi_1, evi_2])
 
 
-class PeepoModel:
+def change_distribution(old, new_values):
+    result = []
+    for x, old_value in enumerate(old):
+        result.append((old_value[0], new_values[x]))
+    return dict(result)
+
+
+class WanderingPeepo(Peepo):
     RADIUS = 100
 
     WAN_LEFT = 'RON_wandering_left'
@@ -48,9 +58,11 @@ class PeepoModel:
     VIS_6 = 'LEN_vision_6'
 
     def __init__(self, peepo_actor, actors):
+        super().__init__(self.create_model())
+
         self.peepo_actor = peepo_actor
         self.actors = actors
-        self.genmodel = self.create_generative_model()
+
         self.motor_output = {pg.K_LEFT: False,
                              pg.K_RIGHT: False}
         self.obstacle_input = {'1': False,
@@ -59,10 +71,83 @@ class PeepoModel:
                                '4': False,
                                '5': False,
                                '6': False}
+        self.wander_left_chance = 0
+        self.wander_right_chance = 0
+        self.wandering_left = False
+        self.wandering_right = False
 
-    def create_generative_model(self):
+        self.genmodel = GenerativeModel(self)
+
+    def action(self, node, prediction):
+        # prediction [0.9, 0.1] = STOP
+        # prediction [0.1, 0.9] = START
+        if np.argmax(prediction) == 0:
+            if 'left' in node:
+                self.motor_output[pg.K_LEFT] = False
+            if 'right' in node:
+                self.motor_output[pg.K_RIGHT] = False
+        else:
+            if 'left' in node:
+                self.motor_output[pg.K_LEFT] = True
+            if 'right' in node:
+                self.motor_output[pg.K_RIGHT] = True
+
+    def observation(self, name):
+        if 'vision' in name:
+            # prediction [0.9, 0.1] = NO OBSTACLE
+            # prediction [0.1, 0.9] = OBSTACLE
+            if '1' in name:
+                return np.array([0.1, 0.9]) if self.obstacle_input['1'] else np.array([0.9, 0.1])
+            if '2' in name:
+                return np.array([0.1, 0.9]) if self.obstacle_input['2'] else np.array([0.9, 0.1])
+            if '3' in name:
+                return np.array([0.1, 0.9]) if self.obstacle_input['3'] else np.array([0.9, 0.1])
+            if '4' in name:
+                return np.array([0.1, 0.9]) if self.obstacle_input['4'] else np.array([0.9, 0.1])
+            if '5' in name:
+                return np.array([0.1, 0.9]) if self.obstacle_input['5'] else np.array([0.9, 0.1])
+            if '6' in name:
+                return np.array([0.1, 0.9]) if self.obstacle_input['6'] else np.array([0.9, 0.1])
+        elif 'motor' in name:
+            # prediction [0.9, 0.1] = STOPPED
+            # prediction [0.1, 0.9] = MOVING
+            if 'left' in name:
+                return np.array([0.1, 0.9]) if self.motor_output[pg.K_LEFT] else np.array([0.9, 0.1])
+            if 'right' in name:
+                return np.array([0.1, 0.9]) if self.motor_output[pg.K_RIGHT] else np.array([0.9, 0.1])
+
+    def update(self):
+        network = self.genmodel.bayesian_network
+
+        # [0.9, 0.1] = OFF
+        # [0.1, 0.9] = ON
+        if self.wandering_left:
+            state = network.states[self.genmodel.get_node_index(self.WAN_LEFT)]
+            state.distribution = DiscreteDistribution(change_distribution(state.distribution.items(), [0.9, 0.1]))
+            self.wander_left_chance = 0
+            self.wandering_left = False
+        else:
+            self.wander_left_chance += 0.1
+            if random.randint(0, 100) <= self.wander_left_chance:
+                state = network.states[self.genmodel.get_node_index(self.WAN_LEFT)]
+                state.distribution = DiscreteDistribution(change_distribution(state.distribution.items(), [0.1, 0.9]))
+                self.wandering_left = True
+
+        if self.wandering_right:
+            state = network.states[self.genmodel.get_node_index(self.WAN_RIGHT)]
+            state.distribution = DiscreteDistribution(change_distribution(state.distribution.items(), [0.9, 0.1]))
+            self.wander_right_chance = 0
+            self.wandering_right = False
+        else:
+            self.wander_right_chance += 0.1
+            if random.randint(0, 100) <= self.wander_right_chance:
+                state = network.states[self.genmodel.get_node_index(self.WAN_RIGHT)]
+                state.distribution = DiscreteDistribution(change_distribution(state.distribution.items(), [0.1, 0.9]))
+                self.wandering_right = True
+
+    def create_model(self):
         pp_network = PeepoNetwork(
-            bel_nodes=[
+            ron_nodes=[
                 {'name': self.WAN_LEFT, 'card': 2},
                 {'name': self.WAN_RIGHT, 'card': 2},
                 {'name': self.OBS_LEFT, 'card': 2},
@@ -116,7 +201,7 @@ class PeepoModel:
             })
         pp_network.assemble()
 
-        return GenerativeModel(pp_network, SensoryInputVirtualPeepo(self))
+        return pp_network
 
     def process(self):
         self.calculate_obstacles()
@@ -129,10 +214,10 @@ class PeepoModel:
         for actor in self.actors:
             peepo_vec = vec(self.peepo_actor.rect.center)
             collided = collision(actor.rect, peepo_vec, self.peepo_actor.edge_left,
-                                 self.peepo_actor.edge_right, PeepoModel.RADIUS)
+                                 self.peepo_actor.edge_right, WanderingPeepo.RADIUS)
             if collided:
                 if 'wall' in actor.id:
-                    edge = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation, self.peepo_actor.rect.center)
+                    edge = end_line(WanderingPeepo.RADIUS, self.peepo_actor.rotation, self.peepo_actor.rect.center)
                     if 'left' in actor.id:
                         wall_vec = vec((5, self.peepo_actor.rect.y))
                         deg = math.degrees(
@@ -167,17 +252,23 @@ class PeepoModel:
                             self.obstacle_input['1'] = True
 
                 else:
-                    edge1 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 30, self.peepo_actor.rect.center)
-                    edge2 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 20, self.peepo_actor.rect.center)
-                    edge3 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation - 10, self.peepo_actor.rect.center)
-                    edge4 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation, self.peepo_actor.rect.center)
-                    edge5 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 10, self.peepo_actor.rect.center)
-                    edge6 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 20, self.peepo_actor.rect.center)
-                    edge7 = end_line(PeepoModel.RADIUS, self.peepo_actor.rotation + 30, self.peepo_actor.rect.center)
+                    edge1 = end_line(WanderingPeepo.RADIUS, self.peepo_actor.rotation - 30,
+                                     self.peepo_actor.rect.center)
+                    edge2 = end_line(WanderingPeepo.RADIUS, self.peepo_actor.rotation - 20,
+                                     self.peepo_actor.rect.center)
+                    edge3 = end_line(WanderingPeepo.RADIUS, self.peepo_actor.rotation - 10,
+                                     self.peepo_actor.rect.center)
+                    edge4 = end_line(WanderingPeepo.RADIUS, self.peepo_actor.rotation, self.peepo_actor.rect.center)
+                    edge5 = end_line(WanderingPeepo.RADIUS, self.peepo_actor.rotation + 10,
+                                     self.peepo_actor.rect.center)
+                    edge6 = end_line(WanderingPeepo.RADIUS, self.peepo_actor.rotation + 20,
+                                     self.peepo_actor.rect.center)
+                    edge7 = end_line(WanderingPeepo.RADIUS, self.peepo_actor.rotation + 30,
+                                     self.peepo_actor.rect.center)
 
-                    self.obstacle_input['1'] = collision(actor.rect, peepo_vec, edge1, edge2, PeepoModel.RADIUS)
-                    self.obstacle_input['2'] = collision(actor.rect, peepo_vec, edge2, edge3, PeepoModel.RADIUS)
-                    self.obstacle_input['3'] = collision(actor.rect, peepo_vec, edge3, edge4, PeepoModel.RADIUS)
-                    self.obstacle_input['4'] = collision(actor.rect, peepo_vec, edge4, edge5, PeepoModel.RADIUS)
-                    self.obstacle_input['5'] = collision(actor.rect, peepo_vec, edge5, edge6, PeepoModel.RADIUS)
-                    self.obstacle_input['6'] = collision(actor.rect, peepo_vec, edge6, edge7, PeepoModel.RADIUS)
+                    self.obstacle_input['1'] = collision(actor.rect, peepo_vec, edge1, edge2, WanderingPeepo.RADIUS)
+                    self.obstacle_input['2'] = collision(actor.rect, peepo_vec, edge2, edge3, WanderingPeepo.RADIUS)
+                    self.obstacle_input['3'] = collision(actor.rect, peepo_vec, edge3, edge4, WanderingPeepo.RADIUS)
+                    self.obstacle_input['4'] = collision(actor.rect, peepo_vec, edge4, edge5, WanderingPeepo.RADIUS)
+                    self.obstacle_input['5'] = collision(actor.rect, peepo_vec, edge5, edge6, WanderingPeepo.RADIUS)
+                    self.obstacle_input['6'] = collision(actor.rect, peepo_vec, edge6, edge7, WanderingPeepo.RADIUS)

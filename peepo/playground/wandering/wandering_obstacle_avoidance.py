@@ -8,8 +8,7 @@ import sys
 import pygame as pg
 
 from peepo.playground.wandering.vision import end_line
-from peepo.playground.wandering.wandering_obstacle_avoidance_model import PeepoModel
-from peepo.playground.wandering.wandering_obstacle_avoidance_peepo import Peepo
+from peepo.playground.wandering.wandering_obstacle_avoidance_model import WanderingPeepo
 
 vec = pg.math.Vector2
 
@@ -30,29 +29,28 @@ class PeepoActor(object):
     SPEED = 2
 
     def __init__(self, pos, actors):
-        self.model = PeepoModel(self, actors)
+        self.peepo = WanderingPeepo(self, actors)
         self.rect = pg.Rect((0, 0), PeepoActor.SIZE)
         self.rect.center = pos
         self.image = self.make_image()
         self.image_original = self.image.copy()
-        self.peepo = Peepo()
         self.rotation = 0
-        self.edge_right = end_line(PeepoModel.RADIUS, self.rotation + 30, self.rect.center)
-        self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
+        self.edge_right = end_line(WanderingPeepo.RADIUS, self.rotation + 30, self.rect.center)
+        self.edge_left = end_line(WanderingPeepo.RADIUS, self.rotation - 30, self.rect.center)
         self.run = True
 
     def update(self, screen_rect):
         if self.run:
-            self.model.process()
+            self.peepo.process()
 
             self.rect.x += PeepoActor.SPEED * math.cos(math.radians(self.rotation))
             self.rect.y += PeepoActor.SPEED * math.sin(math.radians(self.rotation))
 
-            if self.model.motor_output[pg.K_LEFT]:
+            if self.peepo.motor_output[pg.K_LEFT]:
                 self.rotation -= 10
                 if self.rotation < 0:
                     self.rotation = 360
-            if self.model.motor_output[pg.K_RIGHT]:
+            if self.peepo.motor_output[pg.K_RIGHT]:
                 self.rotation += 10
                 if self.rotation > 360:
                     self.rotation = 0
@@ -60,11 +58,11 @@ class PeepoActor(object):
             self.image = pg.transform.rotate(self.image_original, -self.rotation)
             self.rect = self.image.get_rect(center=self.rect.center)
 
-            self.edge_right = end_line(PeepoModel.RADIUS, self.rotation + 30, self.rect.center)
-            self.edge_left = end_line(PeepoModel.RADIUS, self.rotation - 30, self.rect.center)
+            self.edge_right = end_line(WanderingPeepo.RADIUS, self.rotation + 30, self.rect.center)
+            self.edge_left = end_line(WanderingPeepo.RADIUS, self.rotation - 30, self.rect.center)
 
             self.rect.clamp_ip(screen_rect)
-            self.peepo.update(self.model)
+            self.peepo.update()
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
