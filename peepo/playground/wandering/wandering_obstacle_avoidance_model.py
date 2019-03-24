@@ -5,8 +5,8 @@ from pomegranate.distributions.ConditionalProbabilityTable import ConditionalPro
 
 from peepo.playground.wandering.vision import collision, end_line
 from peepo.playground.wandering.wandering_obstacle_avoidance_peepo import SensoryInputVirtualPeepo
-from peepo.pp.v3.generative_model import GenerativeModel
-from peepo.pp.v3.peepo_network import PeepoNetwork
+from peepo.pp.generative_model import GenerativeModel
+from peepo.pp.peepo_network import PeepoNetwork
 
 vec = pg.math.Vector2
 

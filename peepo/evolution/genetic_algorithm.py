@@ -7,8 +7,8 @@ import numpy as np
 
 from peepo.evolution.mutation import add_edge, remove_edge
 from peepo.evolution.utilities import get_topologies, ga_child_cpd, get_adjency_map, adjency_to_edges
-from peepo.pp.v3.peepo_network import read_from_file
-from peepo.pp.v3.utils import get_index_matrix
+from peepo.pp.peepo_network import read_from_file
+from peepo.pp.utils import get_index_matrix
 
 
 class Individual:

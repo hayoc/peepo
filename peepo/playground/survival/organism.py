@@ -4,8 +4,8 @@ import numpy as np
 import pygame as pg
 
 from peepo.playground.wandering.vision import collision, end_line
-from peepo.pp.v3.generative_model import GenerativeModel
-from peepo.pp.v3.peepo import Peepo
+from peepo.pp.generative_model import GenerativeModel
+from peepo.pp.peepo import Peepo
 
 LEFT = 'left'
 RIGHT = 'right'

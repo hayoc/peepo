@@ -3,8 +3,8 @@ import json
 import random
 
 from config import ROOT_DIR
-from peepo.pp.v3.peepo_network import PeepoNetwork
-from peepo.pp.v3.peepo_network import get_topologies
+from peepo.pp.peepo_network import PeepoNetwork
+from peepo.pp.peepo_network import get_topologies
 from peepo.tests.parametrized_child_cpd_test import ga_child_cpd  # TO CHANGE
 
 

@@ -8,9 +8,9 @@ from itertools import combinations_with_replacement
 import numpy as np
 
 from config import ROOT_DIR
-from peepo.pp.v3.peepo_network import PeepoNetwork
-from peepo.pp.v3.peepo_network import get_topologies
-from peepo.pp.v3.utils import get_index_matrix
+from peepo.pp.peepo_network import PeepoNetwork
+from peepo.pp.peepo_network import get_topologies
+from peepo.pp.utils import get_index_matrix
 
 NUMBER_OF_PARENTS_RATIO = 1./5.
 

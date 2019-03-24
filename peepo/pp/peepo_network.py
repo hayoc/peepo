@@ -14,7 +14,7 @@ from pomegranate.distributions.ConditionalProbabilityTable import ConditionalPro
 from pomegranate.distributions.DiscreteDistribution import DiscreteDistribution
 
 from config import ROOT_DIR
-from peepo.pp.v3.utils import get_index_matrix
+from peepo.pp.utils import get_index_matrix
 
 '''jan 2019: changes by Bufo:
     1) adapted get_topologies as the previous version did allow orphan leaf nodes 
@@ -110,7 +110,7 @@ class PeepoNetwork:
 
         Example
         -------
-        >>> from peepo.pp.v3.peepo_network import PeepoNetwork
+        >>> from peepo.pp.peepo_network import PeepoNetwork
         >>> pp_network = PeepoNetwork(ron_nodes=[{'name': 'belief_1', 'card': 2}],
         >>>                           ext_nodes=[{'name': 'exteroceptive_1', 'card': 2}]),
         >>>                           edges=[('belief_1', 'exteroceptive_1')],

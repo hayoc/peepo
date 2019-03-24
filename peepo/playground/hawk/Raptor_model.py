@@ -9,7 +9,7 @@ from peepo.pp.v3.sensory_input import SensoryInput
 from pgmpy.models import BayesianModel
 
 from peepo.playground.hawk.CeePeeDees import CPD
-from peepo.pp.v3.generative_model import GenerativeModel
+from peepo.pp.generative_model import GenerativeModel
 
 vec = pg.math.Vector2
 

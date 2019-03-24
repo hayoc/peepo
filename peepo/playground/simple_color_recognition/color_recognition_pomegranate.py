@@ -7,7 +7,7 @@ import networkx as nx
 from pomegranate import *
 
 from config import ROOT_DIR
-from peepo.pp.v3.utils import *
+from peepo.pp.utils import *
 
 DATA = [['0', '0', '0', '0', '0', '0', '1', '0', '0'],
         ['0', '0', '0', '1', '0', '0', '0', '1', '0'],

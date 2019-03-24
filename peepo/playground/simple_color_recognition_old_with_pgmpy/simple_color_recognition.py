@@ -13,7 +13,7 @@ from pgmpy.models import BayesianModel
 from peepo.playground.simple_color_recognition_old_with_pgmpy.CeePeeDees import CPD
 from peepo.playground.simple_color_recognition_old_with_pgmpy.utilities.lattices import Lattices
 from peepo.playground.simple_color_recognition_old_with_pgmpy.utilities.utilities import Utilities
-from peepo.pp.v3.generative_model import GenerativeModel
+from peepo.pp.generative_model import GenerativeModel
 
 
 class SensoryInputVirtualPeepo(SensoryInput):

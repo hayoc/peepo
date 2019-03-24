@@ -10,7 +10,7 @@ import pygame as pg
 
 from peepo.evolution.genetic_algorithm import GeneticAlgorithm
 from peepo.playground.survival.organism import Obstacle, SurvivalPeepo
-from peepo.pp.v3.peepo_network import read_from_file, write_to_file
+from peepo.pp.peepo_network import read_from_file, write_to_file
 from peepo.visualize.graph import draw_network
 
 CAPTION = "survival"

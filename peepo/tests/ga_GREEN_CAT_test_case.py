@@ -4,8 +4,8 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-from peepo.pp.v3.genetic_algorithm import GeneticAlgorithm
-from peepo.pp.v3.utils import get_index_matrix
+from peepo.pp.genetic_algorithm import GeneticAlgorithm
+from peepo.pp.utils import get_index_matrix
 
 LEFT = 'LEFT'
 RIGHT = 'RIGHT'

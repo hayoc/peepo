@@ -9,8 +9,8 @@ import numpy as np
 import pygame as pg
 
 from peepo.playground.game_of_life.organism import Ennemies, Food, Peepo
-from peepo.pp.v3.genetic_algorithm import GeneticAlgorithm
-from peepo.pp.v3.peepo_network import read_from_file, write_to_file
+from peepo.pp.genetic_algorithm import GeneticAlgorithm
+from peepo.pp.peepo_network import read_from_file, write_to_file
 
 CAPTION = "game of life"
 SCREEN_SIZE = (800, 800)

@@ -5,7 +5,7 @@ import pygame as pg
 from peepo.pp.v3.sensory_input import SensoryInput
 
 from peepo.playground.game_of_life.vision import collision, end_line
-from peepo.pp.v3.generative_model import GenerativeModel
+from peepo.pp.generative_model import GenerativeModel
 
 LEFT = 'left'
 RIGHT = 'right'

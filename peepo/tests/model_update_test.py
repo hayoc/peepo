@@ -5,7 +5,7 @@ from peepo.pp.v3.sensory_input import SensoryInput
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.models import BayesianModel
 
-from peepo.pp.v3.generative_model import GenerativeModel
+from peepo.pp.generative_model import GenerativeModel
 from peepo.visualize.graph import draw_network
 
 
