@@ -7,6 +7,7 @@ import uuid
 import numpy as np
 
 from peepo.predictive_processing.v3.peepo_network import read_from_file, get_topologies2
+from peepo.predictive_processing.v3.utils import get_index_matrix
 
 
 def mutate_topology(network):
@@ -205,6 +206,44 @@ def normalize_distribution(matrix):
     return matrix / factor
 
 
+def get_adjency_map(network):
+    """
+    Returns a (pseudo)-adjency list of the topology
+    i.e. a len(leaf_nodes)xlen(root_nodes) matrix with
+    0 and 1's
+
+    :param network: peepo_network
+    :return: a matrix of shape (len(leaf_nodes),len(root_nodes)) containing the adjency matrix
+    """
+    roots = network.get_root_nodes()
+    leaves = network.get_leaf_nodes()
+    map = np.zeros((len(leaves), len(roots)))
+    for i, root in enumerate(roots):
+        for k, leaf in enumerate(leaves):
+            for x in network.get_edges():
+                if x[1] == leaf and x[0] == root:
+                    map[k][i] = 1
+    return map
+
+
+def adjency_to_edges(network, i_map):
+    """
+    Returns array containing the tuples of the edges from a (pseudo)-adjency list of the topology
+    i.e. a len(leaf_nodes)xlen(root_nodes) matrix with
+    0 and 1's
+
+    :param network: peepo_network
+    :param i_map: a matrix of shape (len(leaf_nodes),len(root_nodes)) containing the adjency matrixa
+    :return: array containing the tuples of the edges
+    """
+    edges = []
+    for col, root in enumerate(network.get_root_nodes()):
+        for row, leaf in enumerate(network.get_leaf_nodes()):
+            if i_map[row][col] == 1:
+                edges.append((root, leaf))
+    return edges
+
+
 class Individual:
 
     def __init__(self, fitness=0.0, network=None):
@@ -213,6 +252,7 @@ class Individual:
 
 
 class GeneticAlgorithm:
+    THRESHOLD = 3
     NUMBER_OF_PARENTS_RATIO = 1. / 5.
     TOPOLOGY_MUTATIONS = [
         # TODO
@@ -222,13 +262,9 @@ class GeneticAlgorithm:
         remove_edge
     ]
 
-    def __init__(self, source, fast_convergence=False, convergence_period=100000, convergence_sensitivity=5.,
-                 n_pop=1, p_mut_top=0.02, p_mut_cpd=0.02, max_removal=None, simple_start=False):
+    def __init__(self, source, n_pop=1, p_mut_top=0.02, p_mut_cpd=0.02, max_removal=None, simple_start=False):
         random.seed()
         self.source = source
-        self.fast_convergence = fast_convergence
-        self.convergence_period = convergence_period
-        self.convergence_sensitivity = convergence_sensitivity
         self.n_pop = n_pop
         self.p_mut_top = p_mut_top
         self.p_mut_cpd = p_mut_cpd
@@ -241,6 +277,11 @@ class GeneticAlgorithm:
         self.fitness_history = []
 
     def first_generation(self):
+        """
+        Generates the 0th generation population.
+
+        :return New population
+        """
         peepo_template = read_from_file(self.source)
         population = []
 
@@ -275,6 +316,16 @@ class GeneticAlgorithm:
         return population
 
     def evolve(self, population):
+        """
+        Evolves a given population by selection, cross-over and mutation.
+            - selection: selects the best individuals from the population to evolve from
+            - cross-over: generate the offspring based on the selected individuals
+            - mutation: mutate parameters and structure of the bayesian network of each individual offspring
+
+        :param population to evolve
+        :return Average Fitness
+        :return New population with mutated offspring
+        """
         population = sorted(population, key=lambda individual: individual.fitness, reverse=True)
         # Best Chromosome yet
         if population[0].fitness >= self.best_chromosome.fitness:
@@ -286,19 +337,11 @@ class GeneticAlgorithm:
             avg_fitness += population[i].fitness
             avg_fitness /= self.number_of_parents
 
-        # TODO
-        # Stop if fitness converges across defined period
-        # convergence = self.check_convergence(avg_fitness)
-        # if convergence:
-        #     return avg_fitness, population, True
-
-        # SELECTION: Get parents which will reproduce
+        # SELECTION
         selected_parents = self.get_selected_parents(population, avg_fitness)
-
-        # CROSS-OVER: Get offspring via cross-over TODO
+        # CROSS-OVER
         selected_offspring = self.cross_over(selected_parents)
-
-        # MUTATION: Mutate resulting offspring
+        # MUTATION
         selected_offspring = self.mutate(selected_offspring)
 
         # Collect parents and offspring
@@ -312,7 +355,7 @@ class GeneticAlgorithm:
             if len(new_population) >= self.n_pop:
                 break
 
-        return avg_fitness, new_population, False
+        return avg_fitness, new_population
 
     def get_optimal_network(self):
         """
@@ -343,34 +386,80 @@ class GeneticAlgorithm:
             mating_couples = mating_couples[0:int(self.n_pop / 2.)]
 
         for n, chrom in enumerate(mating_couples):
-            selected_offspring.append((Individual(0.0, chrom[0].network.copy()),
-                                       random.uniform(0, 1),
-                                       random.uniform(0, 1)))  # TODO
-            selected_offspring.append((Individual(0.0, chrom[1].network.copy()),
-                                       random.uniform(0, 1),
-                                       random.uniform(0, 1)))  # TODO
+            map_1 = get_adjency_map(chrom[0].network)
+            map_2 = get_adjency_map(chrom[1].network)
+            diff = np.abs(map_1 - map_2)
+            i_sum = np.sum(diff)
+
+            if i_sum == 0 or i_sum > GeneticAlgorithm.THRESHOLD:
+                selected_offspring.append((Individual(0.0, chrom[0].network.copy()), 0, 0))
+                selected_offspring.append((Individual(0.0, chrom[1].network.copy()), 0, 0))
+                continue
+
+            indices = np.argwhere(diff == 1)
+            combinations = [[1, 0], [0, 1]]
+            if len(indices) > 1:
+                combinations = np.transpose(get_index_matrix(np.full(len(indices), 2).tolist()))
+
+            for comb in combinations:
+                i_map = np.copy(map_1)
+                for pos, index in enumerate(indices):
+                    i_map[index[0], index[1]] = comb[pos]
+
+                if 0 in np.sum(i_map, axis=1) or np.array_equal(i_map, map_1) or np.array_equal(i_map, map_2):
+                    continue
+
+                edges = adjency_to_edges(chrom[0].network, i_map)
+                new_peepo = chrom[0].network.copy()
+                new_peepo.disassemble()
+                new_peepo.edges = edges
+                for node in new_peepo.get_nodes():
+                    incoming_nodes = new_peepo.get_incoming_edges(node)
+                    if len(incoming_nodes) == 0:
+                        my_cpd = np.full(new_peepo.cardinality_map[node], 1. / new_peepo.cardinality_map[node])
+                        my_omega = []
+                    else:
+                        my_card_parents = []
+                        [my_card_parents.append(new_peepo.cardinality_map[nod]) for nod in incoming_nodes]
+                        max_omega = 2 * math.pi * np.prod(my_card_parents)
+                        my_omega = np.random.rand(new_peepo.cardinality_map[node]) * max_omega
+                        my_cpd = ga_child_cpd(my_card_parents, my_omega)
+                    new_peepo.add_cpd(node, my_cpd)
+                    new_peepo.add_omega(node, my_omega)
+                new_peepo.assemble()
+
+                if np.array_equal(comb[0], comb[1]):
+                    selected_offspring.append((Individual(0.0, new_peepo), 0, 0))
+                else:
+                    selected_offspring.append((Individual(0.0, new_peepo),
+                                               random.uniform(0, 1),
+                                               random.uniform(0, 1)))
+
+        # If there's not enough offspring, fill it up with parents
+        while True:
+            if len(selected_parents) + len(selected_offspring) >= self.n_pop:
+                break
+            for parent in selected_parents:
+                if len(selected_parents) + len(selected_offspring) >= self.n_pop:
+                    break
+                selected_offspring.append((parent, 0, 0))
 
         return selected_offspring
 
     def get_selected_parents(self, population, avg_fitness):
         selected_parents = []
 
-        if self.fast_convergence:
-            for i in range(self.number_of_parents):
-                selected_parents.append(Individual(0.0, population[i].network.copy()))
-            random.shuffle(selected_parents)
-        else:
-            pool = []
-            pop_len = len(population)
-            for i in range(pop_len):
-                repeat = pop_len - i
-                for rep in range(repeat):
-                    pool.append(i)
-            random.shuffle(pool)
-            for draw in range(self.number_of_parents):
-                parent_index = pool[random.randint(0, len(pool) - 1)]
-                selected_parents.append(Individual(0.0, population(parent_index).network.copy()))
-            random.shuffle(selected_parents)
+        pool = []
+        pop_len = len(population)
+        for i in range(pop_len):
+            repeat = pop_len - i
+            for rep in range(repeat):
+                pool.append(i)
+        random.shuffle(pool)
+        for draw in range(self.number_of_parents):
+            parent_index = pool[random.randint(0, len(pool) - 1)]
+            selected_parents.append(Individual(0.0, population(parent_index).network.copy()))
+        random.shuffle(selected_parents)
 
         prev_fitness = self.last_generation[0]
 
@@ -383,17 +472,3 @@ class GeneticAlgorithm:
         self.last_generation = (avg_fitness, selected_parents)
 
         return selected_parents
-
-    def check_convergence(self, avg_fitness):
-        if len(self.fitness_history) <= self.convergence_period:
-            self.fitness_history.append(avg_fitness)
-            return False
-        else:
-            self.fitness_history.append(avg_fitness)
-            self.fitness_history.pop(0)
-
-            mean = np.mean(self.fitness_history)
-            std = np.std(self.fitness_history)
-            acceptable_std = mean * self.convergence_sensitivity / 2
-
-            return std < acceptable_std

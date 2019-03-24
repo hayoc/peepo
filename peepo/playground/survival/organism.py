@@ -34,6 +34,7 @@ class Peepo:
         self.rotation = 0
         self.edge_right = end_line(Peepo.RADIUS, self.rotation + 30, self.rect.center)
         self.edge_left = end_line(Peepo.RADIUS, self.rotation - 30, self.rect.center)
+        self.edge_middle = end_line(Peepo.RADIUS, self.rotation, self.rect.center)
 
         if self.graphical:
             self.image = self.make_image()
@@ -70,7 +71,7 @@ class Peepo:
             self.rotation += 10
             if self.rotation > 360:
                 self.rotation = 0
-
+        self.edge_middle = end_line(Peepo.RADIUS, self.rotation, self.rect.center)
         self.calculate_obstacles()
 
         if self.graphical:
@@ -98,27 +99,37 @@ class Peepo:
 
     def calculate_obstacles(self):
         self.view = {x: False for x in self.view}
+
+        peepo_vec = pg.math.Vector2(self.rect.center)
+        min_distance = 1000
+        closest_obstacle = None
+
         for obstacle in self.obstacles:
             if self.rect.colliderect(obstacle.rect):
                 self.health += 1
                 self.obstacles.remove(obstacle)
 
-            peepo_vec = pg.math.Vector2(self.rect.center)
             if collision(obstacle.rect, peepo_vec, self.edge_left, self.edge_right, Peepo.RADIUS):
-                edge1 = end_line(Peepo.RADIUS, self.rotation - 30, self.rect.center)
-                edge2 = end_line(Peepo.RADIUS, self.rotation - 20, self.rect.center)
-                edge3 = end_line(Peepo.RADIUS, self.rotation - 10, self.rect.center)
-                edge4 = end_line(Peepo.RADIUS, self.rotation, self.rect.center)
-                edge5 = end_line(Peepo.RADIUS, self.rotation + 10, self.rect.center)
-                edge6 = end_line(Peepo.RADIUS, self.rotation + 20, self.rect.center)
-                edge7 = end_line(Peepo.RADIUS, self.rotation + 30, self.rect.center)
+                distance = math.hypot(obstacle.rect.x - self.rect.x, obstacle.rect.y - self.rect.y)
+                if distance <= min_distance:
+                    closest_obstacle = obstacle
+                    min_distance = distance
 
-                self.view['1'] = collision(obstacle.rect, peepo_vec, edge1, edge2, Peepo.RADIUS)
-                self.view['2'] = collision(obstacle.rect, peepo_vec, edge2, edge3, Peepo.RADIUS)
-                self.view['3'] = collision(obstacle.rect, peepo_vec, edge3, edge4, Peepo.RADIUS)
-                self.view['4'] = collision(obstacle.rect, peepo_vec, edge4, edge5, Peepo.RADIUS)
-                self.view['5'] = collision(obstacle.rect, peepo_vec, edge5, edge6, Peepo.RADIUS)
-                self.view['6'] = collision(obstacle.rect, peepo_vec, edge6, edge7, Peepo.RADIUS)
+        if closest_obstacle:
+            edge1 = end_line(Peepo.RADIUS, self.rotation - 30, self.rect.center)
+            edge2 = end_line(Peepo.RADIUS, self.rotation - 20, self.rect.center)
+            edge3 = end_line(Peepo.RADIUS, self.rotation - 10, self.rect.center)
+            edge4 = end_line(Peepo.RADIUS, self.rotation, self.rect.center)
+            edge5 = end_line(Peepo.RADIUS, self.rotation + 10, self.rect.center)
+            edge6 = end_line(Peepo.RADIUS, self.rotation + 20, self.rect.center)
+            edge7 = end_line(Peepo.RADIUS, self.rotation + 30, self.rect.center)
+
+            self.view['1'] = collision(closest_obstacle.rect, peepo_vec, edge1, edge2, Peepo.RADIUS)
+            self.view['2'] = collision(closest_obstacle.rect, peepo_vec, edge2, edge3, Peepo.RADIUS)
+            self.view['3'] = collision(closest_obstacle.rect, peepo_vec, edge3, edge4, Peepo.RADIUS)
+            self.view['4'] = collision(closest_obstacle.rect, peepo_vec, edge4, edge5, Peepo.RADIUS)
+            self.view['5'] = collision(closest_obstacle.rect, peepo_vec, edge5, edge6, Peepo.RADIUS)
+            self.view['6'] = collision(closest_obstacle.rect, peepo_vec, edge6, edge7, Peepo.RADIUS)
 
 
 class SensoryInputPeepo(SensoryInput):

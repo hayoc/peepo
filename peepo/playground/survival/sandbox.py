@@ -88,8 +88,8 @@ class World(object):
                 self.render()
                 self.clock.tick(self.fps)
             loop += 1
-            if loop % 10 == 0:
-                print('Age ' + str(loop) + ' out of ' + str(max_age))
+            # if loop % 10 == 0:
+            #     print('Age ' + str(loop) + ' out of ' + str(max_age))
             if loop > max_age:
                 for peepo in self.peepos:
                     print(peepo.health)
@@ -98,8 +98,8 @@ class World(object):
 
 def verification(graphical):
     logging.basicConfig()
-    logging.getLogger().setLevel(logging.INFO)
-    # generate_obstacles(400)
+    logging.getLogger().setLevel(logging.DEBUG)
+    generate_obstacles(50)
 
     os.environ['SDL_VIDEO_CENTERED'] = '1'
     if graphical:
@@ -116,7 +116,6 @@ def verification(graphical):
     world = World(graphical, peepos, obstacles)
 
     world.main_loop(max_age)
-    # print(peepos[0].health)
 
     pg.quit()
     sys.exit()
@@ -133,14 +132,11 @@ def evolution(graphical):
         pg.display.set_caption(CAPTION)
         pg.display.set_mode(SCREEN_SIZE)
 
-    max_age = 500
-    num_individuals = 30
-    num_generations = 40
+    max_age = 400
+    num_individuals = 20
+    num_generations = 20
 
     ga = GeneticAlgorithm('survival',
-                          fast_convergence=True,
-                          convergence_period=10,
-                          convergence_sensitivity=5.,
                           p_mut_top=0.2,
                           p_mut_cpd=0.2,
                           n_pop=num_individuals,
@@ -159,10 +155,8 @@ def evolution(graphical):
         for idx, peepo in enumerate(peepos):
             population[idx].fitness = peepo.health
 
-        avg_fitness, population, converging = ga.evolve(population)
-        if converging:
-            print('Converged')
-            break
+        avg_fitness, population = ga.evolve(population)
+
         if avg_fitness < 0:
             print(' population collapsed :-(')
             break
