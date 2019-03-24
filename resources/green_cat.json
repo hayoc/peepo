@@ -8,8 +8,7 @@
   },
 
   "nodes": {
-    "RON": {
-      "BEL": [
+    "RON": [
         {
           "name": "GREEN_CAT",
           "card": 2
@@ -23,9 +22,6 @@
           "card": 2
         }
       ],
-      "MEM": []
-    },
-    "LAN": [],
     "LEN": {
       "EXT": [
         {
@@ -41,7 +37,6 @@
           "card": 2
         }
       ],
-      "INT": [],
       "PRO": []
     }
   },

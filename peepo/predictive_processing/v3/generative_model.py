@@ -12,13 +12,13 @@ class GenerativeModel:
     This is a generative model, implemented as a Bayesian Causal Network. The three functions
     prediction, prediction error and prediction error minimization are defined for this model.
 
-    :param peepo_network : PeepoNetwork representing the Bayesian Causal Network. Causes are hypothesis variables,
+    :param network : PeepoNetwork representing the Bayesian Causal Network. Causes are hypothesis variables,
     effects are observational variables. PeepoNetwork.to_pomegranate() will be called upon initialization to fetch
     the pomegranate network upon which all the computations are done.
     :param sensory_input : Mutable dictionary containing the current sensory inputs
     :param n_jobs : Number of process to spawn for multiprocessing. By default 1 = no additional processes spawned
 
-    :type peepo_network : PeepoNetwork
+    :type network : PeepoNetwork
     :type sensory_input : SensoryInput
     :type n_jobs : int
 
@@ -34,10 +34,9 @@ class GenerativeModel:
     TODO: Parallelism
     """
 
-    def __init__(self, peepo_network, sensory_input, n_jobs=1):
-        self.peepo_network = peepo_network
-        self.bayesian_network = self.peepo_network.to_pomegranate()
-        self.sensory_input = sensory_input
+    def __init__(self, peepo, n_jobs=1):
+        self.peepo = peepo
+        self.bayesian_network = self.peepo.network.to_pomegranate()
         self.n_jobs = n_jobs
 
     def process(self, structure_learning=False):
@@ -59,7 +58,7 @@ class GenerativeModel:
             if self.is_leaf(index):
 
                 prediction = np.array([x[1] for x in sorted(node.items(), key=lambda tup: tup[0])])
-                observation = self.sensory_input.value(node_name)
+                observation = self.peepo.observation(node_name)
                 prediction_error = self.error(prediction, observation)
                 prediction_error_size = self.error_size(prediction, observation)
                 precision = self.precision(prediction)
@@ -166,8 +165,8 @@ class GenerativeModel:
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        if node_name in self.peepo_network.get_pro_nodes():
-            self.sensory_input.action(node_name, prediction)
+        if node_name in self.peepo.network.get_pro_nodes():
+            self.peepo.action(node_name, prediction)
         else:
             evidence = {node_name: np.argmax(prediction_error + prediction)}
             result = self.bayesian_network.predict_proba(evidence)
@@ -185,10 +184,10 @@ class GenerativeModel:
         return {x.name: x.distribution.mle() for x in self.get_roots()}
 
     def get_roots(self):
-        return [x for x in self.bayesian_network.states if x.name in self.peepo_network.get_root_nodes()]
+        return [x for x in self.bayesian_network.states if x.name in self.peepo.network.get_root_nodes()]
 
     def get_leaves(self):
-        return [x for x in self.bayesian_network.states if x.name in self.peepo_network.get_leaf_nodes()]
+        return [x for x in self.bayesian_network.states if x.name in self.peepo.network.get_leaf_nodes()]
 
     def get_node_index(self, node_name):
         for x, state in enumerate(self.bayesian_network.states):

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pygame as pg
 
-from peepo.playground.survival.organism import Obstacle, Peepo
+from peepo.playground.survival.organism import Obstacle, SurvivalPeepo
 from peepo.predictive_processing.v3.genetic_algorithm2 import GeneticAlgorithm
 from peepo.predictive_processing.v3.peepo_network import read_from_file, write_to_file
 from peepo.visualize.graph import draw_network
@@ -21,11 +21,11 @@ SCREEN_CENTER = (400, 400)
 def create_population(graphical, generation, individuals, food):
     pop = []
     for i, idv in enumerate(individuals):
-        peepo = Peepo(name='peepo_' + str(generation) + '_' + str(i),
-                      network=idv.network,
-                      graphical=graphical,
-                      pos=(5, 400),
-                      obstacles=food)
+        peepo = SurvivalPeepo(name='peepo_' + str(generation) + '_' + str(i),
+                              network=idv.network,
+                              graphical=graphical,
+                              pos=(5, 400),
+                              obstacles=food)
         pop.append(peepo)
 
     return pop
@@ -99,7 +99,7 @@ class World(object):
 def verification(graphical):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
-    generate_obstacles(50)
+    generate_obstacles(500)
 
     os.environ['SDL_VIDEO_CENTERED'] = '1'
     if graphical:
@@ -112,7 +112,7 @@ def verification(graphical):
     peepo_network = read_from_file('best_survival_network')
     draw_network(peepo_network)
 
-    peepos = [Peepo('peepo', peepo_network, graphical, (5, 400), obstacles)]
+    peepos = [SurvivalPeepo('peepo', peepo_network, graphical, (5, 400), obstacles)]
     world = World(graphical, peepos, obstacles)
 
     world.main_loop(max_age)

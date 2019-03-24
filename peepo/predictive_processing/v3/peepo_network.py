@@ -127,16 +127,10 @@ class PeepoNetwork:
             The data to fit the network to, given a structure, to generate the CPDs. Default is None
         frozen : bool, optional
             Whether the network can be modified. Default is False
-        bel_nodes : list, optional
-            The belief nodes of the network. Default is None
-        mem_nodes : list, optional
-            The memory nodes of the network. Default is None
-        lan_nodes : list, optional
-            The latent nodes of the network. Default is None
+        ron_nodes : list, optional
+            The root nodes of the network. Default is None
         ext_nodes : list, optional
             The exteroceptive nodes of the network. Default is None
-        int_nodes : list, optional
-            The interoceptive nodes of the network. Default is None
         pro_nodes : list, optional
             The proprioceptive nodes of the network. Default is None
         edges : list, optional
@@ -147,7 +141,7 @@ class PeepoNetwork:
         Example
         -------
         >>> from peepo.predictive_processing.v3.peepo_network import PeepoNetwork
-        >>> pp_network = PeepoNetwork(bel_nodes=[{'name': 'belief_1', 'card': 2}],
+        >>> pp_network = PeepoNetwork(ron_nodes=[{'name': 'belief_1', 'card': 2}],
         >>>                           ext_nodes=[{'name': 'exteroceptive_1', 'card': 2}]),
         >>>                           edges=[('belief_1', 'exteroceptive_1')],
         >>>                           cpds={'belief_1': [0.7, 0.3], 'exteroceptive_1': [[0.9, 0.1], [0.1, 0.9]]}
@@ -196,11 +190,8 @@ class PeepoNetwork:
                  train_from=None,
                  train_data=None,
                  frozen=False,
-                 bel_nodes=None,
-                 mem_nodes=None,
-                 lan_nodes=None,
+                 ron_nodes=None,
                  ext_nodes=None,
-                 int_nodes=None,
                  pro_nodes=None,
                  edges=None,
                  cpds=None):
@@ -210,11 +201,8 @@ class PeepoNetwork:
         self.train_data = train_data or []
         self.frozen = frozen
         self.date = dt.datetime.now()
-        self.bel_nodes = bel_nodes or []
-        self.mem_nodes = mem_nodes or []
-        self.lan_nodes = lan_nodes or []
+        self.ron_nodes = ron_nodes or []
         self.ext_nodes = ext_nodes or []
-        self.int_nodes = int_nodes or []
         self.pro_nodes = pro_nodes or []
         self.edges = edges or []
         self.cpds = cpds or {}
@@ -328,7 +316,7 @@ class PeepoNetwork:
             return pm_net
 
     def from_pomegranate(self, pm_net):
-        pass
+        raise NotImplementedError()
 
     def to_json(self, separators=(',', ' : '), indent=4):
         for k, v in self.cpds.items():
@@ -345,16 +333,10 @@ class PeepoNetwork:
         self.date = header['date']
 
         nodes = obj['nodes']
-
-        ron_nodes = nodes['RON']
-        self.bel_nodes = ron_nodes['BEL']
-        self.mem_nodes = ron_nodes['MEM']
-
-        self.lan_nodes = nodes['LAN']
+        self.ron_nodes = nodes['RON']
 
         len_nodes = nodes['LEN']
         self.ext_nodes = len_nodes['EXT']
-        self.int_nodes = len_nodes['INT']
         self.pro_nodes = len_nodes['PRO']
 
         self.edges = obj['edges']
@@ -363,46 +345,32 @@ class PeepoNetwork:
         return self
 
     def get_nodes(self):
-        nodes = [[x['name'] for x in self.bel_nodes],
-                 [x['name'] for x in self.mem_nodes],
-                 [x['name'] for x in self.lan_nodes],
+        nodes = [[x['name'] for x in self.ron_nodes],
                  [x['name'] for x in self.ext_nodes],
-                 [x['name'] for x in self.int_nodes],
                  [x['name'] for x in self.pro_nodes]]
         return [item for sublist in nodes for item in sublist]
 
     def get_root_nodes(self):
-        roots = [[node['name'] for node in self.bel_nodes],
-                 [node['name'] for node in self.mem_nodes]]
-        return [item for sublist in roots for item in sublist]
+        return [node['name'] for node in self.ron_nodes]
 
     def get_leaf_nodes(self):
         leaves = [[node['name'] for node in self.ext_nodes],
-                  [node['name'] for node in self.int_nodes],
                   [node['name'] for node in self.pro_nodes]]
         return [item for sublist in leaves for item in sublist]
-
-    def get_lan_nodes(self):
-        lans = [[node['name'] for node in self.lan_nodes]]
-        return [item for sublist in lans for item in sublist]
 
     def get_pro_nodes(self):
         pros = [[node['name'] for node in self.pro_nodes]]
         return [item for sublist in pros for item in sublist]
 
-    def add_belief_node(self, node, cardinality):
-        self.bel_nodes.append({'name': node, 'card': cardinality})
+    def add_root_node(self, node, cardinality):
+        self.ron_nodes.append({'name': node, 'card': cardinality})
         self.cardinality_map.update({node: cardinality})
 
-    def add_memory_node(self, node, cardinality):
-        self.mem_nodes.append({'name': node, 'card': cardinality})
-        self.cardinality_map.update({node: cardinality})
+    def remove_root_node(self, node):
+        self.ron_nodes = [n for n in self.ron_nodes if n['name'] != node]
+        self._remove_node_(node)
 
-    def remove_belief_node(self, node):
-        self.bel_nodes = [n for n in self.bel_nodes if n['name'] != node]
-        self.remove_node(node)
-
-    def remove_node(self, node):
+    def _remove_node_(self, node):
         self.cpds.pop(node, None)
         self.cardinality_map.pop(node, None)
         self.omega_map.pop(node, None)
@@ -444,16 +412,14 @@ class PeepoNetwork:
         self.cpds.update({node: cpd})
 
     def make_cardinality_map(self):
-        return {node['name']: node['card'] for node in itertools.chain(self.bel_nodes, self.mem_nodes, self.lan_nodes,
-                                                                       self.ext_nodes, self.int_nodes, self.pro_nodes)}
+        return {node['name']: node['card'] for node in itertools.chain(self.ron_nodes, self.ext_nodes, self.pro_nodes)}
 
     def get_cardinality_map(self):
         return self.cardinality_map
 
     def make_omega_map(self):
         omg_map = {}
-        for node in itertools.chain(self.bel_nodes, self.mem_nodes, self.lan_nodes,
-                                    self.ext_nodes, self.int_nodes, self.pro_nodes):
+        for node in itertools.chain(self.ron_nodes, self.ext_nodes, self.pro_nodes):
             parents_card = [self.cardinality_map[parent] for parent in self.get_incoming_edges(node['name'])]
             max_omega = 2 * math.pi * np.prod(parents_card)
             omega = np.random.rand(node['card']) * max_omega
@@ -477,14 +443,9 @@ class PeepoNetwork:
                 'date': self.date,
             },
             'nodes': {
-                'RON': {
-                    'BEL': self.bel_nodes,
-                    'MEM': self.mem_nodes
-                },
-                'LAN': self.lan_nodes,
+                'RON': self.ron_nodes,
                 'LEN': {
                     'EXT': self.ext_nodes,
-                    'INT': self.int_nodes,
                     'PRO': self.pro_nodes,
                 }
             },
@@ -498,11 +459,8 @@ class PeepoNetwork:
                             train_from=self.train_from,
                             train_data=self.train_data,
                             frozen=self.frozen,
-                            bel_nodes=self.bel_nodes.copy(),
-                            mem_nodes=self.mem_nodes.copy(),
-                            lan_nodes=self.lan_nodes.copy(),
+                            ron_nodes=self.ron_nodes.copy(),
                             ext_nodes=self.ext_nodes.copy(),
-                            int_nodes=self.int_nodes.copy(),
                             pro_nodes=self.pro_nodes.copy(),
                             edges=self.edges.copy(),
                             cpds=deepcopy(self.cpds))
