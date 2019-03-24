@@ -1,7 +1,7 @@
 import numpy as np
 
-from peepo.pp.continuous import dataload
-from peepo.pp.continuous.region import Region
+from peepo.pp.old.continuous import dataload
+from peepo.pp.old.continuous.region import Region
 
 
 class Hierarchy:
