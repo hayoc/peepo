@@ -51,36 +51,6 @@ def get_topologies(peepo_network, max_removal=None):
     return topologies
 
 
-def get_topologies2(peepo_network, simple_first=False, max_topologies=None, max_removal=None):
-    max_edges = fully_connected_network(peepo_network).get_edges()
-    max_removal = max_removal if max_removal and max_removal < len(max_edges) else len(max_edges)
-
-    topologies = []
-
-    if simple_first:
-        for x in range(0, max_removal + 1):
-            for cmb in itertools.combinations(max_edges, x):
-                topologies.append({
-                    'edges': list(cmb),
-                    'entropy': len(cmb)
-                })
-
-                if max_topologies and len(topologies) >= max_topologies:
-                    return topologies
-    else:
-        for x in range(len(max_edges), len(max_edges) - max_removal, -1):
-            for cmb in itertools.combinations(max_edges, x):
-                topologies.append({
-                    'edges': list(cmb),
-                    'entropy': len(cmb)
-                })
-
-                if max_topologies and len(topologies) >= max_topologies:
-                    return topologies
-
-    return topologies
-
-
 def fully_connected_network(peepo_network):
     for root in peepo_network.get_root_nodes():
         for leaf in peepo_network.get_leaf_nodes():

@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pygame as pg
 
+from peepo.evolution.genetic_algorithm import GeneticAlgorithm
 from peepo.playground.survival.organism import Obstacle, SurvivalPeepo
-from peepo.predictive_processing.v3.genetic_algorithm2 import GeneticAlgorithm
 from peepo.predictive_processing.v3.peepo_network import read_from_file, write_to_file
 from peepo.visualize.graph import draw_network
 
