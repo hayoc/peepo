@@ -157,9 +157,6 @@ class PeepoNetwork:
     def __init__(self,
                  identification=None,
                  description=None,
-                 train_from=None,
-                 train_data=None,
-                 frozen=False,
                  ron_nodes=None,
                  ext_nodes=None,
                  pro_nodes=None,
@@ -167,9 +164,6 @@ class PeepoNetwork:
                  cpds=None):
         self.identification = identification or ''
         self.description = description or ''
-        self.train_from = train_from or ''
-        self.train_data = train_data or []
-        self.frozen = frozen
         self.date = dt.datetime.now()
         self.ron_nodes = ron_nodes or []
         self.ext_nodes = ext_nodes or []
@@ -298,16 +292,12 @@ class PeepoNetwork:
         header = obj['header']
         self.identification = header['identification']
         self.description = header['description']
-        self.train_data = header['train_from']
-        self.frozen = header['frozen']
         self.date = header['date']
 
         nodes = obj['nodes']
         self.ron_nodes = nodes['RON']
-
-        len_nodes = nodes['LEN']
-        self.ext_nodes = len_nodes['EXT']
-        self.pro_nodes = len_nodes['PRO']
+        self.ext_nodes = nodes['EXT']
+        self.pro_nodes = nodes['PRO']
 
         self.edges = obj['edges']
         self.cpds = obj['cpds']
@@ -408,8 +398,6 @@ class PeepoNetwork:
             'header': {
                 'identification': self.identification,
                 'description': self.description,
-                'frozen': self.frozen,
-                'train_from': self.train_from,
                 'date': self.date,
             },
             'nodes': {
@@ -426,9 +414,6 @@ class PeepoNetwork:
     def copy(self):
         return PeepoNetwork(identification=self.identification,
                             description=self.description,
-                            train_from=self.train_from,
-                            train_data=self.train_data,
-                            frozen=self.frozen,
                             ron_nodes=self.ron_nodes.copy(),
                             ext_nodes=self.ext_nodes.copy(),
                             pro_nodes=self.pro_nodes.copy(),

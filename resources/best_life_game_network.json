@@ -21,52 +21,50 @@
         "card": 2
       }
     ],
-    "LEN": {
-      "EXT": [
-        {
-          "name": "LEN_vision_1",
-          "card": 2
-        },
-        {
-          "name": "LEN_vision_2",
-          "card": 2
-        },
-        {
-          "name": "LEN_vision_3",
-          "card": 2
-        },
-        {
-          "name": "LEN_vision_4",
-          "card": 2
-        },
-        {
-          "name": "LEN_vision_5",
-          "card": 2
-        },
-        {
-          "name": "LEN_vision_6",
-          "card": 2
-        },
-        {
-          "name": "LEN_ennemy",
-          "card": 2
-        },
-        {
-          "name": "LEN_food",
-          "card": 2
-        }
-      ],
-      "PRO": [
-        {
-          "name": "LEN_motor_left",
-          "card": 2
-        },
-        {
-          "name": "LEN_motor_right",
-          "card": 2
-        }
-      ]
-    }
+    "EXT": [
+      {
+        "name": "LEN_vision_1",
+        "card": 2
+      },
+      {
+        "name": "LEN_vision_2",
+        "card": 2
+      },
+      {
+        "name": "LEN_vision_3",
+        "card": 2
+      },
+      {
+        "name": "LEN_vision_4",
+        "card": 2
+      },
+      {
+        "name": "LEN_vision_5",
+        "card": 2
+      },
+      {
+        "name": "LEN_vision_6",
+        "card": 2
+      },
+      {
+        "name": "LEN_ennemy",
+        "card": 2
+      },
+      {
+        "name": "LEN_food",
+        "card": 2
+      }
+    ],
+    "PRO": [
+      {
+        "name": "LEN_motor_left",
+        "card": 2
+      },
+      {
+        "name": "LEN_motor_right",
+        "card": 2
+      }
+    ]
   },
   "edges": [
     [

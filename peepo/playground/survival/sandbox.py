@@ -109,7 +109,7 @@ def verification(graphical):
 
     max_age = 100000
     obstacles = read_obstacles(graphical)
-    peepo_network = read_from_file('best_survival_network')
+    peepo_network = read_from_file('survival_network_evolved')
     draw_network(peepo_network)
 
     peepos = [SurvivalPeepo('peepo', peepo_network, graphical, (5, 400), obstacles)]

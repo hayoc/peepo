@@ -49,12 +49,8 @@ class SurvivalPeepo(Peepo):
             RIGHT: False
         }
         self.view = {
-            '1': False,
-            '2': False,
-            '3': False,
-            '4': False,
-            '5': False,
-            '6': False,
+            LEFT: False,
+            RIGHT: False
         }
         self.generative_model = GenerativeModel(self, n_jobs=1)
 
@@ -63,6 +59,7 @@ class SurvivalPeepo(Peepo):
             return [0.1, 0.9] if self.view[self.get_quadrant(name)] else [0.9, 0.1]
         if MOTOR.lower() in name.lower():
             return [0.1, 0.9] if self.motor[self.get_direction(name)] else [0.9, 0.1]
+        return [0.5, 0.5]
 
     def action(self, node, prediction):
         if np.argmax(prediction) == 0:
@@ -72,7 +69,7 @@ class SurvivalPeepo(Peepo):
 
     @staticmethod
     def get_quadrant(name):
-        for quad in ['1', '2', '3', '4', '5', '6']:
+        for quad in [LEFT, RIGHT]:
             if quad.lower() in name.lower():
                 return quad
         raise ValueError('Unexpected node name %s, could not find 1,2,3,4,5,6', name)
