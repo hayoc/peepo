@@ -96,7 +96,7 @@ class World(object):
                 break
 
 
-def verification(graphical):
+def verification(graphical, source):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
     generate_obstacles(500)
@@ -109,7 +109,7 @@ def verification(graphical):
 
     max_age = 100000
     obstacles = read_obstacles(graphical)
-    peepo_network = read_from_file('survival_network_evolved')
+    peepo_network = read_from_file(source)
     draw_network(peepo_network)
 
     peepos = [SurvivalPeepo('peepo', peepo_network, graphical, (5, 400), obstacles)]
@@ -124,7 +124,7 @@ def verification(graphical):
 def evolution(graphical):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
-    # generate_obstacles(400)
+    generate_obstacles(400)
 
     os.environ['SDL_VIDEO_CENTERED'] = '1'
     if graphical:
@@ -133,8 +133,8 @@ def evolution(graphical):
         pg.display.set_mode(SCREEN_SIZE)
 
     max_age = 400
-    num_individuals = 20
-    num_generations = 20
+    num_individuals = 10
+    num_generations = 10
 
     ga = GeneticAlgorithm('survival',
                           p_mut_top=0.2,
@@ -180,4 +180,4 @@ def evolution(graphical):
 
 if __name__ == '__main__':
     # evolution(False)
-    verification(True)
+    verification(True, 'best_survival_network')

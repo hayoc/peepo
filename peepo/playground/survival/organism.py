@@ -49,8 +49,12 @@ class SurvivalPeepo(Peepo):
             RIGHT: False
         }
         self.view = {
-            LEFT: False,
-            RIGHT: False
+            '1': False,
+            '2': False,
+            '3': False,
+            '4': False,
+            '5': False,
+            '6': False,
         }
         self.generative_model = GenerativeModel(self, n_jobs=1)
 
@@ -69,7 +73,7 @@ class SurvivalPeepo(Peepo):
 
     @staticmethod
     def get_quadrant(name):
-        for quad in [LEFT, RIGHT]:
+        for quad in ['1', '2', '3', '4', '5', '6']:
             if quad.lower() in name.lower():
                 return quad
         raise ValueError('Unexpected node name %s, could not find 1,2,3,4,5,6', name)
