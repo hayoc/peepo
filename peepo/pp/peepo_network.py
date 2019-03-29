@@ -402,10 +402,8 @@ class PeepoNetwork:
             },
             'nodes': {
                 'RON': self.ron_nodes,
-                'LEN': {
-                    'EXT': self.ext_nodes,
-                    'PRO': self.pro_nodes,
-                }
+                'EXT': self.ext_nodes,
+                'PRO': self.pro_nodes,
             },
             'edges': self.edges,
             'cpds': self.cpds
