@@ -12,14 +12,13 @@ class GenerativeModel:
     This is a generative model, implemented as a Bayesian Causal Network. The three functions
     prediction, prediction error and prediction error minimization are defined for this model.
 
-    :param network : PeepoNetwork representing the Bayesian Causal Network. Causes are hypothesis variables,
-    effects are observational variables. PeepoNetwork.to_pomegranate() will be called upon initialization to fetch
+    :param peepo : Peepo organism - implementation of Peepo class
+    Contains a PeepoNetwork, representing the Bayesian Causal Network. Causes are hypothesis variables,
+    effects are observational variables. peepo.network.to_pomegranate() will be called upon initialization to fetch
     the pomegranate network upon which all the computations are done.
-    :param sensory_input : Mutable dictionary containing the current sensory inputs
     :param n_jobs : Number of process to spawn for multiprocessing. By default 1 = no additional processes spawned
 
-    :type network : PeepoNetwork
-    :type sensory_input : SensoryInput
+    :type peepo : Peepo
     :type n_jobs : int
 
     TODO: Model Update, e.g. through: self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters]
@@ -27,11 +26,6 @@ class GenerativeModel:
     TODO: Integrate PRECISION BASED WEIGHTING on prediction errors. E.g. prediction error minimization should only
     TODO: happen if the prediction errors have enough weight assigned to them. This can depend on context,
     TODO: the organism's goal, or other ways.
-
-    TODO: Implement a custom BayesianNetwork so we can distinguish between action and perception nodes. Instead of
-    TODO: distinguishing them by checking for 'motor' in the name.
-
-    TODO: Parallelism
     """
 
     def __init__(self, peepo, n_jobs=1):
