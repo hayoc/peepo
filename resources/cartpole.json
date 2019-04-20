@@ -1,23 +1,43 @@
 {
   "header": {
-    "identification": "",
+    "identification": "Cartpole",
     "description": "",
     "frozen": false,
     "train_from": "",
-    "date": "2019-01-23 19:28:09.727316"
+    "date": "2019-04-16 19:28:09.727316"
   },
   "nodes": {
     "RON": [
       {
-        "name": "ROOT_LEFT",
+        "name": "ROOT_1",
         "card": 2
       },
       {
-        "name": "ROOT_RIGHT",
+        "name": "ROOT_2",
+        "card": 2
+      },
+      {
+        "name": "ROOT_3",
+        "card": 2
+      },
+      {
+        "name": "ROOT_4",
+        "card": 2
+      },
+      {
+        "name": "ROOT_5",
+        "card": 2
+      },
+      {
+        "name": "ROOT_6",
         "card": 2
       }
     ],
     "EXT": [
+      {
+        "name": "LEN_vision_0",
+        "card": 2
+      },
       {
         "name": "LEN_vision_1",
         "card": 2
@@ -27,7 +47,7 @@
         "card": 2
       },
       {
-        "name": "dummy",
+        "name": "LEN_vision_3",
         "card": 2
       }
     ],
