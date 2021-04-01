@@ -4,7 +4,7 @@
 
 > [N]othing seems more possible to me than that people some day will come to the definite opinion that there is no copy in the [...] nervous system which corresponds to a particular thought, or a particular idea, or memory. (Ludwig Wittgenstein, Writings on the Philosophy of Psychology, 1948)
 
-For more info [peepo.ai](https://peepo.ai)
+### For more info [peepo.ai](https://peepo.ai)
 
 This version is the prototype of peepo. A version with the aim of performance, written in C++, can be found here: https://github.com/hayoc/peepo
 
