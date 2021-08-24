@@ -18,3 +18,9 @@ class Peepo:
 
     def observation(self, name):
         pass
+
+    def update(self):
+        pass
+
+    def draw(self, surface):
+        pass
