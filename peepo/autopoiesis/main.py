@@ -15,9 +15,9 @@ def run():
 
     particles = []
     for i in range(1000):
-        particles.append(Particle("S"))
+        particles.append(Particle("S", particles))
     for i in range(50):
-        particles.append(Particle("K"))
+        particles.append(Particle("K", particles))
 
     world = World(particles)
 

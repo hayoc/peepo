@@ -15,8 +15,20 @@ class World:
 
     def main_loop(self):
         while not self.done:
+            substrate = 0
+            catalyst = 0
+            link = 0
+
             for particle in self.particles:
                 particle.update()
+                if particle.kind == "S":
+                    substrate += 1
+                if particle.kind == "K":
+                    catalyst += 1
+                if particle.kind == "L":
+                    link += 1
+
+            print("S: {} - K: {} - L: {}".format(substrate, catalyst, link))
 
             self.event_loop()
             self.render()
