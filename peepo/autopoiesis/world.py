@@ -28,7 +28,7 @@ class World:
                 if particle.kind == "L":
                     link += 1
 
-            print("S: {} - K: {} - L: {}".format(substrate, catalyst, link))
+            # print("S: {} - K: {} - L: {}".format(substrate, catalyst, link))
 
             self.event_loop()
             self.render()
