@@ -87,6 +87,9 @@ class Particle:
     def draw(self, surface):
         surface.blit(self.image, self.rect)
         if self.kind == "L":
+            myfont = pg.font.SysFont("Comic Sans MS", 10)
+            label = myfont.render("{}r - {}p".format(self.rotation, (self.rect.x, self.rect.y)), True, pg.Color("red"))
+            surface.blit(label, self.rect)
             pg.draw.line(surface, pg.Color("pink"), self.rect.center, self.edge_right, 2)
             pg.draw.line(surface, pg.Color("purple"), self.rect.center, self.edge_left, 2)
 
@@ -120,24 +123,47 @@ class Particle:
 
     def bonding(self):
         for particle in list(self.others):
-            if particle.kind == "L":
-                if not self.bond_left and not particle.bond_right:
+            if particle.kind == "L" and particle is not self:
+                if not self.bond_left and not particle.bond_left:
                     src_rect_left = pg.Rect(self.edge_left, (5, 5))
-                    tgt_rect_right = pg.Rect(particle.edge_right, (5, 5))
-                    collide = src_rect_left.colliderect(tgt_rect_right)
-
-                    if collide:
-                        self.bond_left = particle
-                        particle.bond_right = self
-
-                if not self.bond_right and not particle.bond_left:
-                    src_rect_right = pg.Rect(self.edge_right, (5, 5))
                     tgt_rect_left = pg.Rect(particle.edge_left, (5, 5))
-                    collide = src_rect_right.colliderect(tgt_rect_left)
+                    collide = src_rect_left.colliderect(tgt_rect_left)
 
                     if collide:
-                        self.bond_right = particle
-                        particle.bond_left = self
+                        a, b = identify_lone_link(self, particle)
+                        if a and b:
+                            a.bond_left = b
+                            b.bond_left = a
+
+                            b.rotation = modify_degrees(a.rotation, 15)
+                            b.rect.x = a.rect.x + 8 * math.cos(math.radians(somecalculation(a.rotation)))
+                            b.rect.y = a.rect.y + 8 * math.cos(math.radians(somecalculation(a.rotation)))
+
+                            b.edge_left = end_line(10, b.rotation - 90, b.rect.center)
+                            b.edge_right = end_line(10, b.rotation + 90, b.rect.center)
+
+                            print("A rotation: {} --- B rotation: {} --- A pos: {} --- B pos: {}".format(a.rotation, b.rotation, (a.rect.x, a.rect.y), (b.rect.x, b.rect.y)))
+
+                if not self.bond_right and not particle.bond_right:
+                    src_rect_right = pg.Rect(self.edge_right, (5, 5))
+                    tgt_rect_right = pg.Rect(particle.edge_right, (5, 5))
+                    collide = src_rect_right.colliderect(tgt_rect_right)
+
+                    if collide:
+                        a, b = identify_lone_link(self, particle)
+                        if a and b:
+                            a.bond_right = b
+                            b.bond_right = a
+
+                            b.rotation = modify_degrees(a.rotation, -15)
+                            b.rect.x = a.rect.x + 8
+                            b.rect.y = a.rect.y - 8
+
+                            b.edge_left = end_line(10, b.rotation - 90, b.rect.center)
+                            b.edge_right = end_line(10, b.rotation + 90, b.rect.center)
+
+                            print("A rotation: {} --- B rotation: {} --- A pos: {} --- B pos: {}".format(a.rotation, b.rotation, (a.rect.x, a.rect.y), (b.rect.x, b.rect.y)))
+
 
     def disintegration(self):
         self.disintegration_chance += 1
@@ -145,9 +171,9 @@ class Particle:
 
         if disintegrate:
             if self.bond_left:
-                self.bond_left.bond_right = None
+                self.bond_left.bond_left = None
             if self.bond_right:
-                self.bond_right.bond_left = None
+                self.bond_right.bond_right = None
             self.others.remove(self)
             self.others.append(Particle("S", self.others, (self.rect.x, self.rect.y)))
             self.others.append(Particle("S", self.others, (self.rect.x, self.rect.y)))
@@ -164,3 +190,24 @@ class Particle:
 def end_line(radius, rotation, center):
     center_rotate = vec(radius, 0).rotate(rotation)
     return center_rotate + center
+
+
+def identify_lone_link(one: Particle, two: Particle):
+    if not one.bond_left and not one.bond_right:
+        return two, one
+    if not two.bond_left and not two.bond_right:
+        return one, two
+    return None, None
+
+
+def modify_degrees(start, add):
+    if add > 0:
+        if start + add > 360:
+            return start + add - 360
+        return start + add
+    elif add < 0:
+        if start + add < 0:
+            return start + add + 360
+        return start + add
+    else:
+        return start
