@@ -2,15 +2,12 @@ import pygame as pg
 import math
 import random
 
-
 vec = pg.math.Vector2
-
 
 SCREEN_SIZE = (800, 800)
 
 
 class Particle:
-
     SIZE = (4, 4)
     SPEED = 2
 
@@ -45,9 +42,12 @@ class Particle:
         self.bond_left = None
         self.bond_right = None
 
+        self.clamp = False
+
         if self.kind == "L":
             self.edge_left = end_line(5, self.rotation - 90, self.rect.center)
             self.edge_right = end_line(5, self.rotation + 90, self.rect.center)
+            self.edge_center = end_line(10, self.rotation, self.rect.center)
 
     def update(self):
         if not self.bond_left and not self.bond_right:
@@ -75,6 +75,7 @@ class Particle:
                 self.rect.y = 0
 
             if self.kind == "L":
+                self.edge_center = end_line(10, self.rotation, self.rect.center)
                 self.edge_left = end_line(10, self.rotation - 90, self.rect.center)
                 self.edge_right = end_line(10, self.rotation + 90, self.rect.center)
 
@@ -87,11 +88,12 @@ class Particle:
     def draw(self, surface):
         surface.blit(self.image, self.rect)
         if self.kind == "L":
-            myfont = pg.font.SysFont("Comic Sans MS", 10)
-            label = myfont.render("{}r - {}p".format(self.rotation, (self.rect.x, self.rect.y)), True, pg.Color("red"))
-            surface.blit(label, self.rect)
+            # myfont = pg.font.SysFont("Comic Sans MS", 8)
+            # label = myfont.render("{}r - {}p".format(self.rotation, (self.rect.x, self.rect.y)), True, pg.Color("red"))
+            # surface.blit(label, self.rect)
             pg.draw.line(surface, pg.Color("pink"), self.rect.center, self.edge_right, 2)
             pg.draw.line(surface, pg.Color("purple"), self.rect.center, self.edge_left, 2)
+            pg.draw.line(surface, pg.Color("red"), self.rect.center, self.edge_center, 2)
 
     def production(self):
         collided = []
@@ -112,8 +114,8 @@ class Particle:
                         start_x = min(sub0.rect.x, sub1.rect.x)
                         start_y = min(sub0.rect.y, sub1.rect.y)
 
-                        new_x = start_x + dist_x/2
-                        new_y = start_y + dist_y/2
+                        new_x = start_x + dist_x / 2
+                        new_y = start_y + dist_y / 2
 
                         self.others.remove(sub0)
                         self.others.remove(sub1)
@@ -122,52 +124,66 @@ class Particle:
                         collided.clear()
 
     def bonding(self):
+        if self.clamp:
+            return
+
         for particle in list(self.others):
             if particle.kind == "L" and particle is not self:
-                if not self.bond_left and not particle.bond_left:
-                    src_rect_left = pg.Rect(self.edge_left, (5, 5))
-                    tgt_rect_left = pg.Rect(particle.edge_left, (5, 5))
-                    collide = src_rect_left.colliderect(tgt_rect_left)
+                if not self.bond_left and not particle.bond_right:
+                    src_rect = pg.Rect(self.edge_left, (10, 10))
+                    tgt_rect = pg.Rect(particle.edge_right, (10, 10))
+                    collide = src_rect.colliderect(tgt_rect)
 
                     if collide:
-                        a, b = identify_lone_link(self, particle)
-                        if a and b:
-                            a.bond_left = b
-                            b.bond_left = a
+                        self.clamp = True
+                        particle.clamp = True
 
-                            b.rotation = modify_degrees(a.rotation, 15)
-                            b.rect.x = a.rect.x + 8 * math.cos(math.radians(somecalculation(a.rotation)))
-                            b.rect.y = a.rect.y + 8 * math.cos(math.radians(somecalculation(a.rotation)))
+                        self.bond_left = particle
+                        particle.bond_right = self
 
-                            b.edge_left = end_line(10, b.rotation - 90, b.rect.center)
-                            b.edge_right = end_line(10, b.rotation + 90, b.rect.center)
+                        angle = 25  # +25 for a left attach, -25 for a right attach
+                        radius = 25  # radius of the theoretical circle of cell
 
-                            print("A rotation: {} --- B rotation: {} --- A pos: {} --- B pos: {}".format(a.rotation, b.rotation, (a.rect.x, a.rect.y), (b.rect.x, b.rect.y)))
+                        origin_x = self.rect.centerx - radius * math.cos(math.radians(self.rotation))
+                        origin_y = self.rect.centery - radius * math.sin(math.radians(self.rotation))
 
-                if not self.bond_right and not particle.bond_right:
-                    src_rect_right = pg.Rect(self.edge_right, (5, 5))
-                    tgt_rect_right = pg.Rect(particle.edge_right, (5, 5))
-                    collide = src_rect_right.colliderect(tgt_rect_right)
+                        particle.rotation = modify_degrees(self.rotation, angle)
+                        particle.rect.centerx = origin_x + radius * math.cos(math.radians(particle.rotation))
+                        particle.rect.centery = origin_y + radius * math.sin(math.radians(particle.rotation))
+
+                        particle.edge_left = end_line(10, particle.rotation - 90, particle.rect.center)
+                        particle.edge_right = end_line(10, particle.rotation + 90, particle.rect.center)
+                        particle.edge_center = end_line(10, particle.rotation, particle.rect.center)
+
+                if not self.bond_right and not particle.bond_left:
+                    src_rect = pg.Rect(self.edge_right, (10, 10))
+                    tgt_rect = pg.Rect(particle.edge_left, (10, 10))
+                    collide = src_rect.colliderect(tgt_rect)
 
                     if collide:
-                        a, b = identify_lone_link(self, particle)
-                        if a and b:
-                            a.bond_right = b
-                            b.bond_right = a
+                        self.clamp = True
+                        particle.clamp = True
 
-                            b.rotation = modify_degrees(a.rotation, -15)
-                            b.rect.x = a.rect.x + 8
-                            b.rect.y = a.rect.y - 8
+                        self.bond_right = particle
+                        particle.bond_left = self
 
-                            b.edge_left = end_line(10, b.rotation - 90, b.rect.center)
-                            b.edge_right = end_line(10, b.rotation + 90, b.rect.center)
+                        angle = -25  # +25 for a left attach, -25 for a right attach
+                        radius = 25  # radius of the theoretical circle of cell
 
-                            print("A rotation: {} --- B rotation: {} --- A pos: {} --- B pos: {}".format(a.rotation, b.rotation, (a.rect.x, a.rect.y), (b.rect.x, b.rect.y)))
+                        origin_x = self.rect.centerx - radius * math.cos(math.radians(self.rotation))
+                        origin_y = self.rect.centery - radius * math.sin(math.radians(self.rotation))
 
+                        particle.rotation = modify_degrees(self.rotation, angle)
+                        particle.rect.centerx = origin_x + radius * math.cos(math.radians(particle.rotation))
+                        particle.rect.centery = origin_y + radius * math.sin(math.radians(particle.rotation))
+
+                        particle.edge_left = end_line(10, particle.rotation - 90, particle.rect.center)
+                        particle.edge_right = end_line(10, particle.rotation + 90, particle.rect.center)
+                        particle.edge_center = end_line(10, particle.rotation, particle.rect.center)
 
     def disintegration(self):
         self.disintegration_chance += 1
-        disintegrate = random.choices([True, False], weights=[self.disintegration_chance, 10000000], k=1)[0]
+        disintegrate = random.choices([True, False], weights=[self.disintegration_chance, 1000000000], k=1)[0]
 
         if disintegrate:
             if self.bond_left:
