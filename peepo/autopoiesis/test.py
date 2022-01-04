@@ -14,9 +14,13 @@ class World:
         self.screen = pg.display.get_surface()
         self.screen_rect = self.screen.get_rect()
         self.clock = pg.time.Clock()
-        self.fps = 60
+        self.fps = 600
         self.done = False
-
+        self.density = 10
+        self.angle = round(360.0/self.density,5)
+        self.cells = [Block((400, 400), 0)]
+        for n in range(1,self.density):
+            self.cells.append(self.create_new(self.cells[n-1]))
         self.first = Block((400, 400), 0)
         self.second = self.create_new(self.first)
         self.third = self.create_new(self.second)
@@ -34,15 +38,14 @@ class World:
         self.fifteen = self.create_new(self.fourteen)
 
     def create_new(self, base_block):
-        angle = 25  # +25 for a left attach, -25 for a right attach
-        radius = 50  # radius of circle of cell
-
+        # angle = self.angle  # +25 for a left attach, -25 for a right attach
+        radius = 50.0  # radius of circle of cell
         origin_x = base_block.rect.centerx - radius * math.cos(math.radians(base_block.rotation))
         origin_y = base_block.rect.centery - radius * math.sin(math.radians(base_block.rotation))
 
-        new_rotation = modify_degrees(base_block.rotation, angle)
-        new_x = origin_x + radius * math.cos(math.radians(new_rotation))
-        new_y = origin_y + radius * math.sin(math.radians(new_rotation))
+        new_rotation = modify_degrees(base_block.rotation, self.angle)
+        new_x = round(origin_x + radius * math.cos(math.radians(new_rotation)),0)
+        new_y = round(origin_y + radius * math.sin(math.radians(new_rotation)),0)
 
         second = Block((new_x, new_y), new_rotation)
         return second
@@ -61,34 +64,36 @@ class World:
 
     def render(self):
         self.screen.fill(pg.Color("white"))
-        self.first.draw(self.screen)
-        self.second.draw(self.screen)
-        self.third.draw(self.screen)
-        self.fourth.draw(self.screen)
-        self.fifth.draw(self.screen)
-        self.sixth.draw(self.screen)
-        self.seventh.draw(self.screen)
-        self.eight.draw(self.screen)
-        self.ninth.draw(self.screen)
-        self.ten.draw(self.screen)
-        self.eleven.draw(self.screen)
-        self.twelve.draw(self.screen)
-        self.thirteen.draw(self.screen)
-        self.fourteen.draw(self.screen)
-        self.fifteen.draw(self.screen)
+        for n in range(self.density):
+            self.cells[n].draw(self.screen)
+        # self.first.draw(self.screen)
+        # self.second.draw(self.screen)
+        # self.third.draw(self.screen)
+        # self.fourth.draw(self.screen)
+        # self.fifth.draw(self.screen)
+        # self.sixth.draw(self.screen)
+        # self.seventh.draw(self.screen)
+        # self.eight.draw(self.screen)
+        # self.ninth.draw(self.screen)
+        # self.ten.draw(self.screen)
+        # self.eleven.draw(self.screen)
+        # self.twelve.draw(self.screen)
+        # self.thirteen.draw(self.screen)
+        # self.fourteen.draw(self.screen)
+        # self.fifteen.draw(self.screen)
 
 
         pg.display.update()
 
 
 def modify_degrees(start, add):
-    if add > 0:
-        if start + add > 360:
-            return start + add - 360
+    if add >= 0.:
+        if start + add > 360.:
+            return start + add - 360.
         return start + add
-    elif add < 0:
-        if start + add < 0:
-            return start + add + 360
+    elif add <= 0.:
+        if start + add < 0.:
+            return start + add + 360.
         return start + add
     else:
         return start
