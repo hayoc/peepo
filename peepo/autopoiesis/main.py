@@ -14,10 +14,10 @@ def run():
     pg.display.set_mode(SCREEN_SIZE)
 
     particles = []
-    for i in range(1000):
-        particles.append(Particle("S", particles))
-    for i in range(50):
-        particles.append(Particle("K", particles))
+    # for i in range(1000):
+    #     particles.append(Particle("S", particles, "S-{}".format(i)))
+    # for i in range(50):
+    #     particles.append(Particle("K", particles, "K-{}".format(i)))
 
     world = World(particles)
 

@@ -5,7 +5,7 @@ from peepo.autopoiesis.particle import Particle
 
 class World:
 
-    def __init__(self, particles: list[Particle]):
+    def __init__(self, particles: list):
         self.screen = pg.display.get_surface()
         self.screen_rect = self.screen.get_rect()
         self.clock = pg.time.Clock()
@@ -38,6 +38,10 @@ class World:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 self.done = True
+            if event.type == pg.MOUSEBUTTONUP:
+                print("Adding particle")
+                pos = pg.mouse.get_pos()
+                self.particles.append(Particle("L", self.particles, len(self.particles), pos=pos))
 
     def render(self):
         self.screen.fill(pg.Color("white"))

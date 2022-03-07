@@ -23,9 +23,10 @@ class Particle:
         "L": (6, 6)
     }
 
-    def __init__(self, kind, others, pos=None):
+    def __init__(self, kind, others, id, pos=None):
         self.kind = kind
         self.others = others
+        self.id = id
 
         if pos is None:
             pos = (random.randint(0, 800), random.randint(0, 800))
@@ -39,6 +40,17 @@ class Particle:
 
         self.timestep = 0
         self.disintegration_chance = 1  # 1 / 10,000,000 chance
+
+
+        self.bonded_link = None
+        self.bonded = False
+        self.is_starter = False
+        self.start_bond = None
+
+        self.bond_prev = None
+        self.bond_next = None
+        self.bonds = []
+        self.stop_bonding = False
         self.bond_left = None
         self.bond_right = None
 
@@ -50,7 +62,7 @@ class Particle:
             self.edge_center = end_line(10, self.rotation, self.rect.center)
 
     def update(self):
-        if not self.bond_left and not self.bond_right:
+        if not self.bonded:
             self.rotation += random.randint(-5, 5)
             if self.rotation < 0:
                 self.rotation = 360
@@ -88,11 +100,21 @@ class Particle:
     def draw(self, surface):
         surface.blit(self.image, self.rect)
         if self.kind == "L":
-            # myfont = pg.font.SysFont("Comic Sans MS", 8)
-            # label = myfont.render("{}r - {}p".format(self.rotation, (self.rect.x, self.rect.y)), True, pg.Color("red"))
+            # myfont = pg.font.SysFont("Comic Sans MS", 15)
+            # # label = myfont.render("{}r - {}p".format(self.rotation, (self.rect.x, self.rect.y)), True, pg.Color("red"))
+            # label = myfont.render("{}".format(self.id), True, pg.Color("red"))
             # surface.blit(label, self.rect)
-            pg.draw.line(surface, pg.Color("pink"), self.rect.center, self.edge_right, 2)
-            pg.draw.line(surface, pg.Color("purple"), self.rect.center, self.edge_left, 2)
+
+            if not self.bond_right:
+                pg.draw.line(surface, pg.Color("pink"), self.rect.center, self.edge_right, 2)
+            else:
+                pg.draw.line(surface, pg.Color("green"), self.rect.center, self.edge_right, 2)
+
+            if not self.bond_left:
+                pg.draw.line(surface, pg.Color("pink"), self.rect.center, self.edge_left, 2)
+            else:
+                pg.draw.line(surface, pg.Color("green"), self.rect.center, self.edge_left, 2)
+
             pg.draw.line(surface, pg.Color("red"), self.rect.center, self.edge_center, 2)
 
     def production(self):
@@ -119,67 +141,52 @@ class Particle:
 
                         self.others.remove(sub0)
                         self.others.remove(sub1)
-                        self.others.append(Particle("L", self.others, (new_x, new_y)))
+                        self.others.append(Particle("L", self.others, "L-{}".format(len(self.others)), (new_x, new_y)))
 
                         collided.clear()
 
     def bonding(self):
-        if self.clamp:
-            return
-
+        # so basically whenever a particle collides with another, we push that other all round to the last
+        # particle that has an open edge
         for particle in list(self.others):
             if particle.kind == "L" and particle is not self:
-                if not self.bond_left and not particle.bond_right:
-                    src_rect = pg.Rect(self.edge_left, (10, 10))
-                    tgt_rect = pg.Rect(particle.edge_right, (10, 10))
-                    collide = src_rect.colliderect(tgt_rect)
+                if self.rect.colliderect(particle.rect):
+                    # We close the circle here
+                    if (self.bonded and not self.bonded_link) and particle.bonded_link:
+                        self.bonded_link = particle
+                        particle.is_starter = True
 
-                    if collide:
-                        self.clamp = True
-                        particle.clamp = True
+                    # Open particle to be bonded
+                    if not self.bonded:
+                        self.do_bond(self, particle)
 
-                        self.bond_left = particle
-                        particle.bond_right = self
+    def do_bond(self, first, second):
+        source, other = get_bonded_or_none(first, second)
 
-                        angle = 25  # +25 for a left attach, -25 for a right attach
-                        radius = 25  # radius of the theoretical circle of cell
+        if source == "Fuck":
+            return
 
-                        origin_x = self.rect.centerx - radius * math.cos(math.radians(self.rotation))
-                        origin_y = self.rect.centery - radius * math.sin(math.radians(self.rotation))
+        if source:
+            if not source.is_starter:
+                self.do_bond(source.bonded_link, other)
+        else:
+            print("{} bonded to {}".format(first.id, second.id))
+            first.bonded_link = second
+            first.bonded, second.bonded = (True, True)
 
-                        particle.rotation = modify_degrees(self.rotation, angle)
-                        particle.rect.centerx = origin_x + radius * math.cos(math.radians(particle.rotation))
-                        particle.rect.centery = origin_y + radius * math.sin(math.radians(particle.rotation))
+            angle = 25  # +25 for a left attach, -25 for a right attach
+            radius = 50  # radius of the theoretical circle of cell
 
-                        particle.edge_left = end_line(10, particle.rotation - 90, particle.rect.center)
-                        particle.edge_right = end_line(10, particle.rotation + 90, particle.rect.center)
-                        particle.edge_center = end_line(10, particle.rotation, particle.rect.center)
+            origin_x = first.rect.centerx - radius * math.cos(math.radians(first.rotation))
+            origin_y = first.rect.centery - radius * math.sin(math.radians(first.rotation))
 
-                if not self.bond_right and not particle.bond_left:
-                    src_rect = pg.Rect(self.edge_right, (10, 10))
-                    tgt_rect = pg.Rect(particle.edge_left, (10, 10))
-                    collide = src_rect.colliderect(tgt_rect)
+            second.rotation = modify_degrees(first.rotation, angle)
+            second.rect.centerx = origin_x + radius * math.cos(math.radians(second.rotation))
+            second.rect.centery = origin_y + radius * math.sin(math.radians(second.rotation))
 
-                    if collide:
-                        self.clamp = True
-                        particle.clamp = True
-
-                        self.bond_right = particle
-                        particle.bond_left = self
-
-                        angle = -25  # +25 for a left attach, -25 for a right attach
-                        radius = 25  # radius of the theoretical circle of cell
-
-                        origin_x = self.rect.centerx - radius * math.cos(math.radians(self.rotation))
-                        origin_y = self.rect.centery - radius * math.sin(math.radians(self.rotation))
-
-                        particle.rotation = modify_degrees(self.rotation, angle)
-                        particle.rect.centerx = origin_x + radius * math.cos(math.radians(particle.rotation))
-                        particle.rect.centery = origin_y + radius * math.sin(math.radians(particle.rotation))
-
-                        particle.edge_left = end_line(10, particle.rotation - 90, particle.rect.center)
-                        particle.edge_right = end_line(10, particle.rotation + 90, particle.rect.center)
-                        particle.edge_center = end_line(10, particle.rotation, particle.rect.center)
+            second.edge_left = end_line(10, second.rotation - 90, second.rect.center)
+            second.edge_right = end_line(10, second.rotation + 90, second.rect.center)
+            second.edge_center = end_line(10, second.rotation, second.rect.center)
 
     def disintegration(self):
         self.disintegration_chance += 1
@@ -191,8 +198,8 @@ class Particle:
             if self.bond_right:
                 self.bond_right.bond_right = None
             self.others.remove(self)
-            self.others.append(Particle("S", self.others, (self.rect.x, self.rect.y)))
-            self.others.append(Particle("S", self.others, (self.rect.x, self.rect.y)))
+            self.others.append(Particle("S", self.others, "S-{}".format(len(self.others)), (self.rect.x, self.rect.y)))
+            self.others.append(Particle("S", self.others, "S-{}".format(len(self.others)), (self.rect.x, self.rect.y)))
 
     def make_image(self):
         image = pg.Surface(self.rect.size).convert_alpha()
@@ -201,6 +208,17 @@ class Particle:
         pg.draw.rect(image, pg.Color("black"), image_rect)
         pg.draw.rect(image, pg.Color(Particle.KIND_COLOR[self.kind]), image_rect.inflate(-2, -2))
         return image
+
+
+def get_bonded_or_none(one: Particle, two: Particle):
+    if one.bonded_link and two.bonded_link:
+        print("Fuck: {} - {}".format(one.id, two.id))
+        return "Fuck", "This"
+    if one.bonded_link:
+        return one, two
+    if two.bonded_link:
+        return two, one
+    return None, None
 
 
 def end_line(radius, rotation, center):
