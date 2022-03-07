@@ -6,7 +6,7 @@
 
 ### For more info [peepo.ai](https://peepo.ai)
 
-This version is the prototype of peepo. A version with the aim of performance, written in C++, can be found here: https://github.com/hayoc/peepo
+This version is the prototype of peepo. A version with the aim of performance, written in C++, can be found here: https://github.com/hayoc/peepov2
 
 ## Installation
 ```bash
