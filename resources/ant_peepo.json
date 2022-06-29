@@ -1,0 +1,74 @@
+{
+  "header": {
+    "identification": "",
+    "description": "",
+    "frozen": false,
+    "train_from": "",
+    "date": "2022-05-09 23:37:06.847463"
+  },
+  "nodes": {
+    "RON": [
+      {
+        "name": "H1",
+        "card": 2
+      },
+      {
+        "name": "H2",
+        "card": 2
+      }
+    ],
+    "EXT": [
+
+    ],
+    "PRO": [
+      {
+        "name": "PRO_left_leg",
+        "card": 2
+      },
+      {
+        "name": "PRO_right_leg",
+        "card": 2
+      }
+    ]
+  },
+  "edges": [
+    [
+      "H1",
+      "PRO_left_leg"
+    ],
+    [
+      "H2",
+      "PRO_right_leg"
+    ]
+  ],
+  "cpds": {
+    "H1": [
+      0.1,
+      0.9
+    ],
+    "H2": [
+      0.1,
+      0.9
+    ],
+    "PRO_left_leg": [
+      [
+        0.9,
+        0.1
+      ],
+      [
+        0.1,
+        0.9
+      ]
+    ],
+    "PRO_right_leg": [
+      [
+        0.9,
+        0.1
+      ],
+      [
+        0.1,
+        0.9
+      ]
+    ]
+  }
+}

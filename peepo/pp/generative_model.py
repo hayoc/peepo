@@ -16,16 +16,15 @@ class GenerativeModel:
     Contains a PeepoNetwork, representing the Bayesian Causal Network. Causes are hypothesis variables,
     effects are observational variables. peepo.network.to_pomegranate() will be called upon initialization to fetch
     the pomegranate network upon which all the computations are done.
-    :param n_jobs : Number of process to spawn for multiprocessing. By default 1 = no additional processes spawned
+    :param n_jobs : Number of processes to spawn for multiprocessing. By default 1 = no additional processes spawned
 
     :type peepo : Peepo
     :type n_jobs : int
 
     TODO: Model Update, e.g. through: self.atomic_updates = [self.add_node, self.add_edge, self.change_parameters]
-
     TODO: Integrate PRECISION BASED WEIGHTING on prediction errors. E.g. prediction error minimization should only
-    TODO: happen if the prediction errors have enough weight assigned to them. This can depend on context,
-    TODO: the organism's goal, or other ways.
+    TODO: happen if the prediction errors have enough weight assigned to them. This can depend on context (noise),
+    TODO: the organism's goal, or other ways...
     """
 
     def __init__(self, peepo, n_jobs=1):
@@ -55,7 +54,8 @@ class GenerativeModel:
                 observation = self.peepo.observation(node_name)
                 prediction_error = self.error(prediction, observation)
                 prediction_error_size = self.error_size(prediction, observation)
-                precision = self.precision(prediction)
+                # precision = self.precision(prediction)
+                precision = 0.
                 total_prediction_error_size += prediction_error_size
 
                 # Sometimes numpy entropy calculation returns extremely small numbers when there's no error
@@ -78,8 +78,9 @@ class GenerativeModel:
 
         :rtype: list of Distributions
 
-        #TODO: A fundamental problem with PP?: Cannot do prediction>error minimization with one loop per node,
-        #TODO: since a sister LEN node which does not yet have the correct input will revert the hypothesis update.
+        #TODO: A fundamental problem with PP (specifically using Bayesian Networks)?: Cannot do prediction>error mini-
+        #TODO: mization with one loop per node, since a sister LEN node which does not yet have the correct input will
+        #TODO: revert the hypothesis update.
         """
         evidence = self.get_root_values()
         return self.bayesian_network.predict_proba(evidence)
@@ -118,8 +119,9 @@ class GenerativeModel:
     @staticmethod
     def precision(pred):
         """
+        TODO
         Calculates the precision of the prediction, indicating the certainty of the prediction.
-        Usually calculated as the negative log likelihood (TODO)
+        Usually calculated as the negative log likelihood
 
         :param pred: Prediction to calculate the precision for
         :return: precision of the prediction
@@ -127,13 +129,14 @@ class GenerativeModel:
         :type: pred: np.array
         :rtype: float
         """
-        return entropy(pred, base=2)
+        raise NotImplementedError
 
     def error_minimization(self, node_name, precision, prediction_error, prediction):
         """
         Attempts to minimize the prediction error by one of the possible PEM methods:
-            1) Hypothesis Update
-            2) Model Update
+            1) Hypothesis Update (Perceptual Inference)
+            2) Action/Intervention (Active Inference)
+            3) Model/Structure Update TODO
 
         :param node_name: name of the node causing the prediction error
         :param precision: precision of the prediction
@@ -145,7 +148,10 @@ class GenerativeModel:
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        self.hypothesis_update(node_name, prediction_error, prediction)
+        if node_name in self.peepo.network.get_pro_nodes():
+            self.peepo.action(node_name, prediction)
+        else:
+            self.hypothesis_update(node_name, prediction_error, prediction)
 
     def hypothesis_update(self, node_name, prediction_error, prediction):
         """
@@ -159,20 +165,18 @@ class GenerativeModel:
         :type prediction_error: np.array
         :type prediction: np.array
         """
-        if node_name in self.peepo.network.get_pro_nodes():
-            self.peepo.action(node_name, prediction)
-        else:
-            evidence = {node_name: np.argmax(prediction_error + prediction)}
-            result = self.bayesian_network.predict_proba(evidence)
+        evidence = {node_name: np.argmax(prediction_error + prediction)}
+        result = self.bayesian_network.predict_proba(evidence)
 
-            for root in self.get_roots():
-                root_index = self.get_node_index(root.name)
+        for root in self.get_roots():
+            root_index = self.get_node_index(root.name)
 
-                old_hypo = self.bayesian_network.states[root_index].distribution.items()
-                new_hypo = result[root_index].items()
+            old_hypo = self.bayesian_network.states[root_index].distribution.items()
 
-                self.bayesian_network.states[root_index].distribution = DiscreteDistribution(dict(new_hypo))
-                logging.debug("node[%s] hypothesis-update from %s to %s", root.name, old_hypo, new_hypo)
+            new_hypo = result[root_index].items()
+
+            self.bayesian_network.states[root_index].distribution = DiscreteDistribution(dict(new_hypo))
+            logging.debug("node[%s] hypothesis-update from %s to %s", root.name, old_hypo, new_hypo)
 
     def get_root_values(self):
         return {x.name: x.distribution.mle() for x in self.get_roots()}
