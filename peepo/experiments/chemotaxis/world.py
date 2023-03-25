@@ -1,26 +1,20 @@
 import pygame as pg
 import numpy as np
 
+from peepo.experiments.chemotaxis.organism import Bacteria
 
-
-CAPTION = "Bacterial Chemotaxis"
-SCREEN_SIZE = (800, 800)
 plate_length = 80
 
 alpha = 2
 delta_x = 1
 
-delta_t = (delta_x ** 2)/(4 * alpha)
+delta_t = (delta_x ** 2) / (4 * alpha)
 gamma = (alpha * delta_t) / (delta_x ** 2)
 
 
 class World:
 
-    def __init__(self):
-        pg.init()
-        pg.display.set_caption(CAPTION)
-        pg.display.set_mode(SCREEN_SIZE)
-
+    def __init__(self, organism: Bacteria):
         self.screen = pg.display.get_surface()
         self.screen_rect = self.screen.get_rect()
         self.clock = pg.time.Clock()
@@ -41,8 +35,13 @@ class World:
         self.u[:1, 1:] = 0.
         self.u[:, (plate_length - 1):] = 0.
 
+        self.organism = organism
+
     def main_loop(self):
         while not self.done:
+            self.organism.set_surroundings(self.get_surroundings())
+            self.organism.update()
+
             self.event_loop()
             self.render()
             self.clock.tick(self.fps)
@@ -52,19 +51,26 @@ class World:
             if event.type == pg.QUIT:
                 self.done = True
 
-        for i in range(1, plate_length-1, delta_x):
-            for j in range(1, plate_length-1, delta_x):
+        for i in range(1, plate_length - 1, delta_x):
+            for j in range(1, plate_length - 1, delta_x):
                 if (i, j) == self.source_1 or (i, j) == self.source_2:
                     continue
-                self.u[i, j] = gamma * (self.u[i+1][j] + self.u[i-1][j] + self.u[i][j+1] + self.u[i][j-1] - 4*self.u[i][j]) + self.u[i][j]
+                self.u[i, j] = gamma * (
+                            self.u[i + 1][j] + self.u[i - 1][j] + self.u[i][j + 1] + self.u[i][j - 1] - 4 * self.u[i][
+                        j]) + self.u[i][j]
 
     def render(self):
         a = np.repeat(np.repeat(self.u, 10, 0), 10, 1)
         pg.surfarray.blit_array(self.screen, a)
 
+        self.organism.draw(self.screen)
+
         pg.display.update()
 
-
-if __name__ == "__main__":
-    world = World()
-    world.main_loop()
+    def get_surroundings(self):
+        x, y = self.organism.get_pos()
+        m = np.repeat(np.repeat(self.u, 10, 0), 10, 1)
+        surrounding_size = 4
+        surrounding_values = m[max(0, y - surrounding_size // 2):min(m.shape[0], y + surrounding_size // 2 + 1),
+                               max(0, x - surrounding_size // 2):min(m.shape[1], x + surrounding_size // 2 + 1)]
+        return surrounding_values
