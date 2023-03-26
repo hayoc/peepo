@@ -1,0 +1,47 @@
+{
+  "header": {
+    "identification": "Chemotaxis",
+    "description": "",
+    "frozen": false,
+    "train_from": "",
+    "date": "2019-04-16 19:28:09.727316"
+  },
+  "nodes": {
+    "RON": [
+      {
+        "name": "ROOT_1",
+        "card": 2
+      },
+      {
+        "name": "ROOT_2",
+        "card": 2
+      },
+      {
+        "name": "ROOT_3",
+        "card": 2
+      },
+      {
+        "name": "ROOT_4",
+        "card": 2
+      }
+    ],
+    "EXT": [
+      {
+        "name": "LEN_vision_0",
+        "card": 2
+      }
+    ],
+    "PRO": [
+      {
+        "name": "LEN_motor_left",
+        "card": 2
+      },
+      {
+        "name": "LEN_motor_right",
+        "card": 2
+      }
+    ]
+  },
+  "edges": [],
+  "cpds": {}
+}

@@ -13,23 +13,28 @@ class Bacteria(Peepo):
     RADIUS = 50
     SPEED = 2
 
-    def __init__(self, name, network, pos=(0, 0)):
+    def __init__(self, name, network, graphical=True, pos=(0, 0)):
         super().__init__(network)
 
         self.name = name
+        self.graphical = graphical
         self.rect = pg.Rect(pos, Bacteria.SIZE)
         self.rect.center = pos
         self.rotation = 0
 
-        self.image = self.make_image()
-        self.image_original = self.image.copy()
+        if self.graphical:
+            self.image = self.make_image()
+            self.image_original = self.image.copy()
 
-        self.flagella_prb = 0.6  # likelihood that flagella will cause tumble or run
-        self.surroundings = np.empty((4, 4))
+        self.flagella_prb = 0.8  # likelihood that flagella will cause tumble or run
+        self.surroundings = np.empty((3, 3))
         self.generative_model = GenerativeModel(self, n_jobs=1)
 
+        self.health = 1000
+
     def observation(self, name):
-        center_pos = np.array([(Bacteria.SIZE[0]-1)/2, (Bacteria.SIZE[1]-1)/2])
+        # todo: distinguish between the OBS node and the MOTOR node
+        center_pos = np.array([(Bacteria.SIZE[0]-1)/2, (Bacteria.SIZE[1]-1)/2]).astype(int)
         center_val = self.surroundings[center_pos[0]][center_pos[1]]
 
         angle_radians = np.radians(self.rotation)
@@ -56,7 +61,7 @@ class Bacteria(Peepo):
     def update(self):
         self.generative_model.process()
 
-        # flagella switch between tumble and run at random (initially 60% chance to tumble)
+        # flagella switch between tumble and run at random (initially 60% chance to run)
         if random.random() < self.flagella_prb:
             self.rect.x += Bacteria.SPEED * math.cos(math.radians(self.rotation))
             self.rect.y += Bacteria.SPEED * math.sin(math.radians(self.rotation))
@@ -65,11 +70,20 @@ class Bacteria(Peepo):
             if self.rotation > 360:
                 self.rotation = 0
 
-        self.image = pg.transform.rotate(self.image_original, -self.rotation)
-        self.rect = self.image.get_rect(center=self.rect.center)
+        if self.graphical:
+            self.image = pg.transform.rotate(self.image_original, -self.rotation)
+            self.rect = self.image.get_rect(center=self.rect.center)
 
         if self.rect.x < 0 or self.rect.y < 0 or self.rect.x > 800 or self.rect.y > 800:
             self.rect.x, self.rect.y = 400, 400
+
+        self.health -= 1
+        center_pos = np.array([(Bacteria.SIZE[0]-1)/2, (Bacteria.SIZE[1]-1)/2]).astype(int)
+        center_val = self.surroundings[center_pos[0]][center_pos[1]]
+        if center_val > 0.1:
+            self.health += 2
+        if self.health < 0:
+            self.health = 0
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)

@@ -14,9 +14,11 @@ gamma = (alpha * delta_t) / (delta_x ** 2)
 
 class World:
 
-    def __init__(self, organism: Bacteria):
-        self.screen = pg.display.get_surface()
-        self.screen_rect = self.screen.get_rect()
+    def __init__(self, peepos, graphical=True):
+        self.graphical = graphical
+        if self.graphical:
+            self.screen = pg.display.get_surface()
+            self.screen_rect = self.screen.get_rect()
         self.clock = pg.time.Clock()
         self.fps = 60
         self.done = False
@@ -35,16 +37,28 @@ class World:
         self.u[:1, 1:] = 0.
         self.u[:, (plate_length - 1):] = 0.
 
-        self.organism = organism
+        self.peepos = peepos
 
-    def main_loop(self):
+    def main_loop(self, max_age):
+        loop = 0
+
         while not self.done:
-            self.organism.set_surroundings(self.get_surroundings())
-            self.organism.update()
+            for peepo in self.peepos:
+                peepo.set_surroundings(self.get_surroundings(peepo))
+                peepo.update()
 
-            self.event_loop()
-            self.render()
-            self.clock.tick(self.fps)
+            if self.graphical:
+                self.event_loop()
+                self.render()
+                self.clock.tick(self.fps)
+
+            loop += 1
+            print(loop)
+            if loop > max_age:
+                for peepo in self.peepos:
+                    print(peepo.health)
+                break
+
 
     def event_loop(self):
         for event in pg.event.get():
@@ -63,14 +77,15 @@ class World:
         a = np.repeat(np.repeat(self.u, 10, 0), 10, 1)
         pg.surfarray.blit_array(self.screen, a)
 
-        self.organism.draw(self.screen)
+        for peepo in self.peepos:
+            peepo.draw(self.screen)
 
         pg.display.update()
 
-    def get_surroundings(self):
-        x, y = self.organism.get_pos()
+    def get_surroundings(self, peepo):
+        x, y = peepo.get_pos()
         m = np.repeat(np.repeat(self.u, 10, 0), 10, 1)
-        surrounding_size = 4
+        surrounding_size = 6
         surrounding_values = m[max(0, y - surrounding_size // 2):min(m.shape[0], y + surrounding_size // 2 + 1),
                                max(0, x - surrounding_size // 2):min(m.shape[1], x + surrounding_size // 2 + 1)]
         return surrounding_values
