@@ -29,7 +29,7 @@ class World:
         self.source_1 = (25, 20)
         self.u[self.source_1] = 100.
 
-        self.source_2 = (70, 61)
+        self.source_2 = (25, 20)
         self.u[self.source_2] = 100.
 
         self.u[(plate_length - 1):, :] = 0.
@@ -52,12 +52,11 @@ class World:
                 self.render()
                 self.clock.tick(self.fps)
 
-            loop += 1
-            print(loop)
-            if loop > max_age:
-                for peepo in self.peepos:
-                    print(peepo.health)
-                break
+            # loop += 1
+            # if loop > max_age:
+            #     for peepo in self.peepos:
+            #         print(peepo.health)
+            #     break
 
 
     def event_loop(self):
@@ -80,12 +79,12 @@ class World:
         for peepo in self.peepos:
             peepo.draw(self.screen)
 
-        pg.display.update()
+        pg.display.flip()
 
     def get_surroundings(self, peepo):
         x, y = peepo.get_pos()
         m = np.repeat(np.repeat(self.u, 10, 0), 10, 1)
-        surrounding_size = 6
+        surrounding_size = 9
         surrounding_values = m[max(0, y - surrounding_size // 2):min(m.shape[0], y + surrounding_size // 2 + 1),
                                max(0, x - surrounding_size // 2):min(m.shape[1], x + surrounding_size // 2 + 1)]
         return surrounding_values

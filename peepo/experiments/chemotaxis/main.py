@@ -7,6 +7,7 @@ import numpy as np
 
 from peepo.experiments.chemotaxis.organism import Bacteria
 from peepo.experiments.chemotaxis.world import World
+from peepo.pp.generative_model import GenerativeModel
 from peepo.pp.genetic_algorithm import GeneticAlgorithm
 from peepo.pp.peepo_network import read_from_file, write_to_file
 
@@ -15,6 +16,9 @@ SCREEN_SIZE = (800, 800)
 
 
 def run():
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
+
     os.environ['SDL_VIDEO_CENTERED'] = '1'
 
     pg.init()
@@ -22,7 +26,11 @@ def run():
     pg.display.set_mode(SCREEN_SIZE)
 
     network = read_from_file('best_chemotaxis')
-    bacteria = [Bacteria("e.coli", network, (400, 400))]
+    bacteria = [Bacteria("e.coli", network, True, (701, 115))]
+
+    # generative_model = GenerativeModel(Bacteria("e.coli", network, (400, 400)), n_jobs=1)
+    # result = generative_model.predict()
+    # print(result)
     world = World(bacteria)
 
     world.main_loop(100000)
