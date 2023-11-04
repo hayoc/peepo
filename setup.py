@@ -12,8 +12,8 @@ setup(
     license='LICENSE',
     description='Personhood through Predictive Processing.',
     long_description=open('README.md').read(),
-    install_requires=['scipy', 'numpy', 'matplotlib', 'pandas', 'networkx', 'pygame', 'flask',
-                      'cython', 'pomegranate'],
+    install_requires=['scipy', 'numpy', 'matplotlib', 'pgmpy', 'pandas', 'wrapt', 'networkx', 'pygame', 'flask',
+                      'cython', 'pomegranate==0.14.8', 'pathos', 'seaborn', 'agentpy', 'pgmax', 'jax'],
     setup_requires=[]
 )
 

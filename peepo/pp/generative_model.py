@@ -168,15 +168,15 @@ class GenerativeModel:
         evidence = {node_name: np.argmax(prediction_error + prediction)}
         result = self.bayesian_network.predict_proba(evidence)
 
-        for root in self.get_roots():
-            root_index = self.get_node_index(root.name)
+        for parent in self.peepo.network.get_incoming_edges(node_name):
+            root_index = self.get_node_index(parent)
 
             old_hypo = self.bayesian_network.states[root_index].distribution.items()
 
             new_hypo = result[root_index].items()
 
             self.bayesian_network.states[root_index].distribution = DiscreteDistribution(dict(new_hypo))
-            logging.debug("node[%s] hypothesis-update from %s to %s", root.name, old_hypo, new_hypo)
+            logging.debug("node[%s] hypothesis-update from %s to %s", parent, old_hypo, new_hypo)
 
     def get_root_values(self):
         return {x.name: x.distribution.mle() for x in self.get_roots()}

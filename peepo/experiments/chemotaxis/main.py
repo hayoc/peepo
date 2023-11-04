@@ -26,7 +26,7 @@ def run():
     pg.display.set_mode(SCREEN_SIZE)
 
     network = read_from_file('best_chemotaxis')
-    bacteria = [Bacteria("e.coli", network, True, (701, 115))]
+    bacteria = [Bacteria("e.coli", network, True, (115, 115))]
 
     # generative_model = GenerativeModel(Bacteria("e.coli", network, (400, 400)), n_jobs=1)
     # result = generative_model.predict()

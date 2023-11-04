@@ -1,5 +1,5 @@
 import pygame as pg
-
+import time
 from peepo.pp.peepo import Peepo
 
 
